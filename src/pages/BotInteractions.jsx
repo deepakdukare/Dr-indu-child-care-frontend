@@ -42,8 +42,7 @@ const BotInteractions = () => {
             <div className="title-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <div>
-                        <h1>Bot Interactions (Leads)</h1>
-                        <p>Track interactions from people who Haven't registered as patients yet.</p>
+                        <h1 title="Track interactions from people who Haven't registered as patients yet.">Bot Interactions</h1>
                     </div>
                     <button className="btn btn-outline" onClick={fetchData} disabled={loading}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

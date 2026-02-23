@@ -71,27 +71,43 @@ const Dashboard = () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     return (
-        <div>
-            <div className="title-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="dashboard-page">
+            <div className="title-section" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                marginBottom: '2rem'
+            }}>
                 <div>
                     <h1>Overview</h1>
-                    <p>Welcome back, {user.full_name || user.username || 'Admin'}! Here's what's happening today ({today}).</p>
+                    <p style={{ marginTop: '0.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                        Welcome back, {user.full_name || user.username || 'Dr. Indu'}!
+                    </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    {dbStatus && (
-                        <span style={{
-                            fontSize: '0.75rem', padding: '0.25rem 0.75rem',
-                            borderRadius: '999px', fontWeight: 600,
-                            background: dbStatus === 'connected' ? '#dcfce7' : '#fee2e2',
-                            color: dbStatus === 'connected' ? '#16a34a' : '#dc2626'
-                        }}>
-                            DB: {dbStatus}
-                        </span>
-                    )}
-                    <button className="btn btn-outline" onClick={load} style={{ gap: '0.4rem', display: 'flex', alignItems: 'center' }}>
-                        <RefreshCw size={14} className={loading ? 'spin' : ''} />
-                        Refresh
-                    </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        {dbStatus && (
+                            <span style={{
+                                fontSize: '0.75rem', padding: '0.25rem 0.75rem',
+                                borderRadius: '999px', fontWeight: 600,
+                                background: dbStatus === 'connected' ? '#dcfce7' : '#fee2e2',
+                                color: dbStatus === 'connected' ? '#16a34a' : '#dc2626',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                DB: {dbStatus}
+                            </span>
+                        )}
+                        <button className="btn btn-outline" onClick={load} style={{ gap: '0.4rem', display: 'flex', alignItems: 'center', height: '38px', padding: '0 1rem' }}>
+                            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+                            <span className="mobile-hide">Refresh</span>
+                            {!loading && <span className="mobile-only" style={{ display: 'none' }}>↻</span>}
+                        </button>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                        {today}
+                    </div>
                 </div>
             </div>
 
