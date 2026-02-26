@@ -107,77 +107,77 @@ const Patients = () => {
     };
 
     return (
-        <div>
-            <div className="title-section">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                    <div>
-                        <h1>Registered Patients</h1>
-                        <p>Search by name, mobile number or patient ID (e.g. DICC-2026-0001).</p>
+        <div className="patients-page">
+            <div className="title-section" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                        <h1 title="Manage patient records and registrations." style={{ margin: 0, fontSize: '1.5rem' }}>Registered Patients</h1>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button className="btn btn-primary" onClick={() => { setEditId(null); setForm(EMPTY_FORM); setShowModal(true); setFormErr(null); setFormOk(null); }}>
-                            <UserPlus size={18} /> Register Patient
+                    <div className="action-buttons" style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: window.innerWidth < 480 ? '100%' : '320px', flexWrap: 'wrap' }}>
+                        <button className="btn btn-primary" style={{ flex: '1 1 140px', height: '40px', fontSize: '0.85rem' }} onClick={() => { setEditId(null); setForm(EMPTY_FORM); setShowModal(true); setFormErr(null); setFormOk(null); }}>
+                            <UserPlus size={16} /> Register Patient
                         </button>
                         <button
                             className="btn btn-outline"
                             onClick={() => {
                                 const link = window.location.origin + '/register-form';
                                 navigator.clipboard.writeText(link);
-                                setFormOk('Registration link copied to clipboard!');
+                                setFormOk('Link copied!');
                                 setTimeout(() => setFormOk(null), 3000);
                             }}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            style={{ flex: '1 1 120px', height: '40px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                         >
-                            <Share2 size={18} /> Share Form
+                            <Share2 size={16} /> Share Form
                         </button>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div className="search-box">
-                        <Search className="search-icon" size={20} />
+
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="search-box" style={{ flex: '1 1 100%', minWidth: '0' }}>
+                        <Search className="search-icon" size={18} />
                         <input
                             type="text"
-                            placeholder="Search by name, mobile or ID..."
+                            placeholder="Name, mobile or ID..."
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                            style={{ width: '100%', fontSize: '0.875rem' }}
                         />
                     </div>
 
-                    <select
-                        value={sourceFilter}
-                        onChange={e => { setSourceFilter(e.target.value); setPage(1); }}
-                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', outline: 'none', background: '#fff', fontSize: '0.85rem' }}
-                    >
-                        <option value="">All Sources</option>
-                        <option value="dashboard">Dashboard</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="form">Online Form</option>
-                        <option value="api">External API</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                        <select
+                            value={sourceFilter}
+                            onChange={e => { setSourceFilter(e.target.value); setPage(1); }}
+                            style={{ flex: 1, minWidth: '0', padding: '0.6rem 0.4rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: '#fff', fontSize: '0.8rem' }}
+                        >
+                            <option value="">All Sources</option>
+                            <option value="dashboard">Dashboard</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="form">Online Form</option>
+                        </select>
 
-                    <select
-                        value={statusFilter}
-                        onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid var(--border-color)', outline: 'none', background: '#fff', fontSize: '0.85rem' }}
-                    >
-                        <option value="">All Status</option>
-                        <option value="COMPLETE">Complete</option>
-                        <option value="PENDING">Pending</option>
-                    </select>
+                        <select
+                            value={statusFilter}
+                            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                            style={{ flex: 1, minWidth: '0', padding: '0.6rem 0.4rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: '#fff', fontSize: '0.8rem' }}
+                        >
+                            <option value="">All Status</option>
+                            <option value="COMPLETE">Complete</option>
+                            <option value="PENDING">Pending</option>
+                        </select>
 
-                    <button className="btn btn-outline" onClick={() => doSearch(search, page, sourceFilter, statusFilter)} disabled={loading}>
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    </button>
+                        <button className="btn btn-outline" style={{ padding: '0.6rem', height: '38px' }} onClick={() => doSearch(search, page, sourceFilter, statusFilter)} disabled={loading}>
+                            <RefreshCw size={16} className={loading ? 'spin' : ''} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {
-                error && (
-                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.5rem', color: '#dc2626', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <AlertCircle size={16} /> {error}
-                    </div>
-                )
-            }
+            {error && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.5rem', color: '#dc2626', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <AlertCircle size={16} /> {error}
+                </div>
+            )}
 
             {/* Results */}
             <div className="card">
@@ -194,10 +194,10 @@ const Patients = () => {
                             <tr>
                                 <th>Patient ID</th>
                                 <th>Child Name</th>
-                                <th>Parent Name</th>
+                                <th className="mobile-hide">Parent Name</th>
                                 <th>MOBILE</th>
                                 <th>DOB / AGE</th>
-                                <th>SOURCE</th>
+                                <th className="mobile-hide">SOURCE</th>
                                 <th>STATUS</th>
                                 <th>ACTION</th>
                             </tr>
@@ -208,10 +208,10 @@ const Patients = () => {
                                     <tr style={{ background: selected?.patient_id === p.patient_id ? 'var(--primary-light)' : 'transparent', transition: 'var(--transition)' }}>
                                         <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.82rem', color: '#6366f1' }}>{p.patient_id}</td>
                                         <td style={{ fontWeight: 600, color: '#1e293b' }}>{p.child_name}</td>
-                                        <td>{p.parent_name}</td>
+                                        <td className="mobile-hide">{p.parent_name}</td>
                                         <td>{p.parent_mobile}</td>
                                         <td style={{ fontSize: '0.85rem' }}>{dobDisplay(p.dob)}</td>
-                                        <td>
+                                        <td className="mobile-hide">
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', background: p.registration_source === 'WHATSAPP' ? '#dcfce7' : p.registration_source === 'FORM' ? '#fef9c3' : '#f1f5f9', color: p.registration_source === 'WHATSAPP' ? '#15803d' : p.registration_source === 'FORM' ? '#a16207' : '#64748b', border: '1px solid currentColor', opacity: 0.8 }}>
                                                 {p.registration_source || 'DASHBOARD'}
                                             </span>
@@ -227,7 +227,7 @@ const Patients = () => {
                                                 style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', height: 'auto' }}
                                                 onClick={() => setSelected(selected?.patient_id === p.patient_id ? null : p)}
                                             >
-                                                {selected?.patient_id === p.patient_id ? 'Hide Detail' : 'View Detail'}
+                                                {selected?.patient_id === p.patient_id ? 'Hide' : 'View'}
                                             </button>
                                         </td>
                                     </tr>

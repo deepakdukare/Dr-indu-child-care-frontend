@@ -313,7 +313,11 @@ const Scheduling = () => {
     const bySession = SESSION_OPTIONS.reduce((acc, s) => {
         acc[s] = slots
             .filter(sl => sl.session === s)
-            .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+            .sort((a, b) => {
+                const start = (a.start_time || '').localeCompare(b.start_time || '');
+                if (start !== 0) return start;
+                return (a.end_time || '').localeCompare(b.end_time || '');
+            });
         return acc;
     }, {});
 
@@ -333,8 +337,7 @@ const Scheduling = () => {
             <div className="title-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                        <h1>Scheduling</h1>
-                        <p>Manage clinic time slots and daily availability.</p>
+                        <h1 title="Manage clinic time slots and daily availability.">Scheduling</h1>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <TabBtn id="master" icon={Clock} label="Slot Master" />
@@ -378,7 +381,7 @@ const Scheduling = () => {
                                 <h3 style={{ color: '#4338ca', margin: 0 }}>Add New Slot</h3>
                             </div>
                             <form onSubmit={handleAdd} style={{ padding: '1.25rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 0.6fr', gap: '0.75rem', alignItems: 'end' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.75rem', alignItems: 'end' }}>
                                     <div>
                                         <label style={labelStyle}>Label *</label>
                                         <input required style={inputStyle} placeholder="e.g. 10:00 – 10:30 AM"
@@ -400,11 +403,6 @@ const Scheduling = () => {
                                             value={form.session} onChange={e => setForm(f => ({ ...f, session: e.target.value }))}>
                                             {SESSION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
-                                    </div>
-                                    <div>
-                                        <label style={labelStyle}>Order</label>
-                                        <input type="number" min={0} style={inputStyle} placeholder="0"
-                                            value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
@@ -434,8 +432,8 @@ const Scheduling = () => {
                                         <table style={{ width: '100%' }}>
                                             <thead>
                                                 <tr style={{ background: SESSION_BG[session] }}>
-                                                    {['Slot ID', 'Label', 'Start', 'End', 'Order', 'Status', 'Actions'].map(h => (
-                                                        <th key={h} style={{ padding: '0.65rem 1rem', textAlign: 'left', fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{h}</th>
+                                                    {['Slot ID', 'Label', 'Start', 'End', 'Status', 'Actions'].map(h => (
+                                                        <th key={h} style={{ padding: '0.65rem 1rem', textAlign: h === 'Actions' ? 'right' : 'left', fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>{h}</th>
                                                     ))}
                                                 </tr>
                                             </thead>
@@ -448,7 +446,6 @@ const Scheduling = () => {
                                                                 <td style={{ padding: '0.5rem 0.5rem' }}><input style={{ ...inputStyle, width: '160px' }} value={editForm.slot_label} onChange={e => setEditForm(f => ({ ...f, slot_label: e.target.value }))} /></td>
                                                                 <td style={{ padding: '0.5rem 0.5rem' }}><input type="time" style={{ ...inputStyle, width: '110px' }} value={editForm.start_time} onChange={e => setEditForm(f => ({ ...f, start_time: e.target.value }))} /></td>
                                                                 <td style={{ padding: '0.5rem 0.5rem' }}><input type="time" style={{ ...inputStyle, width: '110px' }} value={editForm.end_time} onChange={e => setEditForm(f => ({ ...f, end_time: e.target.value }))} /></td>
-                                                                <td style={{ padding: '0.5rem 0.5rem' }}><input type="number" style={{ ...inputStyle, width: '70px' }} value={editForm.sort_order} onChange={e => setEditForm(f => ({ ...f, sort_order: e.target.value }))} /></td>
                                                                 <td colSpan={2} style={{ padding: '0.5rem 1rem', textAlign: 'right' }}>
                                                                     <button className="btn btn-primary" style={{ padding: '0.3rem 0.7rem', height: 'auto', fontSize: '0.78rem', marginRight: '0.4rem' }} onClick={() => handleSaveEdit(s.slot_id)} disabled={saving}>
                                                                         <Check size={13} style={{ marginRight: '0.3rem' }} /> Save
@@ -464,7 +461,6 @@ const Scheduling = () => {
                                                                 <td style={{ padding: '0.65rem 1rem', fontWeight: 600, fontSize: '0.875rem' }}>{s.slot_label}</td>
                                                                 <td style={{ padding: '0.65rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{fmt12(s.start_time)}</td>
                                                                 <td style={{ padding: '0.65rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{fmt12(s.end_time)}</td>
-                                                                <td style={{ padding: '0.65rem 1rem', fontSize: '0.85rem', color: '#94a3b8' }}>{s.sort_order}</td>
                                                                 <td style={{ padding: '0.65rem 1rem' }}>
                                                                     <button onClick={() => toggleActive(s)}
                                                                         style={{
@@ -718,11 +714,11 @@ const Scheduling = () => {
                                                                 {fmt12(slot.start_time)}
                                                             </td>
                                                             {weekDates.map((dateStr, dayIdx) => {
-                                                                        const cellKey = `${slot.slot_id}_${dateStr}`;
-                                                                        const cell = weekGrid[slot.slot_id]?.[dateStr];
-                                                                        // weekDays stores per-slot a map of doctor-type -> Set(days)
-                                                                        const slotDaysForDoc = (weekDays[slot.slot_id] && weekDays[slot.slot_id][docType]) || new Set([0, 1, 2, 3, 4, 5, 6]);
-                                                                        const inTemplate = slotDaysForDoc.has(dayIdx);
+                                                                const cellKey = `${slot.slot_id}_${dateStr}`;
+                                                                const cell = weekGrid[slot.slot_id]?.[dateStr];
+                                                                // weekDays stores per-slot a map of doctor-type -> Set(days)
+                                                                const slotDaysForDoc = (weekDays[slot.slot_id] && weekDays[slot.slot_id][docType]) || new Set([0, 1, 2, 3, 4, 5, 6]);
+                                                                const inTemplate = slotDaysForDoc.has(dayIdx);
                                                                 const isBooked = cell?.is_booked;
                                                                 const isBlocked = cell?.blocked_by_admin;
                                                                 const isBusy = blocking[cellKey];

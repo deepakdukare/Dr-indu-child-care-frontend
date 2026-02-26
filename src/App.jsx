@@ -23,7 +23,34 @@ import Scheduling from './pages/Scheduling';
 import PublicRegister from './pages/PublicRegister';
 import BotInteractions from './pages/BotInteractions';
 
-const Sidebar = ({ onLogout }) => {
+const MobileNav = () => {
+    const location = useLocation();
+
+    const navItems = [
+        { name: 'Home', path: '/', icon: LayoutDashboard },
+        { name: 'Appts', path: '/appointments', icon: Calendar },
+        { name: 'Schedule', path: '/scheduling', icon: Clock },
+        { name: 'Patients', path: '/patients', icon: Users },
+        { name: 'Settings', path: '/settings', icon: SettingsIcon },
+    ];
+
+    return (
+        <div className="mobile-bottom-nav">
+            {navItems.map((item) => (
+                <Link
+                    key={item.name}
+                    to={item.path}
+                    className={`mobile-nav-item ${location.pathname === item.path ? 'active' : ''}`}
+                >
+                    <item.icon size={22} />
+                    <span>{item.name}</span>
+                </Link>
+            ))}
+        </div>
+    );
+};
+
+const Sidebar = ({ onLogout, isCollapsed }) => {
     const location = useLocation();
 
     const navItems = [
@@ -31,16 +58,16 @@ const Sidebar = ({ onLogout }) => {
         { name: 'Appointments', path: '/appointments', icon: Calendar },
         { name: 'Scheduling', path: '/scheduling', icon: Clock },
         { name: 'Patients', path: '/patients', icon: Users },
-        { name: 'Bot Leads', path: '/bot-interactions', icon: MessageSquare },
+        { name: 'Bot Interactions', path: '/bot-interactions', icon: MessageSquare },
         { name: 'MRD', path: '/mrd', icon: FileText },
         { name: 'Settings', path: '/settings', icon: SettingsIcon },
     ];
 
     return (
-        <div className="sidebar">
+        <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="logo">
                 <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 4px 6px rgba(99, 102, 241, 0.2))' }}>🩺</div>
-                <span style={{ letterSpacing: '-0.02em' }}>Dr. Indu Child Care</span>
+                <span>Dr. Indu Child Care</span>
             </div>
             <ul className="nav-links">
                 {navItems.map((item) => (
@@ -48,9 +75,22 @@ const Sidebar = ({ onLogout }) => {
                         <Link
                             to={item.path}
                             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+                            title={
+                                item.name === 'Appointments'
+                                    ? "Manage clinic schedule and upcoming visits. can be booked through whatsapp, form, admin and also book."
+                                    : item.name === 'Scheduling'
+                                        ? "Manage clinic time slots and daily availability."
+                                        : item.name === 'Patients'
+                                            ? "Manage patient records and registrations."
+                                            : item.name === 'Bot Interactions'
+                                                ? "Track interactions from people who Haven't registered as patients yet."
+                                                : item.name === 'MRD'
+                                                    ? "Search a patient to view or update their longitudinal health file."
+                                                    : ""
+                            }
                         >
                             <item.icon size={20} />
-                            {item.name}
+                            <span>{item.name}</span>
                         </Link>
                     </li>
                 ))}
@@ -64,11 +104,12 @@ const Sidebar = ({ onLogout }) => {
                         background: 'none',
                         border: 'none',
                         cursor: 'pointer',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        justifyContent: 'flex-start'
                     }}
                 >
                     <LogOut size={20} />
-                    Logout
+                    <span>Logout</span>
                 </button>
             </div>
         </div>
@@ -82,29 +123,30 @@ const Header = () => {
     const initial = displayName.charAt(0).toUpperCase();
 
     return (
-        <header className="header">
-            <div className="search-bar" style={{ position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                    type="text"
-                    placeholder="Quick search patients..."
-                    style={{
-                        padding: '0.75rem 1rem 0.75rem 2.75rem',
-                        borderRadius: '14px',
-                        border: '1px solid var(--border-color)',
-                        width: '360px',
-                        outline: 'none',
-                        fontSize: '0.9rem',
-                        background: '#fff',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'var(--transition)'
-                    }}
-                    onFocus={(e) => { e.target.style.width = '420px'; e.target.style.borderColor = 'var(--primary)'; }}
-                    onBlur={(e) => { e.target.style.width = '360px'; e.target.style.borderColor = 'var(--border-color)'; }}
-                />
+        <header className="header" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                <div className="search-bar" style={{ position: 'relative', display: 'flex', flex: 1, maxWidth: '420px' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        style={{
+                            padding: '0.75rem 1rem 0.75rem 2.75rem',
+                            borderRadius: '14px',
+                            border: '1px solid var(--border-color)',
+                            width: '100%',
+                            outline: 'none',
+                            fontSize: '0.9rem',
+                            background: '#fff',
+                            boxShadow: 'var(--shadow-sm)',
+                            transition: 'var(--transition)'
+                        }}
+                    />
+                </div>
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <div style={{ position: 'relative', cursor: 'pointer' }}>
+                <div style={{ position: 'relative', cursor: 'pointer', display: 'flex' }} className="mobile-hide">
                     <Bell size={22} color="#64748b" />
                     <span style={{
                         position: 'absolute',
@@ -121,10 +163,6 @@ const Header = () => {
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)' }}>
                         {initial}
                     </div>
-                    <div style={{ lineHeight: '1.2' }}>
-                        <p style={{ fontSize: '0.875rem', fontWeight: '700', margin: 0, color: '#0f172a' }}>{displayName}</p>
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, fontWeight: '500' }}>{displayRole}</p>
-                    </div>
                 </div>
             </div>
         </header>
@@ -140,6 +178,7 @@ const App = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setIsAuthenticated(false);
     };
 
@@ -164,7 +203,7 @@ const App = () => {
                 {/* Admin Layout Routes */}
                 <Route path="/*" element={
                     <div className="app-container">
-                        <Sidebar onLogout={handleLogout} />
+                        <Sidebar onLogout={handleLogout} isCollapsed={false} />
                         <main className="main-content">
                             <Header />
                             <Routes>
@@ -178,6 +217,7 @@ const App = () => {
                                 <Route path="/login" element={<Navigate to="/" replace />} />
                             </Routes>
                         </main>
+                        <MobileNav />
                     </div>
                 } />
             </Routes>

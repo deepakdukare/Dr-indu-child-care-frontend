@@ -232,8 +232,7 @@ const Appointments = () => {
             <div className="title-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                        <h1>Appointments</h1>
-                        <p>Manage clinic schedule and upcoming visits. can be booked through whatsapp, form, admin and also book.</p>
+                        <h1 title="Manage clinic schedule and upcoming visits. can be booked through whatsapp, form, admin and also book.">Appointments</h1>
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         <button className="btn btn-outline" onClick={() => loadAppointments(date)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
