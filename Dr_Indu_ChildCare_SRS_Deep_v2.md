@@ -315,21 +315,15 @@ All API endpoints return responses in the following standardized format:
 
 #### 5.2.1 Doctor Selection Options
 
-| # | Doctor Type | Sub-text |
+| # | Doctor Name | Sub-text |
 |---|---|---|
-| 1 | Pulmonary Specialist | For breathing, asthma, lung issues |
-| 2 | Non-Pulmonary Pediatrician | General child health, fever, infections |
-| 3 | Vaccination Doctor | All routine and catch-up vaccinations |
-| 4 | Any Available Doctor | First available slot across all doctors |
+| 1 | deepak | For breathing, asthma, lung issues |
+| 2 | krishna | General child health, fever, infections |
+
 
 #### 5.2.2 Visit Type Options
 
-| Icon | Visit Type | Use Case |
-|---|---|---|
-| 💉 | Vaccination | Child requires scheduled or catch-up vaccine |
-| 🩺 | Routine Consultation | General health check or non-urgent issue |
-| 🫁 | Pulmonary / Lung Problem | Breathing difficulties, chronic cough, asthma |
-| 🔁 | Follow-up Visit | Return visit after a previous consultation |
+
 
 #### 5.2.3 Time Slot Configuration (FR-31)
 
@@ -337,7 +331,7 @@ All API endpoints return responses in the following standardized format:
 |---|---|---|---|---|---|
 | S1 | 10:00 – 10:30 AM | 10:00 | 10:30 | MORNING | ✅ Active |
 | S2 | 11:00 – 11:30 AM | 11:00 | 11:30 | MORNING | ✅ Active |
-| S3 | 11:30 AM – 12:00 PM | 11:30 | 12:00 | MORNING | ✅ Active |
+| S3 | 11:30 – 12:00 PM | 11:30 | 12:00 | MORNING | ✅ Active |
 | S4 | 05:00 – 05:30 PM | 17:00 | 17:30 | EVENING | ✅ Active |
 | S5 | 06:00 – 06:30 PM | 18:00 | 18:30 | EVENING | ✅ Active |
 | S6 | 06:30 – 07:00 PM | 18:30 | 19:00 | EVENING | ✅ Active |

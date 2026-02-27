@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Download, Printer, Lock, Paperclip, Plus, X, FileText, RefreshCw, Activity, User, Calendar, Shield, ArrowRight } from 'lucide-react';
-import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients } from '../api/index';
+import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getEntryByAppointment } from '../api/index';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -46,6 +46,7 @@ const MRD = () => {
     const [tab, setTab] = useState('details');
     const [keywordSearch, setKeywordSearch] = useState('');
     const [patientSearch, setPatientSearch] = useState('');
+    const [appointmentSearch, setAppointmentSearch] = useState('');
     const [filterType, setFilterType] = useState('ALL');
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState(EMPTY_ENTRY);
@@ -75,11 +76,39 @@ const MRD = () => {
         setRecLoading(true);
         try {
             const r = await getMRDByPatientId(p.patient_id);
-            const e = r.data?.data?.mrd_entries || [];
+            const e = r.data?.data?.entries || [];
             setRecords(e);
             if (e.length) setSelectedRecord(e[0]);
         } catch (e) { console.error(e); }
         finally { setRecLoading(false); }
+    };
+
+    const handleAppointmentLookup = async () => {
+        if (!appointmentSearch.trim()) return;
+        setRecLoading(true);
+        try {
+            const r = await getEntryByAppointment(appointmentSearch.trim());
+            const entry = r.data?.data;
+            if (entry) {
+                // If found, we might need to load the patient too
+                if (!selectedPatient || selectedPatient.patient_id !== entry.patient_id) {
+                    const pRes = await getPatients({ search: entry.patient_id });
+                    if (pRes.data?.data?.length > 0) {
+                        setSelectedPatient(pRes.data.data[0]);
+                    }
+                }
+                setRecords([entry]);
+                setSelectedRecord(entry);
+                setTab('details');
+            } else {
+                alert("No MRD entry found for this appointment ID");
+            }
+        } catch (e) {
+            console.error(e);
+            alert(e.response?.data?.message || "Failed to lookup appointment");
+        } finally {
+            setRecLoading(false);
+        }
     };
 
     const handleExport = async () => {
@@ -106,7 +135,7 @@ const MRD = () => {
             setForm(EMPTY_ENTRY);
             if (selectedPatient) {
                 const r = await getMRDByPatientId(selectedPatient.patient_id);
-                setRecords(r.data?.data?.mrd_entries || []);
+                setRecords(r.data?.data?.entries || []);
             }
         } catch (e) {
             setFormStatus({ error: e.response?.data?.message || e.message, success: null });
@@ -153,6 +182,19 @@ const MRD = () => {
                             }}
                         />
                         {dirLoading && <RefreshCw size={16} className="spinning" />}
+                    </div>
+                    <div className="search-bar-v3">
+                        <Paperclip size={18} className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Lookup Appointment ID..."
+                            value={appointmentSearch}
+                            onChange={(e) => setAppointmentSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAppointmentLookup()}
+                        />
+                        <button className="btn-mini-search" onClick={handleAppointmentLookup}>
+                            <ArrowRight size={14} />
+                        </button>
                     </div>
                     <button className="btn-sync-v3" onClick={() => loadDirectory()}>
                         <RefreshCw size={16} />
@@ -447,9 +489,11 @@ const MRD = () => {
                 .mrd-header-v3 .subtitle { font-size: 0.85rem; color: #64748b; margin: 0; font-weight: 600; }
                 
                 .header-actions { display: flex; gap: 1rem; align-items: center; }
-                .search-bar-v3 { position: relative; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; padding: 0 1rem; width: 300px; }
-                .search-bar-v3 input { background: transparent; border: none; padding: 0.75rem; width: 100%; outline: none; font-weight: 600; font-size: 0.9rem; }
+                .search-bar-v3 { position: relative; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; padding: 0 1rem; width: 260px; }
+                .search-bar-v3 input { background: transparent; border: none; padding: 0.75rem; width: 100%; outline: none; font-weight: 600; font-size: 0.85rem; }
                 .search-bar-v3 .search-icon { color: #94a3b8; }
+                .btn-mini-search { background: #6366f1; color: #fff; border: none; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 0.5rem; transition: 0.2s; }
+                .btn-mini-search:hover { background: #4338ca; }
                 
                 .btn-sync-v3 { background: #fff; border: 1px solid #e2e8f0; padding: 0.75rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; cursor: pointer; color: #1e293b; transition: 0.2s; }
                 .btn-sync-v3:hover { background: #f8fafc; border-color: #6366f1; color: #6366f1; }

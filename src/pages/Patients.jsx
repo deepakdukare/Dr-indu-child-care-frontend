@@ -244,7 +244,7 @@ const Patients = () => {
                             onClick={() => { setViewMode('add'); setShowInlineForm(true); setEditId(null); setForm(EMPTY_FORM); }}
                         >
                             <UserPlus size={18} />
-                            <span>Add New Patient</span>
+                            <span>New Enrollment</span>
                         </button>
                     </div>
                     <button className="btn-share-premium" onClick={copyFormLink}>
@@ -272,21 +272,7 @@ const Patients = () => {
             )}
 
             {viewMode === 'add' && showInlineForm && (
-                <div className="inline-form-premium" style={{ marginBottom: '2.5rem', animation: 'slideDown 0.4s ease' }}>
-                    <div className="inline-form-header">
-                        <div className="modal-title-group">
-                            <div className="modal-icon-wrap-v2">
-                                <Baby size={24} />
-                            </div>
-                            <div>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e293b' }}>{editId ? 'Update Registry' : 'New Enrollment'}</h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>{editId ? `Modifying record for ${editId}` : 'Add a new patient to the clinical repository'}</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setShowInlineForm(false)} className="modal-close-v3">
-                            <X size={24} />
-                        </button>
-                    </div>
+                <div className="inline-form-premium" style={{ animation: 'slideDown 0.4s ease' }}>
 
                     <form onSubmit={handleFormSubmit} className="modal-form-premium" style={{ background: '#fff', borderRadius: '24px', padding: '2rem', border: '1px solid #f1f5f9', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
                         <div className="form-scroll-area" style={{ maxHeight: 'none', overflow: 'visible' }}>
@@ -407,10 +393,6 @@ const Patients = () => {
                                         <label>Mother's Mobile</label>
                                         <input placeholder="9876543211" value={form.mother_mobile} onChange={e => setForm({ ...form, mother_mobile: e.target.value })} className="input-v3" />
                                     </div>
-                                    <div className="form-group-v2">
-                                        <label>WhatsApp ID</label>
-                                        <input placeholder="9876543210" value={form.wa_id} onChange={e => setForm({ ...form, wa_id: e.target.value })} className="input-v3" />
-                                    </div>
                                 </div>
 
                                 <div className="form-section-header">
@@ -442,9 +424,18 @@ const Patients = () => {
                                     </div>
                                     <div className="form-group-v2">
                                         <label>Preferred Doctor</label>
-                                        <select value={form.doctor} onChange={e => setForm({ ...form, doctor: e.target.value })} className="input-v3">
-                                            <option value="Dr. Indu">Dr. Indu</option>
-                                            {doctors.map(d => <option key={d._id} value={d.full_name}>{d.full_name}</option>)}
+                                        <select
+                                            value={form.doctor}
+                                            onChange={e => setForm({ ...form, doctor: e.target.value })}
+                                            className="input-v3"
+                                        >
+                                            <option value="">— Select Doctor —</option>
+                                            {doctors.length > 0
+                                                ? doctors.map(d => (
+                                                    <option key={d._id} value={d.full_name}>{d.full_name}</option>
+                                                ))
+                                                : <option value="Dr. Indu">Dr. Indu</option>
+                                            }
                                         </select>
                                     </div>
                                 </div>
@@ -459,7 +450,7 @@ const Patients = () => {
                         </div>
 
                         <div className="modal-footer-premium" style={{ marginTop: '2rem' }}>
-                            <button type="button" onClick={() => setShowInlineForm(false)} className="btn-cancel-v3">Discard</button>
+                            <button type="button" onClick={() => { setShowInlineForm(false); setViewMode('list'); setEditId(null); setForm(EMPTY_FORM); }} className="btn-cancel-v3">Cancel</button>
                             <button type="submit" className="btn-save-v3" disabled={submitting}>
                                 {submitting ? (
                                     <RefreshCw size={20} className="animate-spin" />
@@ -1174,7 +1165,24 @@ const Patients = () => {
                 .pag-info strong { color: #0f172a; }
                 .pag-total { margin-left: 0.5rem; font-size: 0.8rem; opacity: 0.7; }
 
-                /* Modal Section */
+                .inline-form-premium {
+                    background: #fff;
+                    border-radius: 32px;
+                    border: 1px solid #e8ecf4;
+                    box-shadow: 0 8px 40px rgba(99, 102, 241, 0.08);
+                    overflow: hidden;
+                    margin-bottom: 2.5rem;
+                }
+
+                .pagination-v2-premium {
+                    padding: 2rem 2.5rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: #fdfdff;
+                    border-top: 1px solid #f1f5f9;
+                }
+
                 .modal-header-premium-v2 {
                     color: #fff;
                     display: flex;
@@ -1207,11 +1215,23 @@ const Patients = () => {
                 .modal-title-group h2 { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; margin: 0; }
                 .modal-title-group p { font-size: 0.9rem; opacity: 0.8; margin-top: 0.25rem; font-weight: 600; }
 
+
+                /* Form Inline Close Button (light bg context) */
                 .modal-close-v3 {
-                    background: rgba(255,255,255,0.1);
+                    background: #f1f5f9;
                     border: none;
-                    color: #fff;
-                    padding: 0.8rem;
+                    color: #64748b;
+                    padding: 0.75rem;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .modal-close-v3:hover { background: #fee2e2; color: #ef4444; }
+
                     border-radius: 50%;
                     cursor: pointer;
                     transition: all 0.2s;

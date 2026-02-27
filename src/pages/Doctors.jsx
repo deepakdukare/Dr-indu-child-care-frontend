@@ -251,7 +251,7 @@ const Doctors = () => {
             {/* Modal Form */}
             {showModal && (
                 <div className="modal-overlay-premium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div className="modal-content-premium" style={{ width: '420px', padding: 0, overflow: 'hidden', borderRadius: '32px', boxShadow: '0 50px 100px -20px rgba(15, 23, 42, 0.3)' }}>
+                    <div className="modal-content-premium" style={{ width: '400px', padding: 0, overflow: 'hidden', borderRadius: '32px', boxShadow: '0 50px 100px -20px rgba(15, 23, 42, 0.3)' }}>
                         <div style={{ background: 'linear-gradient(135deg, #4338ca 0%, #312e81 100%)', padding: '2.5rem 2rem', color: '#fff', position: 'relative' }}>
                             <div className="modal-header-bg"></div>
                             <div style={{ position: 'relative', zIndex: 1 }}>
