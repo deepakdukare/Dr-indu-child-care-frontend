@@ -85,7 +85,7 @@ export const registerFromForm = (data) => api.post('/patients/form', data);
 export const registerFromWhatsapp = (data) => api.post('/patients/whatsapp', data);
 export const updatePatient = (id, data) => api.put(`/patients/${id}`, data);
 export const uploadPatientPhoto = (patientId, photoBase64) =>
-    api.patch(`/patients/${patientId}/photo`, { photo_base64: photoBase64 });
+    api.patch(`/patients/${patientId}/photo`, { photo: photoBase64 });
 
 // Appointments
 export const getAppointments = (params) => api.get('/appointments', { params });

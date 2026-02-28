@@ -32,12 +32,18 @@ const EMPTY_FORM = {
     father_occupation: '',
     mother_name: '',
     mother_mobile: '',
+    parent_mobile: '',
+    address: '',
     area: '',
     city: '',
+    state: '',
     pin_code: '',
     wa_id: '',
     email: '',
     doctor: '',
+    communication_preference: 'whatsapp',
+    remarks: '',
+    registration_source: 'dashboard',
     enrollment_option: 'just_enroll'
 };
 
@@ -134,6 +140,8 @@ const Patients = () => {
                 age_months: form.age_months ? parseInt(form.age_months) : undefined,
                 birth_time_hours: form.birth_time_hours ? parseInt(form.birth_time_hours) : undefined,
                 birth_time_minutes: form.birth_time_minutes ? parseInt(form.birth_time_minutes) : undefined,
+                parent_mobile: form.parent_mobile || form.father_mobile || form.wa_id,
+                wa_id: form.wa_id || form.parent_mobile || form.father_mobile,
             };
 
             if (editId) {
@@ -154,6 +162,27 @@ const Patients = () => {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handlePhotoUpload = async (patientId, e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            try {
+                setLoading(true);
+                await uploadPatientPhoto(patientId, reader.result);
+                setSuccess("Success: Patient photo updated.");
+                fetchData();
+                setTimeout(() => setSuccess(null), 3000);
+            } catch (err) {
+                setError("Failed to upload photo: " + (err.response?.data?.message || err.message));
+            } finally {
+                setLoading(false);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const startEdit = (p) => {
@@ -187,12 +216,18 @@ const Patients = () => {
             father_occupation: p.father_occupation || '',
             mother_name: p.mother_name || '',
             mother_mobile: p.mother_mobile || p.alt_mobile || '',
+            parent_mobile: p.parent_mobile || p.wa_id || '',
+            address: p.address || '',
             area: p.area || '',
-            city: p.city || 'Mumbai',
+            city: p.city || '',
+            state: p.state || '',
             pin_code: p.pin_code || '',
             wa_id: p.wa_id || p.parent_mobile || '',
             email: p.email || '',
-            doctor: p.doctor || 'Dr. Indu',
+            doctor: p.doctor || '',
+            communication_preference: p.communication_preference || 'whatsapp',
+            remarks: p.remarks || p.remark || '',
+            registration_source: p.registration_source || 'dashboard',
             enrollment_option: p.enrollment_option || 'just_enroll'
         });
         setShowInlineForm(true);
@@ -409,8 +444,42 @@ const Patients = () => {
                                         <input placeholder="Mumbai" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="input-v3" />
                                     </div>
                                     <div className="form-group-v2">
+                                        <label>State</label>
+                                        <input placeholder="Maharashtra" value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} className="input-v3" />
+                                    </div>
+                                    <div className="form-group-v2">
                                         <label>Pin Code</label>
                                         <input placeholder="400050" value={form.pin_code} onChange={e => setForm({ ...form, pin_code: e.target.value })} className="input-v3" />
+                                    </div>
+                                </div>
+
+                                <div className="form-group-v2">
+                                    <label>Full Address</label>
+                                    <textarea
+                                        placeholder="Kothrud, Pune"
+                                        value={form.address}
+                                        onChange={e => setForm({ ...form, address: e.target.value })}
+                                        className="input-v3"
+                                        style={{ height: '80px', paddingTop: '1rem', resize: 'none' }}
+                                    />
+                                </div>
+
+                                <div className="form-row-multi">
+                                    <div className="form-group-v2">
+                                        <label>WhatsApp ID / Mobile *</label>
+                                        <div className="input-with-icon-v3">
+                                            <Zap size={16} />
+                                            <input required placeholder="9876543210" value={form.wa_id} onChange={e => setForm({ ...form, wa_id: e.target.value, parent_mobile: e.target.value })} className="input-v3-icon" />
+                                        </div>
+                                    </div>
+                                    <div className="form-group-v2">
+                                        <label>Comm. Preference</label>
+                                        <select value={form.communication_preference} onChange={e => setForm({ ...form, communication_preference: e.target.value })} className="input-v3">
+                                            <option value="whatsapp">WhatsApp</option>
+                                            <option value="sms">SMS</option>
+                                            <option value="email">Email</option>
+                                            <option value="call">Voice Call</option>
+                                        </select>
                                     </div>
                                 </div>
 
@@ -440,11 +509,17 @@ const Patients = () => {
                                     </div>
                                 </div>
 
-                                <div className="form-group-v2">
-                                    <label>Enrollment Option</label>
-                                    <select value={form.enrollment_option} onChange={e => setForm({ ...form, enrollment_option: e.target.value })} className="input-v3">
-                                        {ENROLLMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                    </select>
+                                <div className="form-row-multi">
+                                    <div className="form-group-v2">
+                                        <label>Remarks / Notes</label>
+                                        <input placeholder="High priority patient" value={form.remarks} onChange={e => setForm({ ...form, remarks: e.target.value })} className="input-v3" />
+                                    </div>
+                                    <div className="form-group-v2">
+                                        <label>Enrollment Option</label>
+                                        <select value={form.enrollment_option} onChange={e => setForm({ ...form, enrollment_option: e.target.value })} className="input-v3">
+                                            {ENROLLMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -581,10 +656,15 @@ const Patients = () => {
                                                             {p.registration_status}
                                                         </span>
                                                         <span className="source-meta">Via {p.registration_source || 'Dashboard'}</span>
+                                                        {p.balance > 0 && <span className="source-meta" style={{ color: '#ef4444' }}>Bal: ₹{p.balance}</span>}
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <div className="action-hub-premium">
+                                                        <label className="hub-btn-info" style={{ cursor: 'pointer' }}>
+                                                            <Camera size={18} />
+                                                            <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(p.patient_id, e)} />
+                                                        </label>
                                                         <button className={`hub-btn-info ${selected?._id === p._id ? 'active' : ''}`} onClick={() => setSelected(selected?._id === p._id ? null : p)}>
                                                             {selected?._id === p._id ? <X size={18} /> : <Clipboard size={18} />}
                                                         </button>
@@ -599,13 +679,29 @@ const Patients = () => {
                                                     <td colSpan={5}>
                                                         <div className="expansion-content-premium">
                                                             <div className="expansion-grid">
-                                                                <div className="expansion-card">
-                                                                    <div className="exp-card-header"><Activity size={18} /> <span>Medical Profile</span></div>
-                                                                    <div className="exp-info-list">
-                                                                        <div className="exp-info-item"><span>Full Identity</span><strong>{p.salutation} {p.first_name} {p.last_name}</strong></div>
-                                                                        <div className="exp-info-item"><span>Birth Date</span><strong>{p.dob ? new Date(p.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Gender</span><strong>{p.gender}</strong></div>
-                                                                        <div className="exp-info-item"><span>Registry ID</span><strong>{p.patient_id}</strong></div>
+                                                                <div className="expansion-card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                                                                    <div className="avatar-preview-box">
+                                                                        <div className="large-avatar-premium" style={{ width: '100px', height: '100px', borderRadius: '24px', background: '#f8fafc', overflow: 'hidden', border: '2px solid #eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            {p.photo || p.patient_photo ? (
+                                                                                <img src={p.photo || p.patient_photo} alt="Patient" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                            ) : (
+                                                                                <User size={48} color="#cbd5e1" />
+                                                                            )}
+                                                                        </div>
+                                                                        <label className="btn-upload-avatar" style={{ marginTop: '0.75rem', width: '100%', padding: '0.5rem', borderRadius: '10px', background: '#f1f5f9', border: 'none', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                                                            <Camera size={14} />
+                                                                            <span>Upload</span>
+                                                                            <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(p.patient_id, e)} />
+                                                                        </label>
+                                                                    </div>
+                                                                    <div style={{ flex: 1 }}>
+                                                                        <div className="exp-card-header"><Activity size={18} /> <span>Medical Profile</span></div>
+                                                                        <div className="exp-info-list">
+                                                                            <div className="exp-info-item"><span>Full Name</span><strong>{p.full_name}</strong></div>
+                                                                            <div className="exp-info-item"><span>Status</span><strong>{p.is_active ? 'Active' : 'Inactive'}</strong></div>
+                                                                            <div className="exp-info-item"><span>Birth Date</span><strong>{p.dob ? new Date(p.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown'}</strong></div>
+                                                                            <div className="exp-info-item"><span>Registry ID</span><strong>{p.patient_id}</strong></div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="expansion-card">
@@ -613,53 +709,63 @@ const Patients = () => {
                                                                     <div className="exp-info-list">
                                                                         <div className="exp-info-item"><span>Father</span><strong>{p.father_name || '—'}</strong></div>
                                                                         <div className="exp-info-item"><span>Mother</span><strong>{p.mother_name || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Contact</span><strong>{p.wa_id || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Occupation</span><strong>{p.father_occupation || '—'}</strong></div>
+                                                                        <div className="exp-info-item"><span>WhatsApp</span><strong>{p.wa_id || '—'}</strong></div>
+                                                                        <div className="exp-info-item"><span>Email</span><strong>{p.email || '—'}</strong></div>
+                                                                        <div className="exp-info-item"><span>Preferences</span><strong>{p.communication_preference || 'WhatsApp'}</strong></div>
                                                                     </div>
                                                                 </div>
                                                                 <div className="expansion-card">
-                                                                    <div className="exp-card-header"><MapPin size={18} /> <span>Location Log</span></div>
-                                                                    <div className="exp-info-list">
+                                                                    <div className="exp-card-header"><MapPin size={18} /> <span>Address & Assignments</span></div>
+                                                                    <div className="exp-info-list" style={{ gap: '0.5rem' }}>
                                                                         <div className="exp-info-item"><span>Area</span><strong>{p.area || '—'}</strong></div>
                                                                         <div className="exp-info-item"><span>City</span><strong>{p.city || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Pin Code</span><strong>{p.pin_code || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Assigned Dr.</span><strong>{p.doctor || 'Clinic Registry'}</strong></div>
+                                                                        <div className="exp-info-item"><span>State</span><strong>{p.state || '—'}</strong></div>
+                                                                        <div className="exp-info-item"><span>Address</span><strong style={{ fontSize: '0.8rem', textAlign: 'right' }}>{p.address || '—'}</strong></div>
+                                                                        <div className="exp-info-item" style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}><span>Doctor</span><strong>{p.doctor || 'Clinic Registry'}</strong></div>
                                                                     </div>
                                                                 </div>
                                                             </div>
+                                                            {p.remarks && (
+                                                                <div className="expansion-footer-premium" style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#fff', borderRadius: '15px', border: '1px solid #eef2ff' }}>
+                                                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                                                        <Info size={16} style={{ color: '#6366f1', marginTop: '0.2rem' }} />
+                                                                        <div>
+                                                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Administrative Remarks</span>
+                                                                            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.9rem', color: '#475569', fontWeight: 600, lineHeight: 1.5 }}>{p.remarks}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
+                                                    </div>
                                     ))}
-                                </tbody>
+                                                </tbody>
                             </table>
                         </div>
 
-                        {pagination.pages > 1 && (
-                            <div className="pagination-v2-premium">
-                                <div className="pag-info">
-                                    Showing <strong>{(page - 1) * 20 + 1}</strong> to <strong>{Math.min(page * 20, pagination.total)}</strong> of <strong>{pagination.total}</strong>
-                                    <span className="pag-total">patients in registry</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <button className="pag-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                                        <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
-                                        <span>Previous</span>
-                                    </button>
-                                    <button className="pag-btn" onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages}>
-                                        <span>Next</span>
-                                        <ChevronRight size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </>
+                                {pagination.pages > 1 && (
+                                    <div className="pagination-v2-premium">
+                                        <div className="pag-info">
+                                            Showing <strong>{(page - 1) * 20 + 1}</strong> to <strong>{Math.min(page * 20, pagination.total)}</strong> of <strong>{pagination.total}</strong>
+                                            <span className="pag-total">patients in registry</span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <button className="pag-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                                                <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
+                                                <span>Previous</span>
+                                            </button>
+                                            <button className="pag-btn" onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages}>
+                                                <span>Next</span>
+                                                <ChevronRight size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                        </div>
+                    </>
             )}
 
-            <style>{`
+                    <style>{`
                 .segmented-control-premium {
                     background: #f1f5f9;
                     padding: 0.4rem;
@@ -1427,8 +1533,8 @@ const Patients = () => {
                     .btn-save-v3, .btn-cancel-v3 { width: 100%; }
                 }
             `}</style>
-        </div>
-    );
+                </div>
+            );
 };
 
-export default Patients;
+            export default Patients;
