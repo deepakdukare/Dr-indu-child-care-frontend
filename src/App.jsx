@@ -12,7 +12,14 @@ import {
     LogOut,
     MessageSquare,
     Stethoscope,
-    Shield
+    Shield,
+    Hash,
+    BarChart2,
+    Bell as BellIcon,
+    Link as LinkIcon,
+    Copy,
+    Check,
+    X
 } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -27,6 +34,9 @@ import BotInteractions from './pages/BotInteractions';
 import Doctors from './pages/Doctors';
 import Admins from './pages/Admins';
 import Scheduling from './pages/Scheduling';
+import QueueDisplay from './pages/QueueDisplay';
+import Reports from './pages/Reports';
+import Notifications from './pages/Notifications';
 
 const MobileNav = () => {
     const location = useLocation();
@@ -62,12 +72,14 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
         { name: 'Appointments', path: '/appointments', icon: Calendar },
         { name: 'Scheduling', path: '/scheduling', icon: Clock },
-
+        { name: 'Queue Tokens', path: '/queue', icon: Hash },
         { name: 'Patients', path: '/patients', icon: Users },
         { name: 'Bot Hub', path: '/bot-interactions', icon: MessageSquare },
         { name: 'Doctors', path: '/doctors', icon: Stethoscope },
         { name: 'Admin Users', path: '/admins', icon: Shield },
         { name: 'MRD', path: '/mrd', icon: FileText },
+        { name: 'Reports', path: '/reports', icon: BarChart2 },
+        { name: 'Notifications', path: '/notifications', icon: BellIcon },
         { name: 'Settings', path: '/settings', icon: SettingsIcon },
     ];
 
@@ -133,33 +145,192 @@ const Header = () => {
     const displayName = user.full_name || user.username || 'Admin';
     const displayRole = user.role ? user.role.charAt(0) + user.role.slice(1).toLowerCase() : 'Admin';
     const initial = displayName.charAt(0).toUpperCase();
+    const [showFormModal, setShowFormModal] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const publicFormUrl = `${window.location.origin}/register-form`;
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(publicFormUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     return (
-        <header className="header" style={{ gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <div style={{ position: 'relative', cursor: 'pointer', display: 'flex' }} className="mobile-hide">
-                    <Bell size={22} color="#64748b" />
-                    <span style={{
-                        position: 'absolute',
-                        top: '-2px',
-                        right: '-2px',
-                        width: '8px',
-                        height: '8px',
-                        backgroundColor: '#ef4444',
-                        borderRadius: '50%',
-                        border: '2px solid #fff'
-                    }}></span>
+        <>
+            <header className="header" style={{ gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.4rem', borderRadius: '14px', transition: 'var(--transition)' }} className="profile-trigger">
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)' }}>
-                        {initial}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                    {/* Public Form Button */}
+                    <button
+                        onClick={() => setShowFormModal(true)}
+                        className="mobile-hide"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)',
+                            transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        <LinkIcon size={16} />
+                        Public Form
+                    </button>
+
+                    <div style={{ position: 'relative', cursor: 'pointer', display: 'flex' }} className="mobile-hide">
+                        <Bell size={22} color="#64748b" />
+                        <span style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            right: '-2px',
+                            width: '8px',
+                            height: '8px',
+                            backgroundColor: '#ef4444',
+                            borderRadius: '50%',
+                            border: '2px solid #fff'
+                        }}></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.4rem', borderRadius: '14px', transition: 'var(--transition)' }} className="profile-trigger">
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)' }}>
+                            {initial}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </header>
+            </header>
+
+            {/* Public Form Link Modal */}
+            {showFormModal && (
+                <div
+                    onClick={() => setShowFormModal(false)}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        background: 'rgba(15,23,42,0.5)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: '#fff',
+                            borderRadius: '20px',
+                            padding: '2rem',
+                            width: '100%',
+                            maxWidth: '520px',
+                            margin: '1rem',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1, #4338ca)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <LinkIcon size={20} color="#fff" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Public Registration Form</h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Share this link with patients to register</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowFormModal(false)}
+                                style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', borderRadius: '8px', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} color="#64748b" />
+                            </button>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            background: '#f8fafc',
+                            border: '1.5px solid #e2e8f0',
+                            borderRadius: '12px',
+                            padding: '0.75rem 1rem'
+                        }}>
+                            <span style={{ flex: 1, fontSize: '0.85rem', color: '#334155', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                {publicFormUrl}
+                            </span>
+                            <button
+                                onClick={handleCopy}
+                                style={{
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.5rem 0.9rem',
+                                    borderRadius: '8px',
+                                    background: copied ? '#dcfce7' : 'linear-gradient(135deg, #6366f1, #4338ca)',
+                                    color: copied ? '#16a34a' : '#fff',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.8rem',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                {copied ? <Check size={14} /> : <Copy size={14} />}
+                                {copied ? 'Copied!' : 'Copy'}
+                            </button>
+                        </div>
+
+                        <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
+                            <a
+                                href={publicFormUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.7rem',
+                                    borderRadius: '10px',
+                                    background: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                                    color: '#fff',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem'
+                                }}
+                            >
+                                <LinkIcon size={15} /> Open Form
+                            </a>
+                            <button
+                                onClick={() => setShowFormModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.7rem',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #e2e8f0',
+                                    background: '#fff',
+                                    color: '#64748b',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 
@@ -210,6 +381,9 @@ const App = () => {
                                 <Route path="/admins" element={<Admins />} />
                                 <Route path="/mrd" element={<MRD />} />
                                 <Route path="/scheduling" element={<Scheduling />} />
+                                <Route path="/queue" element={<QueueDisplay />} />
+                                <Route path="/reports" element={<Reports />} />
+                                <Route path="/notifications" element={<Notifications />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/login" element={<Navigate to="/" replace />} />
                             </Routes>

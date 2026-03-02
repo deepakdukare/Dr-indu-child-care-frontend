@@ -39,10 +39,35 @@ const STATUS_CONFIG = {
     CONFIRMED: { icon: <CheckCircle2 size={16} />, color: '#10b981', bg: '#dcfce7' },
     COMPLETED: { icon: <CheckCircle2 size={16} />, color: '#6366f1', bg: '#e0e7ff' },
     CANCELLED: { icon: <XCircle size={16} />, color: '#ef4444', bg: '#fef2f2' },
-    PENDING: { icon: <Clock size={16} />, color: '#f59e0b', bg: '#fef3c7' }
+    PENDING: { icon: <Clock size={16} />, color: '#f59e0b', bg: '#fef3c7' },
+    NO_SHOW: { icon: <AlertTriangle size={16} />, color: '#b45309', bg: '#ffedd5' },
+    DEFAULT: { icon: <Clock size={16} />, color: '#475569', bg: '#e2e8f0' }
 };
 
 const SALUTATIONS = ['Master', 'Baby', 'Mr.', 'Mrs.', 'Ms.'];
+
+const getDoctorDisplayName = (doctor) => doctor?.full_name || doctor?.name || doctor?.doctor_name || doctor?.doctor_id || 'Unknown Doctor';
+
+const getSlotDisplayLabel = (appt) => {
+    if (appt?.slot_label) return appt.slot_label;
+    if (appt?.appointment_time) return appt.appointment_time;
+    if (appt?.start_time && appt?.end_time) return `${appt.start_time} - ${appt.end_time}`;
+    return appt?.slot_id || 'Allocated Slot';
+};
+
+const getSessionDisplay = (appt) => appt?.session || 'Session TBD';
+
+const getApiErrorMessage = (err, fallback = 'Operation failed.') => {
+    const message = err?.response?.data?.message;
+    if (!message) return fallback;
+    if (message.toLowerCase().includes('slot not found')) {
+        return 'Selected slot is no longer available. Refresh slots and choose an active slot.';
+    }
+    if (message.toLowerCase().includes('already has appointment')) {
+        return message;
+    }
+    return message;
+};
 
 const StatCardMini = ({ label, value, icon: Icon, color, bg }) => (
     <div className="stat-pill-premium-v3">
@@ -63,6 +88,7 @@ const Appointments = () => {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [queueSearch, setQueueSearch] = useState('');
 
     // Queue Filters
     const [filters, setFilters] = useState({
@@ -109,6 +135,19 @@ const Appointments = () => {
     const [slotsLoading, setSlotsLoading] = useState(false);
     const [cancelModal, setCancelModal] = useState({ show: false, id: null, reason: '' });
 
+    const filteredAppointments = appointments.filter((appt) => {
+        const q = queueSearch.trim().toLowerCase();
+        if (!q) return true;
+        return [
+            appt.appointment_id,
+            appt.patient_id,
+            appt.child_name,
+            appt.parent_mobile,
+            appt.parent_name,
+            appt.doctor_name,
+        ].some((value) => String(value || '').toLowerCase().includes(q));
+    });
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
@@ -138,7 +177,7 @@ const Appointments = () => {
             const res = await getAvailableSlots(form.doctor_name, form.appointment_date);
             setAvailableSlots(res.data.data || []);
         } catch (err) {
-            console.error("Error fetching slots:", err);
+            setError(getApiErrorMessage(err, "Unable to load slots for the selected date."));
         } finally {
             setSlotsLoading(false);
         }
@@ -199,11 +238,12 @@ const Appointments = () => {
             } else {
                 await bookAppointment(form);
             }
+            setError(null);
             setActiveView('queue');
             fetchData();
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || "Operation failed.");
+            setError(getApiErrorMessage(err, "Operation failed."));
         } finally {
             setSubmitting(false);
         }
@@ -213,9 +253,10 @@ const Appointments = () => {
         try {
             await cancelAppointment(cancelModal.id, { cancellation_reason: cancelModal.reason });
             setCancelModal({ show: false, id: null, reason: '' });
+            setError(null);
             fetchData();
         } catch (err) {
-            setError("Cancellation request rejected.");
+            setError(getApiErrorMessage(err, "Cancellation request rejected."));
         }
     };
 
@@ -225,7 +266,7 @@ const Appointments = () => {
             setSelectedAppointment(appt);
             setForm({
                 patient_id: appt.patient_id,
-                doctor_name: appt.assigned_doctor_name || 'Dr. Indu',
+                doctor_name: appt.assigned_doctor_name || appt.doctor_name || 'Dr. Indu',
                 appointment_date: appt.appointment_date.split('T')[0],
                 slot_id: appt.slot_id,
                 doctor_speciality: appt.doctor_speciality || 'Pediatrics',
@@ -331,12 +372,18 @@ const Appointments = () => {
                                     <option value="COMPLETED">Completed</option>
                                     <option value="CANCELLED">Cancelled</option>
                                     <option value="PENDING">Pending</option>
+                                    <option value="NO_SHOW">No Show</option>
                                 </select>
                             </div>
                         </div>
                         <div className="search-pill-v3">
                             <Search size={18} />
-                            <input type="text" placeholder="Patient name or ID..." />
+                            <input
+                                type="text"
+                                placeholder="Patient name, patient ID, parent phone..."
+                                value={queueSearch}
+                                onChange={(e) => setQueueSearch(e.target.value)}
+                            />
                         </div>
                     </div>
 
@@ -358,7 +405,7 @@ const Appointments = () => {
                                         Array(6).fill(0).map((_, i) => (
                                             <tr key={i}><td colSpan={6}><div className="skeleton-line-v3"></div></td></tr>
                                         ))
-                                    ) : appointments.length === 0 ? (
+                                    ) : filteredAppointments.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="empty-state-v3">
                                                 <div className="empty-box-v3">
@@ -366,8 +413,8 @@ const Appointments = () => {
                                                         <div className="ring-pulse-v3"></div>
                                                         <CalendarIcon size={48} />
                                                     </div>
-                                                    <h3>No appointments today</h3>
-                                                    <p>New bookings will appear here instantly as they come in via the dashboard or WhatsApp bot.</p>
+                                                    <h3>No matching appointments</h3>
+                                                    <p>Try clearing search text or changing date/status filters.</p>
                                                     <button className="book-btn-premium-v3" onClick={() => setActiveView('authorizer')} style={{ margin: '1.5rem auto 0', padding: '1rem 2rem' }}>
                                                         <Plus size={22} />
                                                         <span>Book First Patient</span>
@@ -375,14 +422,14 @@ const Appointments = () => {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : appointments.map((appt) => (
+                                    ) : filteredAppointments.map((appt) => (
                                         <tr key={appt.appointment_id} className="row-hover-v3">
                                             <td>
                                                 <div className="slot-id-box">
                                                     <div className="slot-badge-v3">{appt.slot_id}</div>
                                                     <div>
-                                                        <div className="slot-label-v3">{appt.slot_label || 'Allocated Slot'}</div>
-                                                        <div className="slot-sub-v3">{appt.session || 'Session'}</div>
+                                                        <div className="slot-label-v3">{getSlotDisplayLabel(appt)}</div>
+                                                        <div className="slot-sub-v3">{getSessionDisplay(appt)}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -399,13 +446,13 @@ const Appointments = () => {
                                             </td>
                                             <td>
                                                 <div className="doc-assign-v3">
-                                                    <div className="d-name-v3">{appt.assigned_doctor_name || 'Dr. Indu'}</div>
+                                                    <div className="d-name-v3">{appt.assigned_doctor_name || appt.doctor_name || 'Dr. Indu'}</div>
                                                     <div className="v-tag-v3">{appt.visit_type}</div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="status-chip-v3" style={{ background: STATUS_CONFIG[appt.status]?.bg, color: STATUS_CONFIG[appt.status]?.color }}>
-                                                    {STATUS_CONFIG[appt.status]?.icon}
+                                                <div className="status-chip-v3" style={{ background: (STATUS_CONFIG[appt.status] || STATUS_CONFIG.DEFAULT).bg, color: (STATUS_CONFIG[appt.status] || STATUS_CONFIG.DEFAULT).color }}>
+                                                    {(STATUS_CONFIG[appt.status] || STATUS_CONFIG.DEFAULT).icon}
                                                     <span>{appt.status}</span>
                                                 </div>
                                             </td>
@@ -576,8 +623,8 @@ const Appointments = () => {
                                                             className={`slot-pill-v3 ${form.slot_id === slot.slot_id ? 'active' : ''}`}
                                                             onClick={() => setForm({ ...form, slot_id: slot.slot_id })}
                                                         >
-                                                            <div className="slot-time">{slot.label}</div>
-                                                            <div className="slot-session">{slot.session}</div>
+                                                            <div className="slot-time">{slot.label || `${slot.start_time || '--'} - ${slot.end_time || '--'}`}</div>
+                                                            <div className="slot-session">{slot.session || 'Session TBD'}</div>
                                                         </button>
                                                     )) : (
                                                         <div className="no-slots-v3">No availability for selected date.</div>
@@ -590,7 +637,14 @@ const Appointments = () => {
                                             <label>Consulting Doctor</label>
                                             <select value={form.doctor_name} onChange={e => setForm({ ...form, doctor_name: e.target.value })} className="input-v3">
                                                 <option value="Dr. Indu">Dr. Indu</option>
-                                                {doctors.map(d => <option key={d.doctor_id} value={d.name}>{d.name}</option>)}
+                                                {doctors.map((d) => {
+                                                    const doctorName = getDoctorDisplayName(d);
+                                                    return (
+                                                        <option key={d.doctor_id || d._id || doctorName} value={doctorName}>
+                                                            {doctorName}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                         </div>
                                         <div className="form-group-v3">

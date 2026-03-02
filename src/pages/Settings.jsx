@@ -70,7 +70,7 @@ const Settings = () => {
     };
 
     return (
-        <div>
+        <div className="settings-page">
             <div className="title-section">
                 <h1>Settings</h1>
                 <p>Manage clinic-wide configurations and slot timings.</p>
@@ -101,15 +101,15 @@ const Settings = () => {
             )}
 
             {tab === 'slots' && (
-                <div className="card">
-                    <div className="card-header">
-                        <h3>Slot Template Definition</h3>
-                        <button className="btn btn-primary" onClick={handleSaveSlots} disabled={saving || loading}>
+                <div className="card settings-slot-card">
+                    <div className="card-header settings-slot-header">
+                        <h3 className="settings-slot-title">Slot Template Definition</h3>
+                        <button className="btn btn-primary settings-save-btn" onClick={handleSaveSlots} disabled={saving || loading}>
                             <Save size={14} /> {saving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                     {loading ? <p style={{ textAlign: 'center', padding: '2rem' }}>Loading...</p> : (
-                        <div className="table-container">
+                        <div className="table-container settings-slot-table">
                             <table>
                                 <thead>
                                     <tr>
@@ -126,11 +126,11 @@ const Settings = () => {
                                         <tr key={s.slot_id}>
                                             <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.slot_id}</td>
                                             <td>{s.slot_label || s.display_label}</td>
-                                            <td><span className={`badge ${s.session === 'MORNING' ? 'badge-primary' : 'badge-warning'}`}>{s.session}</span></td>
-                                            <td style={{ fontSize: '0.85rem' }}>{s.start_time} – {s.end_time}</td>
+                                            <td><span className={`badge settings-session-badge ${s.session === 'MORNING' ? 'badge-morning' : 'badge-evening'}`}>{s.session}</span></td>
+                                            <td style={{ fontSize: '0.85rem' }}>{s.start_time} - {s.end_time}</td>
                                             <td><span className={`badge ${s.is_active ? 'badge-success' : 'badge-gray'}`}>{s.is_active ? 'ACTIVE' : 'INACTIVE'}</span></td>
                                             <td>
-                                                <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto' }} onClick={() => handleUpdateActive(s.slot_id, !s.is_active)}>
+                                                <button className={`btn ${s.is_active ? 'btn-danger-soft' : 'btn-success-soft'} settings-toggle-btn`} style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto' }} onClick={() => handleUpdateActive(s.slot_id, !s.is_active)}>
                                                     {s.is_active ? 'Deactivate' : 'Activate'}
                                                 </button>
                                             </td>
@@ -224,3 +224,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

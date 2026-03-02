@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const REMOTE_API_BASE_URL = 'https://api-dr-indu-child-care.brahmaastra.ai/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -22,7 +23,21 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+        const config = error.config || {};
+        const isNetworkError = !error.response;
+        const canRetryWithRemote =
+            isNetworkError &&
+            !config.__retriedWithRemote &&
+            typeof config.url === 'string' &&
+            config.url.startsWith('/');
+
+        if (canRetryWithRemote) {
+            config.__retriedWithRemote = true;
+            config.baseURL = REMOTE_API_BASE_URL;
+            return api.request(config);
+        }
+
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
@@ -60,6 +75,63 @@ const buildDoctorSlotParams = (doctorRef, date, extraParams = {}) => {
     return params;
 };
 
+const getDoctorNameVariants = (name) => {
+    const base = String(name || '').trim();
+    if (!base) return [];
+
+    const variants = new Set([
+        base,
+        base.replace(/\s+/g, ' '),
+        base.replace(/^Dr\.\s+/i, 'Dr.'),
+        base.replace(/^Dr\s+/i, 'Dr '),
+    ]);
+
+    const normalized = base.replace(/\s+/g, ' ');
+    const drWithoutGap = normalized.replace(/^Dr\.\s*/i, 'Dr.');
+    const drCompact = normalized.replace(/^Dr\.?\s*/i, 'Dr');
+
+    variants.add(drWithoutGap);
+    variants.add(drCompact);
+    variants.add(drCompact.replace(/^Dr/i, 'Dr '));
+    variants.add(drCompact.replace(/^Dr/i, 'Dr.'));
+
+    return [...variants].filter(Boolean);
+};
+
+const isDoctorLookupError = (error) => {
+    const status = error?.response?.status;
+    const message = String(error?.response?.data?.message || '').toLowerCase();
+    return status === 404 && message.includes('doctor not found');
+};
+
+const withDoctorNameFallback = async (requestFn, params) => {
+    if (!params?.doctor_name) return requestFn(params);
+
+    const variants = getDoctorNameVariants(params.doctor_name);
+    let lastError;
+
+    for (const doctorName of variants) {
+        try {
+            return await requestFn({ ...params, doctor_name: doctorName });
+        } catch (error) {
+            lastError = error;
+            if (!isDoctorLookupError(error)) throw error;
+        }
+    }
+
+    throw lastError;
+};
+
+const canonicalDoctorName = (name) => {
+    const variants = getDoctorNameVariants(name);
+    if (!variants.length) return name;
+    const preferred =
+        variants.find((v) => /^Dr\.[A-Za-z]/.test(v)) ||
+        variants.find((v) => /^Dr\.\S/.test(v)) ||
+        variants[0];
+    return preferred;
+};
+
 // Auth
 export const login = (credentials) => api.post('/admin/login', credentials);
 export const refreshAccessToken = (data) => api.post('/admin/refresh-token', data);
@@ -93,10 +165,17 @@ export const getAppointmentsByDate = (date) => api.get('/appointments', { params
 export const getAppointmentStats = (date) => api.get('/appointments/stats', { params: date ? { date } : {} });
 export const getAppointmentById = (id) => api.get(`/appointments/${id}`);
 export const getAppointmentsByWaId = (waId) => api.get(`/appointments/by-wa/${encodeURIComponent(waId)}`);
-export const bookAppointment = (data) => api.post('/appointments', { booking_source: 'dashboard', ...data });
+export const bookAppointment = (data) => api.post('/appointments', {
+    booking_source: 'dashboard',
+    ...data,
+    doctor_name: data?.doctor_name ? canonicalDoctorName(data.doctor_name) : data?.doctor_name,
+});
 export const bookByWhatsapp = (data) => api.post('/appointments/whatsapp', data);
 export const bookByForm = (data) => api.post('/appointments/form', data);
-export const updateAppointment = (id, data) => api.patch(`/appointments/${id}`, data);
+export const updateAppointment = (id, data) => api.patch(`/appointments/${id}`, {
+    ...data,
+    doctor_name: data?.doctor_name ? canonicalDoctorName(data.doctor_name) : data?.doctor_name,
+});
 export const cancelAppointment = (id, data) => api.patch(`/appointments/${id}/cancel`, data);
 export const completeAppointment = (id, data) => api.patch(`/appointments/${id}/complete`, data);
 export const markNoShow = (id, data) => api.patch(`/appointments/${id}/no-show`, data);
@@ -128,13 +207,22 @@ export const getDoctorLateCheckins = (doctorId) => api.get(`/doctor/late-checkin
 export const getDoctorAvailabilityDashboard = (doctorId) => api.get(`/doctor/availability-dashboard/${doctorId}`);
 
 // Slots
-export const getAvailableSlots = (doctorRef, date, extraParams = {}) =>
-    api.get('/slots/available', { params: buildDoctorSlotParams(doctorRef, date, extraParams) });
+export const getAvailableSlots = (doctorRef, date, extraParams = {}) => {
+    const params = buildDoctorSlotParams(doctorRef, date, extraParams);
+    return withDoctorNameFallback((nextParams) => api.get('/slots/available', { params: nextParams }), params);
+};
 export const getSlotConfig = () => api.get('/slots/config');
 export const updateSlotConfig = (slots) => api.put('/slots/config', { slots });
 export const createSlot = (data) => api.post('/slots/config/add', data);
 export const deleteSlot = (slotId) => api.delete(`/slots/config/${slotId}`);
-export const updateDailySlot = (data) => api.post('/slots/daily-update', data);
+export const updateDailySlot = (data) => {
+    const doctorName = data?.doctor_name ? canonicalDoctorName(data.doctor_name) : data?.doctor_name;
+    const payload = { ...data, doctor_name: doctorName };
+    return withDoctorNameFallback(
+        (nextPayload) => api.post('/slots/daily-update', nextPayload),
+        payload
+    );
+};
 
 // Messaging
 export const queueDoctorLateAlert = (data) => api.post('/messages/doctor/late-alert', data);

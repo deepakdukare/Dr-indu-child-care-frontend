@@ -672,6 +672,89 @@ tr:last-child td {
   border: 1px solid #e2e8f0;
 }
 
+/* Settings: Slot Template Colors */
+.settings-slot-card {
+  border-color: #dbeafe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.settings-slot-title {
+  color: #1d4ed8;
+}
+
+.settings-save-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 8px 18px -8px rgba(37, 99, 235, 0.6);
+}
+
+.settings-save-btn:hover {
+  box-shadow: 0 12px 22px -10px rgba(37, 99, 235, 0.7);
+}
+
+.settings-slot-table {
+  border-color: #bfdbfe;
+}
+
+.settings-slot-table th {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-bottom-color: #bfdbfe;
+}
+
+.settings-slot-table td {
+  border-bottom-color: #dbeafe;
+}
+
+.settings-slot-table tr:hover td {
+  background: #f0f9ff;
+}
+
+.settings-slot-table .badge-morning {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.settings-slot-table .badge-evening {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.settings-slot-table .badge-success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.settings-slot-table .badge-gray {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.btn-success-soft {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.btn-success-soft:hover {
+  background: #bbf7d0;
+  border-color: #4ade80;
+}
+
+.btn-danger-soft {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.btn-danger-soft:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
 /* Buttons */
 .btn {
   padding: 0.75rem 1.5rem;
