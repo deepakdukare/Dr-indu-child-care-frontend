@@ -22,7 +22,7 @@ const ROLE_PRESETS = [
     { id: 'admin', label: 'Admin', description: 'Clinic management access' },
     { id: 'staff', label: 'Staff', description: 'Appointment and patient access' },
     { id: 'secretary', label: 'Secretary', description: 'Reception and scheduling' },
-    { id: 'doctor', label: 'Doctor', description: 'Clinical and MRD access' }
+    { id: 'doctor', label: 'Doctor', description: 'Clinical and Medical Documentation access' }
 ];
 
 const PERMISSION_LABELS = {
@@ -32,7 +32,7 @@ const PERMISSION_LABELS = {
     edit_appointments: 'Appointments Edit',
     view_scheduling: 'Scheduling',
     view_queue: 'Queue Tokens',
-    view_mrd: 'MRD',
+    view_mrd: 'Medical Documentation',
     view_bot_hub: 'Bot Hub',
     view_doctors: 'Doctors',
     view_admins: 'Admin Control',

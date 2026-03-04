@@ -20,10 +20,37 @@ const STATUS_CONFIG = {
     NO_SHOW: { color: '#ef4444', bg: '#fee2e2', label: 'No Show' },
 };
 
-const StatBadge = ({ label, value, color }) => (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1rem 1.5rem', textAlign: 'center', minWidth: '100px' }}>
-        <div style={{ fontSize: '1.75rem', fontWeight: 800, color }}>{value}</div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+const StatBadge = ({ label, value, color, isActive, onClick }) => (
+    <div
+        onClick={onClick}
+        onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = `0 6px 16px ${color}15`;
+        }}
+        onMouseLeave={(e) => {
+            e.currentTarget.style.transform = isActive ? 'translateY(-2px)' : 'none';
+            e.currentTarget.style.boxShadow = isActive ? `0 4px 12px ${color}20` : 'none';
+        }}
+        style={{
+            background: isActive ? '#fff' : '#fff',
+            border: isActive ? `2px solid ${color}` : '1.5px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '0.75rem 1rem',
+            textAlign: 'center',
+            minWidth: '100px',
+            flex: 1,
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isActive ? 'translateY(-2px)' : 'none',
+            boxShadow: isActive ? `0 4px 12px ${color}20` : 'none',
+            position: 'relative',
+            overflow: 'hidden'
+        }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.65rem', color: isActive ? color : '#94a3b8', fontWeight: 800, marginTop: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        {isActive && (
+            <div style={{ position: 'absolute', bottom: 0, left: '25%', right: '25%', height: '3px', background: color, borderRadius: '3px 3px 0 0' }} />
+        )}
     </div>
 );
 
@@ -31,44 +58,82 @@ const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
     const cfg = STATUS_CONFIG[token.status] || STATUS_CONFIG.WAITING;
     return (
         <tr style={{ transition: 'all 0.2s' }}>
-            <td style={{ padding: '1rem 1.25rem' }}>
+            <td style={{ padding: '0.6rem 1rem' }}>
                 <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                     background: isNext ? 'linear-gradient(135deg, #6366f1, #4338ca)' : '#f8fafc',
                     color: isNext ? '#fff' : '#1e293b',
-                    padding: '0.4rem 0.9rem', borderRadius: '10px', fontWeight: 800, fontSize: '0.95rem'
+                    padding: '0.3rem 0.6rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem'
                 }}>
-                    <Hash size={14} /> {token.token}
+                    <Hash size={12} /> {token.token}
                 </div>
             </td>
-            <td style={{ padding: '1rem 1.25rem' }}>
-                <div style={{ fontWeight: 700, color: '#1e293b' }}>{token.child_name || token.patient_name || '—'}</div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{token.patient_id || ''}</div>
+            <td style={{ padding: '0.6rem 1rem' }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem' }}>{token.child_name || token.patient_name || '—'}</div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{token.patient_id || ''}</div>
+                {!token.is_single_doctor && token.doctor_name && (
+                    <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 700, marginTop: '0.1rem', textTransform: 'uppercase' }}>
+                        {token.doctor_name}
+                    </div>
+                )}
             </td>
-            <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', color: '#64748b' }}>{token.slot_label || token.slot_id || '—'}</td>
-            <td style={{ padding: '1rem 1.25rem' }}>
-                <span style={{ background: cfg.bg, color: cfg.color, padding: '0.3rem 0.75rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 700 }}>
+            <td style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: '#64748b' }}>{token.slot_label || token.slot_id || '—'}</td>
+            <td style={{ padding: '0.6rem 1rem' }}>
+                <span style={{ background: cfg.bg, color: cfg.color, padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 700 }}>
                     {cfg.label}
                 </span>
             </td>
-            <td style={{ padding: '1rem 1.25rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <td style={{ padding: '0.6rem 1rem' }}>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    {/* 1. INITIAL STATE: Waiting to arrive */}
                     {token.status === 'WAITING' && (
-                        <button onClick={() => onCheckin(token.token)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1.5px solid #6366f1', background: '#fff', color: '#6366f1', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
-                            <Check size={13} /> Check In
-                        </button>
+                        <>
+                            <button
+                                onClick={() => token.token && onCheckin(token.token, token.doctor_id)}
+                                disabled={!token.token}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #6366f1', background: '#fff', color: '#6366f1', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem', opacity: !token.token ? 0.5 : 1 }}>
+                                <Check size={11} /> Check In
+                            </button>
+                            <button
+                                onClick={() => token.token && onStatusChange(token.token, 'NO_SHOW', token.doctor_id)}
+                                disabled={!token.token}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #ef4444', background: '#fff', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem', opacity: !token.token ? 0.5 : 1 }}>
+                                <X size={11} /> No Show
+                            </button>
+                        </>
                     )}
-                    {(token.status === 'CHECKED_IN' || token.status === 'WAITING') && (
-                        <button onClick={() => onStatusChange(token.token, 'NO_SHOW')}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1.5px solid #ef4444', background: '#fff', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
-                            <X size={13} /> No Show
-                        </button>
-                    )}
+
+                    {/* 2. ARRIVED: Waiting for doctor */}
                     {token.status === 'CHECKED_IN' && (
-                        <button onClick={() => onNext(token.doctor_id)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
-                            <SkipForward size={13} /> Call Next
+                        <>
+                            <button
+                                onClick={() => onStatusChange(token.token, 'IN_PROGRESS', token.doctor_id)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                                <ChevronRight size={11} /> Start Session
+                            </button>
+                            <button
+                                onClick={() => onStatusChange(token.token, 'SKIPPED', token.doctor_id)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #94a3b8', background: '#fff', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                                <SkipForward size={11} /> Skip
+                            </button>
+                        </>
+                    )}
+
+                    {/* 3. IN SESSION: Patient is with doctor */}
+                    {token.status === 'IN_PROGRESS' && (
+                        <button
+                            onClick={() => onStatusChange(token.token, 'COMPLETED', token.doctor_id)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                            <CheckCircle2 size={11} /> Finish & Complete
+                        </button>
+                    )}
+
+                    {/* 4. TERMINAL STATES: Completed/Missed */}
+                    {(token.status === 'COMPLETED' || token.status === 'SKIPPED' || token.status === 'NO_SHOW') && (
+                        <button
+                            onClick={() => onStatusChange(token.token, 'WAITING', token.doctor_id)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #94a3b8', background: '#fff', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                            <RotateCcw size={11} /> Reset to Waiting
                         </button>
                     )}
                 </div>
@@ -101,24 +166,33 @@ const QueueDisplay = () => {
         getDoctors().then(r => {
             const list = r.data?.data || r.data?.doctors || [];
             setDoctors(list);
-            if (list.length > 0) setSelectedDoctor(list[0].doctor_id || list[0]._id);
+            // Default to empty (All Combined Doctors) instead of forcing first doctor
+            setSelectedDoctor('');
         }).catch(() => { });
     }, []);
 
     const fetchQueue = useCallback(async () => {
-        if (!selectedDoctor) return;
+        // We only require date, doctor_id can be empty for "All Combined"
+        if (!date) return;
         setLoading(true);
         setError(null);
         try {
+            const params = { date };
+            if (selectedDoctor) params.doctor_id = selectedDoctor;
+
             const [tokenRes, displayRes] = await Promise.all([
-                getDailyTokens({ doctor_id: selectedDoctor, date }),
-                getClinicDisplayData({ doctor_id: selectedDoctor, date })
+                getDailyTokens(params),
+                getClinicDisplayData(params)
             ]);
             setTokens(tokenRes.data?.data || []);
             const displayList = displayRes.data?.display || displayRes.data?.data || [];
+
             if (Array.isArray(displayList)) {
-                const currentDoctorDisplay = displayList.find(d => String(d.doctor_id) === String(selectedDoctor));
-                // Map API names to component expected names
+                // If we have a selected doctor, find their specific display data
+                const currentDoctorDisplay = selectedDoctor
+                    ? displayList.find(d => String(d.doctor_id) === String(selectedDoctor))
+                    : displayList[0]; // Or some summary for "All Doctors"
+
                 if (currentDoctorDisplay) {
                     setDisplayData({
                         ...currentDoctorDisplay,
@@ -142,17 +216,19 @@ const QueueDisplay = () => {
 
     useEffect(() => { fetchQueue(); }, [fetchQueue]);
 
-    const handleCheckIn = async (token) => {
+    const handleCheckIn = async (token, tokenDocId) => {
         try {
-            await checkInToken(token, { doctor_id: selectedDoctor, date });
+            const docId = tokenDocId || selectedDoctor;
+            await checkInToken(token, { doctor_id: docId, date });
             showSuccess(`Token ${token} checked in`);
             fetchQueue();
         } catch (e) { showError(e.response?.data?.message || 'Check-in failed'); }
     };
 
-    const handleStatusChange = async (token, status) => {
+    const handleStatusChange = async (token, status, tokenDocId) => {
         try {
-            await updateTokenStatus(token, { status, doctor_id: selectedDoctor, date });
+            const docId = tokenDocId || selectedDoctor;
+            await updateTokenStatus(token, { status, doctor_id: docId, date });
             showSuccess(`Token ${token} marked as ${status}`);
             fetchQueue();
         } catch (e) { showError(e.response?.data?.message || 'Status update failed'); }
@@ -207,61 +283,62 @@ const QueueDisplay = () => {
     const nextPendingToken = filtered.find(t => t.status === 'WAITING' || t.status === 'CHECKED_IN');
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ padding: '1rem', maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Queue Tokens</h1>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Queue Tokens</h1>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <a href="/clinic-display" target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem' }}>
-                        <Monitor size={16} /> Display Board <ExternalLink size={12} />
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', textDecoration: 'none', fontWeight: 600, fontSize: '0.75rem' }}>
+                        <Monitor size={14} /> Display Board <ExternalLink size={10} />
                     </a>
                     <button onClick={handleAutoReschedule}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: '#fff', border: '1.5px solid #f59e0b', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
-                        <RotateCcw size={16} /> Auto-Reschedule
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#fff', border: '1.5px solid #f59e0b', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
+                        <RotateCcw size={14} /> Auto-Reschedule
                     </button>
                     <button onClick={fetchQueue}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #4338ca)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
-                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #4338ca)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
                     </button>
                 </div>
             </div>
 
             {/* Filters */}
-            <div style={{ background: '#fff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '180px' }}>
-                    <Filter size={16} color="#94a3b8" />
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: '160px' }}>
+                    <Filter size={14} color="#94a3b8" />
                     <select value={selectedDoctor} onChange={e => setSelectedDoctor(e.target.value)}
-                        style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', background: '#fff', flex: 1 }}>
-                        {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name}</option>)}
+                        style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b', background: '#fff', flex: 1 }}>
+                        <option value="" key="all-doc-combined">All Combined Doctors</option>
+                        {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name || d.full_name}</option>)}
                     </select>
                 </div>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.875rem', color: '#1e293b' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '180px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0 0.75rem' }}>
-                    <Search size={16} color="#94a3b8" />
+                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: '160px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0 0.6rem' }}>
+                    <Search size={14} color="#94a3b8" />
                     <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search token, patient..."
-                        style={{ border: 'none', background: 'transparent', padding: '0.55rem 0', fontSize: '0.875rem', outline: 'none', width: '100%' }} />
+                        style={{ border: 'none', background: 'transparent', padding: '0.4rem 0', fontSize: '0.8rem', outline: 'none', width: '100%' }} />
                 </div>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.55rem 0.75rem', fontSize: '0.875rem', color: '#1e293b', background: '#fff' }}>
+                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b', background: '#fff' }}>
                     <option value="ALL">All Statuses</option>
                     {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
-                <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem' }}>
+                <div style={{ display: 'flex', gap: '6px', borderLeft: '1px solid #e2e8f0', paddingLeft: '0.75rem' }}>
                     <input
                         value={statusSearch}
                         onChange={e => setStatusSearch(e.target.value)}
                         placeholder="Token #..."
-                        style={{ border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', width: '80px', outline: 'none' }}
+                        style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.35rem 0.5rem', fontSize: '0.75rem', width: '70px', outline: 'none' }}
                     />
                     <button
                         onClick={handleCheckTokenStatus}
                         disabled={checkingStatus}
-                        style={{ padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
+                        style={{ padding: '0.35rem 0.6rem', borderRadius: '8px', background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}
                     >
-                        {checkingStatus ? '...' : <Zap size={14} />}
+                        {checkingStatus ? '...' : <Zap size={12} />}
                     </button>
                 </div>
             </div>
@@ -295,12 +372,12 @@ const QueueDisplay = () => {
             {success && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '0.85rem 1.25rem', marginBottom: '1rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.75rem' }}><CheckCircle2 size={18} />{success}</div>}
 
             {/* Stats */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <StatBadge label="Total" value={stats.total} color="#0f172a" />
-                <StatBadge label="Waiting" value={stats.waiting} color="#f59e0b" />
-                <StatBadge label="Checked In" value={stats.checkedIn} color="#6366f1" />
-                <StatBadge label="Completed" value={stats.completed} color="#10b981" />
-                <StatBadge label="No Show" value={stats.noShow} color="#ef4444" />
+            <div style={{ display: 'flex', gap: '0.85rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <StatBadge label="Total" value={stats.total} color="#0f172a" isActive={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')} />
+                <StatBadge label="Waiting" value={stats.waiting} color="#f59e0b" isActive={statusFilter === 'WAITING'} onClick={() => setStatusFilter('WAITING')} />
+                <StatBadge label="Checked In" value={stats.checkedIn} color="#6366f1" isActive={statusFilter === 'CHECKED_IN'} onClick={() => setStatusFilter('CHECKED_IN')} />
+                <StatBadge label="Completed" value={stats.completed} color="#10b981" isActive={statusFilter === 'COMPLETED'} onClick={() => setStatusFilter('COMPLETED')} />
+                <StatBadge label="No Show" value={stats.noShow} color="#ef4444" isActive={statusFilter === 'NO_SHOW'} onClick={() => setStatusFilter('NO_SHOW')} />
             </div>
 
             {/* Display board data */}
@@ -340,40 +417,40 @@ const QueueDisplay = () => {
             )}
 
             {/* Table */}
-            <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
-                        <Hash size={18} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle', color: '#6366f1' }} />
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                        <Hash size={16} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle', color: '#6366f1' }} />
                         Token List — {filtered.length} records
                     </h3>
                 </div>
                 {loading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                        <RefreshCw size={28} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.75rem' }} />
-                        <p>Loading queue...</p>
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.5rem' }} />
+                        <p style={{ fontSize: '0.8rem' }}>Loading queue...</p>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                        <Hash size={40} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-                        <p style={{ fontWeight: 600 }}>No tokens found for selected filters</p>
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                        <Hash size={32} style={{ marginBottom: '0.5rem', opacity: 0.3 }} />
+                        <p style={{ fontWeight: 600, fontSize: '0.8rem' }}>No tokens found</p>
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc' }}>
-                                    <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Token</th>
-                                    <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Patient</th>
-                                    <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Slot</th>
-                                    <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
-                                    <th style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
+                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Token</th>
+                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Patient</th>
+                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Slot</th>
+                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
+                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filtered.map(token => (
                                     <TokenRow
-                                        key={token.token || token._id}
-                                        token={token}
+                                        key={token.appointment_id || token._id || `${token.doctor_id}-${token.token}`}
+                                        token={{ ...token, is_single_doctor: !!selectedDoctor }}
                                         onCheckin={handleCheckIn}
                                         onStatusChange={handleStatusChange}
                                         onNext={handleNextToken}

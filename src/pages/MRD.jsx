@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Download, Printer, Lock, Paperclip, Plus, X, FileText, RefreshCw, Activity, User, Calendar, Shield, ArrowRight } from 'lucide-react';
-import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getEntryByAppointment, toIsoDate } from '../api/index';
+import { Search, Download, Printer, Lock, Paperclip, Plus, X, FileText, RefreshCw, Activity, User, Calendar, Shield, ArrowRight, Clock, Eye } from 'lucide-react';
+import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getDoctors, getEntryByAppointment, toIsoDate } from '../api/index';
 
 const EMPTY_ENTRY = {
     patient_id: '', appointment_id: '', visit_date: toIsoDate(),
     visit_type: 'CONSULTATION', attending_doctor: 'Dr. Indu',
     chief_complaint: '', clinical_notes: '', diagnosis: '',
-    prescription: '', investigations: '', next_visit_due: '', recorded_by: 'Dr. Indu'
+    prescription: '', investigations: '', next_visit_due: '', recorded_by: 'Dr. Indu',
+    weight: '', temperature: '', spo2: '', pulse: '', head_circumference: '',
+    symptoms: '', advice: '', attachments: []
 };
 
 const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#ec4899'];
@@ -52,6 +54,10 @@ const MRD = () => {
     const [formStatus, setFormStatus] = useState({ error: null, success: null });
     const [exporting, setExporting] = useState(false);
 
+    const [pendingCompletions, setPendingCompletions] = useState([]);
+    const [pendingLoading, setPendingLoading] = useState(false);
+    const [doctorsList, setDoctorsList] = useState([]);
+
     const loadDirectory = useCallback(async (q = '') => {
         setDirLoading(true);
         try {
@@ -62,23 +68,105 @@ const MRD = () => {
         finally { setDirLoading(false); }
     }, []);
 
-    useEffect(() => { loadDirectory(); }, [loadDirectory]);
-
-    const selectPatientRecord = async (p) => {
-        if (selectedPatient?.patient_id === p.patient_id) return;
-        setSelectedPatient(p);
-        setRecords([]);
-        setSelectedRecord(null);
-        setKeywordSearch('');
-        setFilterType('ALL');
-        setRecLoading(true);
+    const loadWorklist = useCallback(async () => {
+        setPendingLoading(true);
         try {
-            const r = await getMRDByPatientId(p.patient_id);
-            const e = r.data?.data?.entries || [];
-            setRecords(e);
-            if (e.length) setSelectedRecord(e[0]);
-        } catch (e) { console.error(e); }
-        finally { setRecLoading(false); }
+            // Fetch completed appointments for last 7 days to keep it reasonable
+            const d = new Date();
+            d.setDate(d.getDate() - 7);
+            const r = await getAppointments({
+                status: 'COMPLETED',
+                limit: 100
+            });
+            // Filter ones that don't have mrd entry yet
+            const list = (r.data?.data || []).filter(a => !a.has_mrd_entry);
+            setPendingCompletions(list);
+        } catch (e) {
+            console.error('Worklist fetch failed', e);
+        } finally {
+            setPendingLoading(false);
+        }
+    }, []);
+
+    const loadDoctors = useCallback(async () => {
+        try {
+            const r = await getDoctors();
+            setDoctorsList(r.data?.data || []);
+        } catch (e) {
+            console.error('Failed to fetch doctors', e);
+        }
+    }, []);
+
+    useEffect(() => { loadDirectory(); loadWorklist(); loadDoctors(); }, [loadDirectory, loadWorklist, loadDoctors]);
+    const selectPatientRecord = async (p, prefFromAppt = null) => {
+        if (selectedPatient?.patient_id !== p.patient_id) {
+            setSelectedPatient(p);
+            setRecords([]);
+            setSelectedRecord(null);
+            setKeywordSearch('');
+            setFilterType('ALL');
+            setRecLoading(true);
+            try {
+                const r = await getMRDByPatientId(p.patient_id);
+                // The backend returns a unified timeline and an appointments array
+                const entries = r.data?.data?.entries || [];
+                const appointments = r.data?.data?.appointments || [];
+
+                // We want to show entries, but also "ghost" entries for completed appointments that have no record yet
+                const combined = [...entries];
+
+                appointments.forEach(appt => {
+                    if (appt.status === 'COMPLETED' && !entries.find(e => e.appointment_id === appt.appointment_id)) {
+                        combined.push({
+                            is_pending_record: true,
+                            appointment_id: appt.appointment_id,
+                            visit_date: appt.appointment_date,
+                            visit_type: appt.visit_type,
+                            attending_doctor: appt.doctor_name,
+                            diagnosis: 'Pending Documentation',
+                            reason: appt.reason,
+                            weight: appt.weight,
+                            temperature: appt.temperature,
+                            spo2: appt.spo2,
+                            pulse: appt.pulse,
+                            head_circumference: appt.head_circumference,
+                            symptoms: appt.symptoms
+                        });
+                    }
+                });
+
+                combined.sort((a, b) => new Date(b.visit_date || b.createdAt) - new Date(a.visit_date || a.createdAt));
+                setRecords(combined);
+                if (combined.length) setSelectedRecord(combined[0]);
+            } catch (e) {
+                if (e.response?.status === 404) {
+                    setRecords([]);
+                    setSelectedRecord(null);
+                } else {
+                    console.error(e);
+                }
+            }
+            finally { setRecLoading(false); }
+        }
+
+        if (prefFromAppt) {
+            setShowModal(true);
+            setForm({
+                ...EMPTY_ENTRY,
+                patient_id: p.patient_id,
+                appointment_id: prefFromAppt.appointment_id,
+                visit_date: prefFromAppt.appointment_date ? prefFromAppt.appointment_date.split('T')[0] : toIsoDate(),
+                visit_type: prefFromAppt.visit_type || 'CONSULTATION',
+                attending_doctor: prefFromAppt.attending_doctor || prefFromAppt.doctor_name || 'Dr. Indu',
+                chief_complaint: prefFromAppt.reason || '',
+                weight: prefFromAppt.weight || '',
+                temperature: prefFromAppt.temperature || '',
+                spo2: prefFromAppt.spo2 || '',
+                pulse: prefFromAppt.pulse || '',
+                head_circumference: prefFromAppt.head_circumference || '',
+                symptoms: Array.isArray(prefFromAppt.symptoms) ? prefFromAppt.symptoms.join(', ') : (prefFromAppt.symptoms || '')
+            });
+        }
     };
 
     const handleAppointmentLookup = async () => {
@@ -99,7 +187,7 @@ const MRD = () => {
                 setSelectedRecord(entry);
                 setTab('details');
             } else {
-                alert("No MRD entry found for this appointment ID");
+                alert("No Medical Documentation entry found for this appointment ID");
             }
         } catch (e) {
             console.error(e);
@@ -117,7 +205,7 @@ const MRD = () => {
             const b = new Blob([JSON.stringify(r.data.data, null, 2)], { type: 'application/json' });
             const u = URL.createObjectURL(b), a = document.createElement('a');
             a.href = u;
-            a.download = `MRD_${selectedPatient.patient_id}_${toIsoDate()}.json`;
+            a.download = `Medical_Docs_${selectedPatient.patient_id}_${toIsoDate()}.json`;
             a.click();
             URL.revokeObjectURL(u);
         } catch (e) { console.error(e); } finally { setExporting(false); }
@@ -128,9 +216,19 @@ const MRD = () => {
         setSaving(true);
         setFormStatus({ error: null, success: null });
         try {
-            await addMRDEntry({ ...form, patient_id: form.patient_id || selectedPatient?.patient_id });
+            const sym = typeof form.symptoms === 'string'
+                ? form.symptoms.split(',').map(s => s.trim()).filter(Boolean)
+                : form.symptoms;
+
+            await addMRDEntry({
+                ...form,
+                symptoms: sym,
+                patient_id: form.patient_id || selectedPatient?.patient_id
+            });
             setFormStatus({ error: null, success: 'Entry added successfully.' });
             setForm(EMPTY_ENTRY);
+            // Refresh worklist since an entry was added
+            loadWorklist();
             if (selectedPatient) {
                 const r = await getMRDByPatientId(selectedPatient.patient_id);
                 setRecords(r.data?.data?.entries || []);
@@ -138,7 +236,7 @@ const MRD = () => {
         } catch (e) {
             const errorMsg = e.response?.data?.message || e.message;
             if (errorMsg.includes("E11000") && errorMsg.includes("patient_id")) {
-                setFormStatus({ error: "Conflict: This Patient ID already has an existing MRD record. Multiple records for the same ID are not allowed.", success: null });
+                setFormStatus({ error: "Conflict: This Patient ID already has an existing Medical Documentation record. Multiple records for the same ID are not allowed.", success: null });
             } else {
                 setFormStatus({ error: errorMsg, success: null });
             }
@@ -149,7 +247,33 @@ const MRD = () => {
     const openEntryModal = () => {
         setShowModal(true);
         setFormStatus({ error: null, success: null });
-        setForm({ ...EMPTY_ENTRY, patient_id: selectedPatient?.patient_id || '' });
+        setForm({ ...EMPTY_ENTRY, patient_id: selectedPatient?.patient_id || '', attachments: [] });
+    };
+
+    const handleFileChange = async (e) => {
+        const files = Array.from(e.target.files);
+        const newAttachments = [...(form.attachments || [])];
+
+        for (const file of files) {
+            const base64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+            newAttachments.push({
+                url: base64,
+                name: file.name,
+                file_type: file.type || 'image/jpeg',
+                preview: base64 // Local preview
+            });
+        }
+        setForm({ ...form, attachments: newAttachments });
+    };
+
+    const removeAttachment = (index) => {
+        const updated = [...form.attachments];
+        updated.splice(index, 1);
+        setForm({ ...form, attachments: updated });
     };
 
     const filteredRecords = records.filter(r => {
@@ -166,40 +290,11 @@ const MRD = () => {
 
     return (
         <div className="mrd-page-v3">
-            <header className="mrd-header-v3">
-                <div className="title-section">
-                    <h1 title="Medical Records Department">MRD</h1>
-                </div>
+            <header className="mrd-top-bar">
+                <h1 className="page-title-v3">Medical Documentation</h1>
                 <div className="header-actions">
-                    <div className="search-bar-v3">
-                        <Search size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search Patients..."
-                            value={patientSearch}
-                            onChange={(e) => {
-                                setPatientSearch(e.target.value);
-                                if (e.target.value.length > 2) loadDirectory(e.target.value);
-                                else if (e.target.value.length === 0) loadDirectory();
-                            }}
-                        />
-                        {dirLoading && <RefreshCw size={16} className="spinning" />}
-                    </div>
-                    <div className="search-bar-v3">
-                        <Paperclip size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Lookup Appointment ID..."
-                            value={appointmentSearch}
-                            onChange={(e) => setAppointmentSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAppointmentLookup()}
-                        />
-                        <button className="btn-mini-search" onClick={handleAppointmentLookup}>
-                            <ArrowRight size={14} />
-                        </button>
-                    </div>
                     <button className="btn-sync-v3" onClick={() => loadDirectory()}>
-                        <RefreshCw size={16} />
+                        <RefreshCw size={14} className={dirLoading ? 'spinning' : ''} />
                         <span>Sync Directory</span>
                     </button>
                 </div>
@@ -208,7 +303,50 @@ const MRD = () => {
             <div className="mrd-workspace-v3">
                 {/* 1. Directory Panel */}
                 <aside className="mrd-panel-v3 sidebar-panel">
-                    <div className="panel-label">Patient Directory</div>
+                    {pendingCompletions.length > 0 && (
+                        <div className="worklist-section">
+                            <div className="panel-label" style={{ color: '#6366f1', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Pending clinical records</span>
+                                <span className="badge">{pendingCompletions.length}</span>
+                            </div>
+                            <div className="worklist-container">
+                                {pendingCompletions.map(a => (
+                                    <div key={a.appointment_id} className="worklist-item" onClick={async () => {
+                                        let p = patients.find(pat => pat.patient_id === a.patient_id);
+                                        if (!p) {
+                                            const res = await getPatientById(a.patient_id);
+                                            p = res.data?.data;
+                                        }
+                                        if (p) selectPatientRecord(p, a);
+                                    }}>
+                                        <div className="dot"></div>
+                                        <div className="wi-content">
+                                            <div className="wi-name">{a.child_name || 'Unknown Patient'}</div>
+                                            <div className="wi-meta">{fmt(a.appointment_date)} • {a.appointment_id}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="directory-search-container">
+                        <div className="panel-label">Patient Directory</div>
+                        <div className="search-bar-v3 sidebar-search">
+                            <Search size={14} className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search by name or ID..."
+                                value={patientSearch}
+                                onChange={(e) => {
+                                    setPatientSearch(e.target.value);
+                                    if (e.target.value.length > 2) loadDirectory(e.target.value);
+                                    else if (e.target.value.length === 0) loadDirectory();
+                                }}
+                            />
+                            {dirLoading && <RefreshCw size={12} className="spinning" />}
+                        </div>
+                    </div>
                     <div className="patient-list-v3">
                         {dirLoading && patients.length === 0 ? (
                             <div className="loading-state">
@@ -293,18 +431,27 @@ const MRD = () => {
                                     </div>
                                 ) : filteredRecords.map((rec, i) => (
                                     <div
-                                        key={rec._id || i}
-                                        className={`record-card-v3 ${selectedRecord === rec ? 'selected' : ''}`}
+                                        key={rec._id || rec.appointment_id || i}
+                                        className={`record-card-v3 ${selectedRecord === rec ? 'selected' : ''} ${rec.is_pending_record ? 'pending-state' : ''}`}
                                         onClick={() => { setSelectedRecord(rec); setTab('details'); }}
                                     >
                                         <div className="record-header">
                                             <span className="record-date">{fmt(rec.visit_date || rec.createdAt)}</span>
-                                            <span className={`type-tag ${rec.visit_type.toLowerCase()}`}>{rec.visit_type}</span>
+                                            <span className={`type-tag ${rec.visit_type?.toLowerCase()}`}>{rec.visit_type}</span>
                                         </div>
-                                        <div className="record-diagnosis">{rec.diagnosis || rec.chief_complaint || 'General Checkup'}</div>
+                                        <div className="record-diagnosis">
+                                            {rec.is_pending_record && <Clock size={14} className="pending-icon" />}
+                                            {rec.diagnosis || rec.chief_complaint || 'General Checkup'}
+                                        </div>
                                         <div className="record-footer">
                                             <div className="doctor-pill"><Activity size={10} /> {rec.attending_doctor}</div>
                                             {rec.prescription && <div className="attachment-pill"><Paperclip size={10} /> Rx</div>}
+                                            {rec.attachments?.length > 0 && <div className="attachment-pill" style={{ background: '#ecfdf5', color: '#059669' }}><Paperclip size={10} /> {rec.attachments.length} Img</div>}
+                                            {rec.is_pending_record && (
+                                                <button className="btn-record-now" onClick={(e) => { e.stopPropagation(); selectPatientRecord(selectedPatient, rec); }}>
+                                                    Complete Now <Plus size={10} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -344,6 +491,7 @@ const MRD = () => {
                                 {[
                                     { id: 'details', label: 'Clinical Summary' },
                                     { id: 'prescription', label: `Rx Plan (${prescriptionLines.length})` },
+                                    { id: 'attachments', label: `Files & Images (${selectedRecord.attachments?.length || 0})` },
                                     { id: 'followup', label: 'Prognosis & Follow-up' }
                                 ].map(t => (
                                     <button
@@ -359,14 +507,42 @@ const MRD = () => {
                             <div className="tab-content-v3">
                                 {tab === 'details' && (
                                     <div className="clinical-grid-v3">
+                                        {(selectedRecord.weight || selectedRecord.temperature || selectedRecord.spo2 || selectedRecord.pulse || selectedRecord.head_circumference) && (
+                                            <article className="info-block-v3 vitals-display">
+                                                <label>Vitals Check</label>
+                                                <div className="vitals-grid">
+                                                    {selectedRecord.weight && <div className="vital-item"><span>Weight:</span> <strong>{selectedRecord.weight}</strong></div>}
+                                                    {selectedRecord.temperature && <div className="vital-item"><span>Temp:</span> <strong>{selectedRecord.temperature}</strong></div>}
+                                                    {selectedRecord.spo2 && <div className="vital-item"><span>SPO2:</span> <strong>{selectedRecord.spo2}</strong></div>}
+                                                    {selectedRecord.pulse && <div className="vital-item"><span>Pulse:</span> <strong>{selectedRecord.pulse}</strong></div>}
+                                                    {selectedRecord.head_circumference && <div className="vital-item"><span>Head Cir:</span> <strong>{selectedRecord.head_circumference}</strong></div>}
+                                                </div>
+                                            </article>
+                                        )}
+                                        {selectedRecord.symptoms && (Array.isArray(selectedRecord.symptoms) ? selectedRecord.symptoms.length > 0 : String(selectedRecord.symptoms).length > 0) && (
+                                            <article className="info-block-v3">
+                                                <label>Reporting Symptoms</label>
+                                                <div className="symptoms-chips">
+                                                    {(Array.isArray(selectedRecord.symptoms) ? selectedRecord.symptoms : [selectedRecord.symptoms]).map((s, i) => (
+                                                        <span key={i} className="sym-chip">{s}</span>
+                                                    ))}
+                                                </div>
+                                            </article>
+                                        )}
                                         <article className="info-block-v3">
                                             <label>Chief Complaint</label>
                                             <p>{selectedRecord.chief_complaint || 'No complaint recorded.'}</p>
                                         </article>
                                         <article className="info-block-v3">
-                                            <label>Physical Examination & Findings</label>
-                                            <p>{selectedRecord.clinical_notes || 'No notes available.'}</p>
+                                            <label>Clinical Observations</label>
+                                            <p>{selectedRecord.clinical_notes || 'No observations recorded.'}</p>
                                         </article>
+                                        {selectedRecord.advice && (
+                                            <article className="info-block-v3">
+                                                <label>Advice & Instructions</label>
+                                                <p className="advice-text">{selectedRecord.advice}</p>
+                                            </article>
+                                        )}
                                         {selectedRecord.visit_type === 'VACCINATION' && (
                                             <article className="info-block-v3 vaccination">
                                                 <label>Immunization Track</label>
@@ -375,6 +551,32 @@ const MRD = () => {
                                                     <span>{selectedRecord.diagnosis || "Regular Immunization"}</span>
                                                 </div>
                                             </article>
+                                        )}
+                                    </div>
+                                )}
+
+                                {tab === 'attachments' && (
+                                    <div className="attachments-view-v3">
+                                        {selectedRecord.attachments?.length > 0 ? (
+                                            <div className="image-grid-v3">
+                                                {selectedRecord.attachments.map((att, idx) => (
+                                                    <div key={idx} className="img-card-v3">
+                                                        <img src={att.url} alt={att.name} />
+                                                        <div className="img-overlay">
+                                                            <span className="img-name">{att.name}</span>
+                                                            <div className="img-actions">
+                                                                <button className="img-btn" onClick={() => window.open(att.url, '_blank')}><Eye size={16} /></button>
+                                                                <a href={att.url} download={att.name} className="img-btn"><Download size={14} /></a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="empty-state-mini">
+                                                <Paperclip size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
+                                                <p>No medical screenshots or scans have been uploaded for this visit.</p>
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -422,51 +624,111 @@ const MRD = () => {
                             <button onClick={() => setShowModal(false)}><X size={20} /></button>
                         </header>
 
-                        <form onSubmit={handleAddEntry} className="entry-form-v3">
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Patient ID</label>
-                                    <input disabled value={form.patient_id} />
+                        <form onSubmit={handleAddEntry} className="entry-form-v3 custom-scrollbar">
+                            <div className="form-section-meta">
+                                <div className="form-row" style={{ gridTemplateColumns: '1.5fr 1fr 1fr' }}>
+                                    <div className="form-group">
+                                        <label>Patient Name</label>
+                                        <input disabled value={pname(selectedPatient)} style={{ color: '#10b981', fontWeight: '800' }} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Patient ID</label>
+                                        <input disabled value={form.patient_id} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Visit Date</label>
+                                        <input type="date" value={form.visit_date} onChange={e => setForm({ ...form, visit_date: e.target.value })} required />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label>Visit Date</label>
-                                    <input type="date" value={form.visit_date} onChange={e => setForm({ ...form, visit_date: e.target.value })} required />
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Visit Type</label>
+                                        <select value={form.visit_type} onChange={e => setForm({ ...form, visit_type: e.target.value })}>
+                                            <option value="CONSULTATION">Consultation</option>
+                                            <option value="VACCINATION">Vaccination</option>
+                                            <option value="FOLLOW_UP">Follow-up</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Attending Doctor</label>
+                                        <select
+                                            value={form.attending_doctor}
+                                            onChange={e => setForm({ ...form, attending_doctor: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">Select Doctor</option>
+                                            {doctorsList.map(doc => (
+                                                <option key={doc._id} value={doc.name}>{doc.name}</option>
+                                            ))}
+                                            {/* Fallback if the pre-filled doctor isn't in the official list */}
+                                            {form.attending_doctor && !doctorsList.find(d => d.name === form.attending_doctor) && (
+                                                <option value={form.attending_doctor}>{form.attending_doctor}</option>
+                                            )}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="form-row">
+                            <div className="form-section-main">
                                 <div className="form-group">
-                                    <label>Visit Type</label>
-                                    <select value={form.visit_type} onChange={e => setForm({ ...form, visit_type: e.target.value })}>
-                                        <option value="CONSULTATION">Consultation</option>
-                                        <option value="VACCINATION">Vaccination</option>
-                                        <option value="FOLLOW_UP">Follow-up</option>
-                                    </select>
+                                    <label>Diagnosis / Clinical Purpose</label>
+                                    <input placeholder="Enter primary diagnosis..." value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} style={{ fontSize: '0.9rem', borderBottomWidth: '2px' }} />
                                 </div>
+
+                                <div className="vitals-form-section">
+                                    <label className="section-label">Vitals & Measurements</label>
+                                    <div className="vitals-row">
+                                        <div className="v-field"><label>Weight</label><input placeholder="kg" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
+                                        <div className="v-field"><label>Temp</label><input placeholder="°F" value={form.temperature} onChange={e => setForm({ ...form, temperature: e.target.value })} /></div>
+                                        <div className="v-field"><label>SPO2</label><input placeholder="%" value={form.spo2} onChange={e => setForm({ ...form, spo2: e.target.value })} /></div>
+                                    </div>
+                                    <div className="vitals-row" style={{ marginTop: '1rem' }}>
+                                        <div className="v-field"><label>Pulse</label><input placeholder="bpm" value={form.pulse} onChange={e => setForm({ ...form, pulse: e.target.value })} /></div>
+                                        <div className="v-field"><label>Head Cir.</label><input placeholder="cm" value={form.head_circumference} onChange={e => setForm({ ...form, head_circumference: e.target.value })} /></div>
+                                        <div className="v-field" style={{ opacity: 0 }}></div> {/* Buffer for grid alignment */}
+                                    </div>
+                                </div>
+
                                 <div className="form-group">
-                                    <label>Attending Doctor</label>
-                                    <input value={form.attending_doctor} onChange={e => setForm({ ...form, attending_doctor: e.target.value })} required />
+                                    <label>Systemic Review / Symptoms (Comma separated)</label>
+                                    <input placeholder="Fever, Cough, etc." value={form.symptoms} onChange={e => setForm({ ...form, symptoms: e.target.value })} />
                                 </div>
-                            </div>
 
-                            <div className="form-group">
-                                <label>Diagnosis / Purpose</label>
-                                <input placeholder="Enter diagnosis..." value={form.diagnosis} onChange={e => setForm({ ...form, diagnosis: e.target.value })} />
-                            </div>
+                                <div className="form-group">
+                                    <label>Prescription (Medications & Dosage)</label>
+                                    <textarea rows={4} placeholder="Medicine Name - Dosage - Frequency - Duration" value={form.prescription} onChange={e => setForm({ ...form, prescription: e.target.value })} />
+                                </div>
 
-                            <div className="form-group">
-                                <label>Prescription (Each medicine on new line)</label>
-                                <textarea rows={4} placeholder="Medicine Name - Dosage - Frequency" value={form.prescription} onChange={e => setForm({ ...form, prescription: e.target.value })} />
-                            </div>
+                                <div className="form-group">
+                                    <label>Patient Advice & Special Instructions</label>
+                                    <textarea rows={2} placeholder="Dietary restrictions, activity limits, etc." value={form.advice} onChange={e => setForm({ ...form, advice: e.target.value })} />
+                                </div>
 
-                            <div className="form-group">
-                                <label>Clinical Notes</label>
-                                <textarea rows={3} placeholder="Record symptoms and observations..." value={form.clinical_notes} onChange={e => setForm({ ...form, clinical_notes: e.target.value })} />
-                            </div>
+                                <div className="form-group">
+                                    <label>Clinical Notes / Findings</label>
+                                    <textarea rows={3} placeholder="Record system detailed observations..." value={form.clinical_notes} onChange={e => setForm({ ...form, clinical_notes: e.target.value })} />
+                                </div>
 
-                            <div className="form-group">
-                                <label>Next Review Due</label>
-                                <input type="date" value={form.next_visit_due} onChange={e => setForm({ ...form, next_visit_due: e.target.value })} />
+                                <div className="attachment-form-section">
+                                    <label className="section-label">Medical Attachments</label>
+                                    <div className="attachment-grid-v3">
+                                        {form.attachments?.map((att, idx) => (
+                                            <div key={idx} className="att-preview-v3">
+                                                <img src={att.preview} alt="preview" />
+                                                <button type="button" onClick={() => removeAttachment(idx)} className="rem-btn"><X size={12} /></button>
+                                            </div>
+                                        ))}
+                                        <label className="att-upload-btn-v3">
+                                            <Plus size={20} />
+                                            <input type="file" multiple accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                                    <label>Return Visit Scheduled</label>
+                                    <input type="date" value={form.next_visit_due} onChange={e => setForm({ ...form, next_visit_due: e.target.value })} />
+                                </div>
                             </div>
 
                             {formStatus.error && <p className="error-msg">{formStatus.error}</p>}
@@ -485,121 +747,154 @@ const MRD = () => {
 
             <style>{`
                 .mrd-page-v3 { height: calc(100vh - 80px); display: flex; flex-direction: column; background: #f8fafc; overflow: hidden; }
+                .page-title-standalone { padding: 1.25rem 2rem 0.75rem; font-size: 1.5rem; font-weight: 950; color: #0f172a; margin: 0; background: #fff; letter-spacing: -0.03em; }
                 
-                .mrd-header-v3 { padding: 1.5rem 2rem; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-                .mrd-header-v3 h1 { font-size: 1.75rem; font-weight: 900; color: #0f172a; margin: 0; }
+                .mrd-header-v3 { padding: 0.75rem 2rem 1.25rem; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: flex-end; align-items: center; }
                 
                 .header-actions { display: flex; gap: 1rem; align-items: center; }
-                .search-bar-v3 { position: relative; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; padding: 0 1rem; width: 260px; }
-                .search-bar-v3 input { background: transparent; border: none; padding: 0.75rem; width: 100%; outline: none; font-weight: 600; font-size: 0.85rem; }
-                .search-bar-v3 .search-icon { color: #94a3b8; }
-                .btn-mini-search { background: #6366f1; color: #fff; border: none; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: 0.5rem; transition: 0.2s; }
-                .btn-mini-search:hover { background: #4338ca; }
+                .mrd-page-v3 { height: calc(100vh - 80px); display: flex; flex-direction: column; background: #f8fafc; overflow: hidden; }
+                .mrd-top-bar { padding: 0.75rem 2rem; display: flex; justify-content: flex-start; align-items: center; gap: 1.5rem; background: #fff; border-bottom: 1.5px solid #e2e8f0; }
+                .page-title-v3 { font-size: 1.15rem; font-weight: 950; color: #0f172a; margin: 0; letter-spacing: -0.04em; white-space: nowrap; }
                 
-                .btn-sync-v3 { background: #fff; border: 1px solid #e2e8f0; padding: 0.75rem 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; cursor: pointer; color: #1e293b; transition: 0.2s; }
-                .btn-sync-v3:hover { background: #f8fafc; border-color: #6366f1; color: #6366f1; }
+                .header-actions { display: flex; gap: 0.65rem; align-items: center; }
+                .btn-sync-v3 { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.75rem; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; color: #1e293b; font-weight: 900; font-size: 0.65rem; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+                .btn-sync-v3:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
+                .btn-primary-v3 { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; background: #6366f1; color: #fff; border: none; border-radius: 10px; font-weight: 900; font-size: 0.7rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); white-space: nowrap; }
+                .btn-primary-v3:hover { background: #4f46e5; transform: translateY(-1px); }
                 
-                .mrd-workspace-v3 { flex: 1; display: flex; overflow: hidden; }
+                .mrd-workspace-v3 { flex: 1; display: grid; grid-template-columns: 280px 340px 1fr; gap: 1rem; padding: 1rem 1.5rem 1.25rem; overflow: hidden; }
+                .mrd-panel-v3 { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03); }
                 
-                .mrd-panel-v3 { background: #fff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
-                .sidebar-panel { width: 280px; flex-shrink: 0; }
-                .timeline-panel { width: 360px; flex-shrink: 0; background: #fcfdfe; }
+                .sidebar-panel { background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; gap: 1rem; }
+                .worklist-section { background: #fff; border: 1.5px dashed #6366f1; border-radius: 18px; padding: 1rem; background: #fdfdff; }
+                .panel-label { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.6rem; padding: 0 0.5rem; letter-spacing: 0.05em; }
                 
-                .panel-label { padding: 1rem 1.5rem 0.5rem; font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+                .worklist-container { max-height: 180px; overflow-y: auto; padding-right: 0.25rem; }
+                .worklist-item { padding: 0.75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 0.4rem; cursor: pointer; transition: 0.2s; }
+                .worklist-item:hover { border-color: #6366f1; transform: translateX(3px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1); }
+                .worklist-item .p-name { font-weight: 900; font-size: 0.8rem; color: #1e293b; margin-bottom: 0.2rem; }
+                .worklist-item .meta-row { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 750; color: #64748b; }
+                .badge { background: #6366f1; color: #fff; padding: 0.1rem 0.4rem; border-radius: 6px; font-size: 0.6rem; font-weight: 800; }
                 
-                .patient-list-v3 { flex: 1; overflow-y: auto; padding: 0.5rem; }
-                .patient-item-v3 { padding: 0.85rem 1rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; cursor: pointer; position: relative; transition: 0.2s; }
+                .directory-search-container { display: flex; flex-direction: column; gap: 0.5rem; }
+                .sidebar-search { width: 100% !important; background: #fff !important; }
+                .search-bar-v3 { position: relative; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; padding: 0 0.75rem; transition: 0.2s; }
+                .search-bar-v3:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.05); }
+                .search-bar-v3 input { border: none; background: transparent; height: 32px; padding: 0 0.4rem; width: 100%; outline: none; font-size: 0.7rem; font-weight: 750; color: #1e293b; }
+                .search-bar-v3 .search-icon { color: #6366f1; }
+                
+                .dir-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; overflow-y: auto; flex: 1; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03); }
+                .patient-item-v3 { padding: 0.7rem 0.85rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.1s; border-radius: 12px; margin: 0.2rem; }
                 .patient-item-v3:hover { background: #f8fafc; }
-                .patient-item-v3.selected { background: #eff6ff; }
-                .patient-item-v3 .avatar { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; }
-                .patient-item-v3 .info { flex: 1; overflow: hidden; }
-                .patient-item-v3 .p-name { font-weight: 700; font-size: 0.95rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .patient-item-v3 .p-meta { font-size: 0.75rem; color: #64748b; font-weight: 600; margin-top: 0.1rem; }
-                .selected-indicator { color: #6366f1; }
+                .patient-item-v3.selected { background: #eff6ff; border-left: 3px solid #6366f1; }
+                .p-avatar-v3 { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 950; color: #fff; }
+                .p-details-v3 .name { display: block; font-weight: 900; font-size: 0.8rem; color: #1e293b; }
+                .p-details-v3 .sub { font-size: 0.6rem; color: #94a3b8; font-weight: 750; }
                 
-                .panel-header-v3 { padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-                .selected-patient-meta h3 { margin: 0; font-size: 1.15rem; font-weight: 900; color: #0f172a; }
-                .selected-patient-meta p { margin: 0.2rem 0 0 0; font-size: 0.8rem; font-weight: 700; color: #94a3b8; }
-                .btn-add-mini { width: 36px; height: 36px; border-radius: 10px; border: none; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(99,102,241,0.2); }
+                .panel-header-v3 { padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+                .selected-patient-meta h3 { margin: 0; font-size: 0.95rem; font-weight: 950; color: #0f172a; }
+                .selected-patient-meta p { margin: 0.15rem 0 0 0; font-size: 0.75rem; font-weight: 750; color: #94a3b8; }
+                .btn-add-mini { width: 30px; height: 30px; border-radius: 8px; border: none; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); }
                 
-                .timeline-filters { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; border-bottom: 1px solid #f1f5f9; }
-                .keyword-search { position: relative; display: flex; align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0 0.75rem; }
-                .keyword-search input { width: 100%; border: none; padding: 0.6rem; font-size: 0.85rem; outline: none; font-weight: 600; }
-                .keyword-search svg { color: #94a3b8; }
+                .timeline-filters { padding: 0.8rem; display: flex; flex-direction: column; gap: 0.65rem; border-bottom: 1px solid #f1f5f9; }
+                .keyword-search { position: relative; display: flex; align-items: center; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0 0.75rem; }
+                .keyword-search input { width: 100%; border: none; background: transparent; padding: 0.45rem; font-size: 0.7rem; outline: none; font-weight: 750; }
+                .keyword-search svg { color: #6366f1; }
                 
-                .type-pills { display: flex; gap: 0.4rem; }
-                .type-pills button { flex: 1; border: none; background: #f1f5f9; padding: 0.5rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s; }
-                .type-pills button.active { background: #1e293b; color: #fff; }
+                .type-pills { display: flex; gap: 0.35rem; }
+                .type-pills button { flex: 1; border: none; background: #f1f5f9; padding: 0.4rem; border-radius: 8px; font-size: 0.6rem; font-weight: 850; color: #64748b; cursor: pointer; transition: 0.2s; }
+                .type-pills button.active { background: #0f172a; color: #fff; }
                 
                 .records-timeline-v3 { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
-                .record-card-v3 { padding: 1.25rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; cursor: pointer; transition: 0.2s; }
-                .record-card-v3:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-                .record-card-v3.selected { border-color: #6366f1; background: #fdfdff; box-shadow: 0 4px 12px rgba(99,102,241,0.06); }
+                .record-card-v3 { padding: 1rem; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; cursor: pointer; transition: 0.2s; position: relative; }
+                .record-card-v3:hover { border-color: #6366f1; transform: translateY(-2px); box-shadow: 0 8px 12px -5px rgba(15, 23, 42, 0.05); }
+                .record-card-v3.selected { border-width: 2px; border-color: #6366f1; background: #fdfdff; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); }
+                .record-card-v3.pending-state { border-style: dashed; border-color: #f97316; background: #fffaf5; }
                 
-                .record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-                .record-date { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-                .type-tag { padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em; }
+                .type-tag { font-size: 0.5rem; font-weight: 950; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; float: right; }
                 .type-tag.consultation { background: #eff6ff; color: #2563eb; }
                 .type-tag.vaccination { background: #ecfdf5; color: #059669; }
                 
-                .record-diagnosis { font-weight: 800; color: #1e293b; font-size: 0.95rem; margin-bottom: 1rem; }
-                .record-footer { display: flex; gap: 0.6rem; }
-                .doctor-pill, .attachment-pill { display: flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.6rem; background: #f8fafc; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: #64748b; }
+                .record-date { display: block; font-size: 0.55rem; font-weight: 850; color: #94a3b8; margin-bottom: 0.4rem; text-transform: uppercase; }
+                .record-diagnosis { font-weight: 900; font-size: 0.75rem; color: #1e293b; margin-bottom: 0.75rem; line-height: 1.4; display: flex; align-items: center; gap: 0.4rem; }
+                .pending-icon { color: #f97316; animation: spin 2s linear infinite; }
                 
-                .mrd-main-v3 { flex: 1; overflow-y: auto; background: #f8fafc; padding: 2rem; }
-                .empty-selection { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; }
-                .empty-selection h3 { margin: 1.5rem 0 0.5rem; color: #475569; }
+                .doctor-pill, .attachment-pill { display: flex; align-items: center; gap: 0.3rem; padding: 0.15rem 0.4rem; background: #f1f5f9; border-radius: 6px; font-size: 0.55rem; font-weight: 850; color: #64748b; }
+                .btn-record-now { margin-left: auto; background: #6366f1; color: #fff; border: none; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.6rem; font-weight: 950; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2); transition: 0.2s; }
+                .btn-record-now:hover { background: #4f46e5; transform: scale(1.05); }
                 
-                .record-detail-v3 { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 40px rgba(0,0,0,0.03); overflow: hidden; max-width: 800px; margin: 0 auto; }
-                .detail-header-v3 { padding: 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; }
-                .visit-badge { display: inline-block; padding: 0.3rem 0.75rem; background: #f1f5f9; border-radius: 6px; font-size: 0.75rem; font-weight: 800; color: #475569; margin-bottom: 1rem; }
-                .primary-info h2 { margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 950; color: #0f172a; letter-spacing: -0.03em; }
-                .primary-info .meta { display: flex; gap: 1.5rem; color: #64748b; font-size: 0.85rem; font-weight: 600; }
-                .primary-info .meta span { display: flex; align-items: center; gap: 0.5rem; }
+                .mrd-main-v3 { flex: 1; overflow-y: auto; background: transparent; padding: 0; }
+                .record-detail-v3 { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%; }
                 
-                .detail-actions { display: flex; gap: 0.5rem; }
-                .btn-icon { width: 44px; height: 44px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; color: #1e293b; }
+                .detail-header-v3 { padding: 1.25rem 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; }
+                .visit-badge { display: inline-block; padding: 0.2rem 0.5rem; background: #f1f5f9; border-radius: 6px; font-size: 0.55rem; font-weight: 900; color: #475569; margin-bottom: 0.6rem; text-transform: uppercase; }
+                .primary-info h2 { margin: 0 0 0.4rem 0; font-size: 1.25rem; font-weight: 950; color: #0f172a; letter-spacing: -0.03em; }
+                .primary-info .meta { display: flex; gap: 1rem; color: #64748b; font-size: 0.7rem; font-weight: 750; }
+                .primary-info .meta span { display: flex; align-items: center; gap: 0.35rem; }
+                
+                .btn-icon { width: 34px; height: 34px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; color: #64748b; }
                 .btn-icon:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
                 
-                .detail-tabs-v3 { display: flex; padding: 0 1rem; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
-                .detail-tabs-v3 button { padding: 1rem 1.25rem; border: none; background: transparent; font-weight: 800; font-size: 0.85rem; color: #94a3b8; cursor: pointer; position: relative; }
+                .detail-tabs-v3 { display: flex; padding: 0 1.25rem; border-bottom: 1px solid #f1f5f9; background: #fafbfc; }
+                .detail-tabs-v3 button { padding: 0.7rem 0.85rem; border: none; background: transparent; font-weight: 900; font-size: 0.7rem; color: #94a3b8; cursor: pointer; position: relative; }
                 .detail-tabs-v3 button.active { color: #6366f1; }
-                .detail-tabs-v3 button.active::after { content: ''; position: absolute; bottom: 0; left: 1rem; right: 1rem; height: 3px; background: #6366f1; border-radius: 3px 3px 0 0; }
+                .detail-tabs-v3 button.active::after { content: ''; position: absolute; bottom: 0; left: 0.6rem; right: 0.6rem; height: 3px; background: #6366f1; border-radius: 3px 3px 0 0; }
                 
-                .tab-content-v3 { padding: 1.5rem 2rem; }
-                .clinical-grid-v3 { display: grid; gap: 1.5rem; }
-                .info-block-v3 label { display: block; font-size: 0.75rem; font-weight: 850; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.75rem; }
-                .info-block-v3 p { margin: 0; font-size: 0.95rem; line-height: 1.6; color: #1e293b; font-weight: 500; }
+                .tab-content-v3 { padding: 1.25rem 1.75rem; overflow-y: auto; flex: 1; }
+                .info-block-v3 label { display: block; font-size: 0.6rem; font-weight: 950; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
+                .info-block-v3 p { margin: 0; font-size: 0.8rem; line-height: 1.6; color: #1e293b; font-weight: 500; }
                 
-                .vaccine-box { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: #ecfdf5; border-radius: 12px; color: #059669; font-weight: 800; border: 1px solid #d1fae5; }
+                .vitals-display { background: #f8fafc; border: 1.5px dashed #e2e8f0; border-radius: 12px; padding: 0.85rem; }
+                .vitals-grid { display: flex; flex-wrap: wrap; gap: 1.15rem; }
+                .vital-item { font-size: 0.7rem; display: flex; align-items: baseline; gap: 0.3rem; }
+                .vital-item span { color: #94a3b8; font-weight: 900; text-transform: uppercase; font-size: 0.55rem; }
+                .vital-item strong { color: #0f172a; font-weight: 950; }
                 
-                .prescription-view-v3 { display: flex; flex-direction: column; gap: 0.75rem; }
-                .rx-line-v3 { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
-                .rx-num { width: 28px; height: 28px; background: #6366f1; color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
-                .rx-text { font-weight: 700; color: #1e293b; font-size: 0.95rem; }
+                .sym-chip { background: #eef2ff; color: #6366f1; padding: 0.2rem 0.55rem; border-radius: 50px; font-size: 0.6rem; font-weight: 900; }
+                .rx-line-v3 { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem; background: #f8fafc; border-radius: 8px; border: 1.5px solid #f1f5f9; }
+                .rx-num { width: 20px; height: 20px; background: #6366f1; color: #fff; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: 950; font-size: 0.6rem; }
+                .rx-text { font-weight: 850; color: #1e293b; font-size: 0.75rem; }
                 
-                .next-due-card { display: flex; align-items: center; gap: 1rem; padding: 1.5rem; background: #fffbe6; border-radius: 16px; border: 1px solid #ffec3d; color: #856404; max-width: 300px; }
-                .next-due-card .val { font-size: 1.1rem; font-weight: 900; }
+                .next-due-card { display: flex; align-items: center; gap: 0.85rem; padding: 1rem; background: #fffbe6; border-radius: 12px; border: 1.5px solid #ffec3d; color: #856404; max-width: 300px; }
+                .next-due-card .val { font-size: 0.95rem; font-weight: 950; }
                 
                 .spinning { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 
-                .modal-overlay-v3 { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 2rem; }
-                .modal-content-v3 { background: #fff; width: 100%; max-width: 600px; border-radius: 24px; box-shadow: 0 40px 100px rgba(0,0,0,0.1); overflow: hidden; }
-                .modal-header-v3 { padding: 1.5rem 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-                .modal-header-v3 h3 { margin: 0; font-weight: 900; }
+                .modal-overlay-v3 { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+                .modal-content-v3 { background: #fff; width: 100%; max-width: 660px; border-radius: 20px; box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.2); overflow: hidden; border: 1px solid rgba(255,255,255,0.8); animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+                @keyframes modalPop { from { transform: scale(0.95) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
                 
-                .entry-form-v3 { padding: 2rem; display: flex; flex-direction: column; gap: 1.25rem; max-height: 70vh; overflow-y: auto; }
-                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-                .form-group label { display: block; font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.5rem; }
-                .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-weight: 600; font-size: 0.9rem; }
-                .form-group input:disabled { background: #f8fafc; color: #94a3b8; }
+                .modal-header-v3 { padding: 0.8rem 1.15rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafbfc; }
+                .modal-header-v3 h3 { margin: 0; font-weight: 950; font-size: 0.95rem; color: #0f172a; letter-spacing: -0.02em; }
                 
-                .form-actions { display: flex; gap: 1rem; margin-top: 1rem; }
-                .btn-cancel { flex: 1; padding: 0.85rem; border: none; background: #f1f5f9; border-radius: 12px; font-weight: 800; cursor: pointer; }
-                .btn-submit { flex: 2; padding: 0.85rem; border: none; background: #0f172a; color: #fff; border-radius: 12px; font-weight: 800; cursor: pointer; }
-                .error-msg { color: #dc2626; font-size: 0.85rem; font-weight: 700; background: #fef2f2; padding: 0.75rem; border-radius: 8px; border-left: 4px solid #ef4444; }
-                .success-msg { color: #059669; font-size: 0.85rem; font-weight: 700; background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border-left: 4px solid #10b981; }
+                .entry-form-v3 { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; max-height: 80vh; overflow-y: auto; }
+                
+                .form-section-meta { background: #f8fafc; padding: 0.85rem; border-radius: 14px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.65rem; }
+                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+                .form-group label { display: block; font-size: 0.55rem; font-weight: 950; color: #64748b; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.03em; }
+                .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.4rem 0.65rem; border-radius: 8px; border: 2px solid #e2e8f0; font-weight: 800; font-size: 0.7rem; transition: 0.2s; background: #fff; color: #0f172a; }
+                .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08); }
+                
+                .vitals-form-section { background: #6366f1; padding: 1rem; border-radius: 14px; color: #fff; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.15); }
+                .vitals-form-section .section-label { color: rgba(255,255,255,0.7); font-weight: 900; font-size: 0.55rem; }
+                .vitals-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-top: 0.65rem; }
+                .v-field { display: flex; flex-direction: column; gap: 0.3rem; }
+                .v-field label { color: rgba(255,255,255,0.6); font-size: 0.5rem; font-weight: 900; text-transform: uppercase; text-align: center; }
+                .v-field input { background: rgba(255,255,255,0.1) !important; border: 1.2px solid rgba(255,255,255,0.1) !important; color: #fff !important; text-align: center; padding: 0.4rem 0.2rem !important; border-radius: 6px !important; font-size: 0.75rem !important; font-weight: 950 !important; }
+                .v-field input:focus { border-color: #fff !important; background: rgba(255,255,255,0.2) !important; }
+                
+                .form-actions { display: flex; gap: 0.65rem; margin-top: 0.4rem; background: #fff; padding-top: 0.85rem; border-top: 1px solid #f1f5f9; }
+                .btn-cancel { flex: 1; padding: 0.6rem; border: 1.5px solid #e2e8f0; background: #fff; border-radius: 10px; font-weight: 900; cursor: pointer; color: #64748b; font-size: 0.7rem; transition: 0.2s; }
+                .btn-submit { flex: 2; padding: 0.6rem; border: none; background: #6366f1; color: #fff; border-radius: 10px; font-weight: 950; cursor: pointer; font-size: 0.7rem; transition: 0.2s; box-shadow: 0 6px 15px rgba(99, 102, 241, 0.2); }
+                .btn-submit:hover { background: #4f46e5; transform: translateY(-1px); }
+                
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1e293b; }
+                .error-msg { color: #ef4444; font-size: 0.65rem; font-weight: 850; background: #fef2f2; padding: 0.65rem; border-radius: 8px; border: 1px solid #fee2e2; }
+                .success-msg { color: #10b981; font-size: 0.65rem; font-weight: 850; background: #f0fdf4; padding: 0.65rem; border-radius: 8px; border: 1px solid #d1fae5; }
             `}</style>
         </div>
     );

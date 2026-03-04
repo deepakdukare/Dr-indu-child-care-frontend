@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    RefreshCw,
+    RotateCw,
     Plus,
     Edit2,
     Trash2,
@@ -11,7 +11,9 @@ import {
     Clock3,
     History,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Calendar,
+    Shield
 } from 'lucide-react';
 import {
     getDoctors,
@@ -362,29 +364,37 @@ const Doctors = () => {
                 <div className="doc-modal-wrap">
                     <div className="doc-modal card doc-availability-modal">
                         <div className="doc-modal-head">
-                            <h3>{selectedDoctor.name} ({selectedDoctor.doctor_id})</h3>
-                            <button type="button" onClick={() => setShowAvailability(false)}><X size={16} /></button>
+                            <div className="modal-header-core">
+                                <div className="avatar-mini"><User size={18} /></div>
+                                <div>
+                                    <h3>{selectedDoctor.name}</h3>
+                                    <span>{selectedDoctor.doctor_id} • {selectedDoctor.speciality}</span>
+                                </div>
+                            </div>
+                            <button type="button" className="btn-close-modal" onClick={() => setShowAvailability(false)}><X size={18} /></button>
                         </div>
 
                         <div className="doc-availability-controls">
                             <div className="doc-date-wrap">
-                                <label htmlFor="availability-date">Working Date</label>
-                                <input
-                                    id="availability-date"
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={async (e) => {
-                                        const d = e.target.value;
-                                        setSelectedDate(d);
-                                        setFullForm((prev) => ({ ...prev, date: d }));
-                                        await fetchAvailabilityData(selectedDoctor.doctor_id, d);
-                                    }}
-                                />
+                                <label>Target Working Date</label>
+                                <div className="date-input-group">
+                                    <Calendar size={16} />
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={async (e) => {
+                                            const d = e.target.value;
+                                            setSelectedDate(d);
+                                            setFullForm((prev) => ({ ...prev, date: d }));
+                                            await fetchAvailabilityData(selectedDoctor.doctor_id, d);
+                                        }}
+                                    />
+                                </div>
                             </div>
                             <div className="doc-date-shortcuts">
                                 <button
                                     type="button"
-                                    className={`btn btn-outline ${selectedDate === todayISO() ? 'doc-quick-date-active' : ''}`}
+                                    className={`btn btn-pill ${selectedDate === todayISO() ? 'active' : ''}`}
                                     onClick={async () => {
                                         const d = todayISO();
                                         setSelectedDate(d);
@@ -396,7 +406,7 @@ const Doctors = () => {
                                 </button>
                                 <button
                                     type="button"
-                                    className={`btn btn-outline ${selectedDate === tomorrowISO() ? 'doc-quick-date-active' : ''}`}
+                                    className={`btn btn-pill ${selectedDate === tomorrowISO() ? 'active' : ''}`}
                                     onClick={async () => {
                                         const d = tomorrowISO();
                                         setSelectedDate(d);
@@ -406,13 +416,12 @@ const Doctors = () => {
                                 >
                                     Tomorrow
                                 </button>
-                                <button className="btn btn-outline" onClick={reloadAvailability}>
-                                    <RefreshCw size={14} />
-                                    Reload
+                                <button className="btn btn-icon-round" onClick={reloadAvailability} title="Reload Data">
+                                    <RefreshCw size={16} className={availabilityLoading ? 'spinning' : ''} />
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn btn-primary"
+                                    className="btn btn-indigo-flat"
                                     onClick={() => navigate('/scheduling')}
                                 >
                                     Manage Slots
@@ -421,43 +430,77 @@ const Doctors = () => {
                         </div>
 
                         {availabilityLoading ? (
-                            <div>Loading availability...</div>
+                            <div className="modal-loading">
+                                <RefreshCw size={32} className="spinning" />
+                                <p>Syncing Doctor Cloud...</p>
+                            </div>
                         ) : (
-                            <>
-                                <div className="doc-guide">
-                                    <h4>How to update quickly</h4>
-                                    <div className="doc-guide-grid">
-                                        <div><strong>1. Quick Status</strong><span>Use for present, absent, late, or on leave updates.</span></div>
-                                        <div><strong>2. Quick ETA</strong><span>Use when running late and share expected arrival time.</span></div>
-                                        <div><strong>3. Late Check-in</strong><span>Log delay incidents with reason for audit/history.</span></div>
-                                        <div><strong>4. Full Update</strong><span>Use when you need to update date, status, ETA and notes together.</span></div>
+                            <div className="availability-scroll-box custom-scrollbar">
+                                <div className="dashboard-hero">
+                                    <div className="hero-data">
+                                        <h4>Real-time Status, ETA & Workflows</h4>
+                                        <p>Live health monitoring for {selectedDoctor.name}'s current session.</p>
+                                    </div>
+                                    <div className="hero-badge">
+                                        <Shield size={14} />
+                                        <span>Secure Admin Control</span>
                                     </div>
                                 </div>
 
-                                <div className="doc-status-row">
-                                    <div><strong>Status:</strong> {prettyStatus(availability?.status || dashboard?.availability?.status)}</div>
-                                    <div><strong>ETA:</strong> {availability?.eta_minutes ?? 'N/A'} {availability?.eta_time ? `(${availability.eta_time})` : ''}</div>
-                                    <div><strong>Queue:</strong> {availability?.queue?.total ?? dashboard?.queue_summary?.total ?? 0}</div>
+                                <div className="live-status-board">
+                                    <div className="status-stat-card">
+                                        <div className="icon-box status"><Activity size={20} /></div>
+                                        <div className="stat-info">
+                                            <label>Status</label>
+                                            <strong className={availability?.status}>{prettyStatus(availability?.status || dashboard?.availability?.status)}</strong>
+                                        </div>
+                                    </div>
+                                    <div className="status-stat-card">
+                                        <div className="icon-box eta"><Clock3 size={20} /></div>
+                                        <div className="stat-info">
+                                            <label>Current ETA</label>
+                                            <strong>{availability?.eta_minutes ?? 'N/A'} {availability?.eta_time ? `(${availability.eta_time})` : ''}</strong>
+                                        </div>
+                                    </div>
+                                    <div className="status-stat-card">
+                                        <div className="icon-box queue"><History size={20} /></div>
+                                        <div className="stat-info">
+                                            <label>Live Queue</label>
+                                            <strong>{availability?.queue?.total ?? dashboard?.queue_summary?.total ?? 0} Patients</strong>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="doc-api-grid">
-                                    <form onSubmit={(e) => {
+                                <div className="doc-guide-v2">
+                                    <Shield size={16} />
+                                    <span>Updates here trigger real-time patient alerts & board refreshments.</span>
+                                </div>
+
+                                <div className="doc-api-grid-v2">
+                                    <form className="action-card" onSubmit={(e) => {
                                         e.preventDefault();
                                         runAvailabilityAction(
                                             () => patchDoctorAvailabilityStatus(selectedDoctor.doctor_id, statusForm),
                                             'Status updated.'
                                         );
                                     }}>
-                                        <h4>Quick Status</h4>
-                                        <p className="doc-form-help">Update doctor presence and a short note.</p>
-                                        <select value={statusForm.status} onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}>
-                                            {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
-                                        </select>
-                                        <input placeholder="Notes" value={statusForm.notes} onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })} />
-                                        <button className="btn doc-action-btn" type="submit">Update Status</button>
+                                        <div className="card-head">
+                                            <h4>1. Quick Status</h4>
+                                            <div className="dot"></div>
+                                        </div>
+                                        <p>Toggle presence & leave status.</p>
+                                        <div className="form-group">
+                                            <select value={statusForm.status} onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}>
+                                                {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <input placeholder="Add internal note..." value={statusForm.notes} onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })} />
+                                        </div>
+                                        <button className="btn btn-action" type="submit">Update Status</button>
                                     </form>
 
-                                    <form onSubmit={(e) => {
+                                    <form className="action-card" onSubmit={(e) => {
                                         e.preventDefault();
                                         runAvailabilityAction(
                                             () => patchDoctorAvailabilityEta(selectedDoctor.doctor_id, {
@@ -468,15 +511,22 @@ const Doctors = () => {
                                             'ETA updated.'
                                         );
                                     }}>
-                                        <h4>Quick ETA</h4>
-                                        <p className="doc-form-help">Set delay duration and expected arrival.</p>
-                                        <input type="number" min="0" placeholder="ETA minutes" value={etaForm.eta_minutes} onChange={(e) => setEtaForm({ ...etaForm, eta_minutes: e.target.value })} required />
-                                        <input placeholder="ETA time (e.g. 10:45 AM)" value={etaForm.eta_time} onChange={(e) => setEtaForm({ ...etaForm, eta_time: e.target.value })} />
-                                        <input placeholder="Reason" value={etaForm.reason} onChange={(e) => setEtaForm({ ...etaForm, reason: e.target.value })} />
-                                        <button className="btn doc-action-btn" type="submit">Update ETA</button>
+                                        <div className="card-head">
+                                            <h4>2. Quick ETA</h4>
+                                            <div className="dot eta"></div>
+                                        </div>
+                                        <p>Update delay minutes & time.</p>
+                                        <div className="form-row-compact">
+                                            <input type="number" min="0" placeholder="Min" value={etaForm.eta_minutes} onChange={(e) => setEtaForm({ ...etaForm, eta_minutes: e.target.value })} required />
+                                            <input placeholder="10:45 AM" value={etaForm.eta_time} onChange={(e) => setEtaForm({ ...etaForm, eta_time: e.target.value })} />
+                                        </div>
+                                        <div className="form-group">
+                                            <input placeholder="Reason for delay..." value={etaForm.reason} onChange={(e) => setEtaForm({ ...etaForm, reason: e.target.value })} />
+                                        </div>
+                                        <button className="btn btn-action" type="submit">Update ETA</button>
                                     </form>
 
-                                    <form onSubmit={(e) => {
+                                    <form className="action-card" onSubmit={(e) => {
                                         e.preventDefault();
                                         runAvailabilityAction(
                                             () => logDoctorLateCheckin({
@@ -487,14 +537,21 @@ const Doctors = () => {
                                             'Late check-in logged.'
                                         );
                                     }}>
-                                        <h4>Late Check-in</h4>
-                                        <p className="doc-form-help">Create late entry to keep delay history accurate.</p>
-                                        <input type="number" min="0" placeholder="ETA minutes" value={lateForm.eta_minutes} onChange={(e) => setLateForm({ ...lateForm, eta_minutes: e.target.value })} required />
-                                        <input placeholder="Reason" value={lateForm.reason} onChange={(e) => setLateForm({ ...lateForm, reason: e.target.value })} required />
-                                        <button className="btn doc-action-btn" type="submit">Log Delay</button>
+                                        <div className="card-head">
+                                            <h4>3. Late Log</h4>
+                                            <div className="dot late"></div>
+                                        </div>
+                                        <p>Record incident in audit logs.</p>
+                                        <div className="form-group">
+                                            <input type="number" min="0" placeholder="Arrival delay (mins)" value={lateForm.eta_minutes} onChange={(e) => setLateForm({ ...lateForm, eta_minutes: e.target.value })} required />
+                                        </div>
+                                        <div className="form-group">
+                                            <input placeholder="Delay explanation..." value={lateForm.reason} onChange={(e) => setLateForm({ ...lateForm, reason: e.target.value })} required />
+                                        </div>
+                                        <button className="btn btn-action" type="submit">Log Delay</button>
                                     </form>
 
-                                    <form onSubmit={(e) => {
+                                    <form className="action-card full-span" onSubmit={(e) => {
                                         e.preventDefault();
                                         runAvailabilityAction(
                                             () => updateDoctorAvailability({
@@ -508,105 +565,210 @@ const Doctors = () => {
                                             'Availability updated.'
                                         );
                                     }}>
-                                        <h4>Full Update</h4>
-                                        <p className="doc-form-help">Set complete daily status in one action.</p>
-                                        <input type="date" value={fullForm.date} onChange={(e) => setFullForm({ ...fullForm, date: e.target.value })} required />
-                                        <select value={fullForm.status} onChange={(e) => setFullForm({ ...fullForm, status: e.target.value })}>
-                                            {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
-                                        </select>
-                                        <input type="number" min="0" placeholder="ETA minutes" value={fullForm.eta_minutes} onChange={(e) => setFullForm({ ...fullForm, eta_minutes: e.target.value })} />
-                                        <input placeholder="ETA time" value={fullForm.eta_time} onChange={(e) => setFullForm({ ...fullForm, eta_time: e.target.value })} />
-                                        <input placeholder="Notes" value={fullForm.notes} onChange={(e) => setFullForm({ ...fullForm, notes: e.target.value })} />
-                                        <button className="btn doc-action-btn" type="submit">Submit Full Update</button>
+                                        <div className="card-head">
+                                            <h4>4. Comprehensive Daily Update</h4>
+                                            <div className="dot full"></div>
+                                        </div>
+                                        <div className="full-update-grid">
+                                            <div className="form-group">
+                                                <label>Status</label>
+                                                <select value={fullForm.status} onChange={(e) => setFullForm({ ...fullForm, status: e.target.value })}>
+                                                    {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>ETA Mins</label>
+                                                <input type="number" min="0" value={fullForm.eta_minutes} onChange={(e) => setFullForm({ ...fullForm, eta_minutes: e.target.value })} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>ETA Time</label>
+                                                <input placeholder="11:30 AM" value={fullForm.eta_time} onChange={(e) => setFullForm({ ...fullForm, eta_time: e.target.value })} />
+                                            </div>
+                                            <div className="form-group textarea-span">
+                                                <label>Shift Notes</label>
+                                                <input placeholder="Public notes for patients..." value={fullForm.notes} onChange={(e) => setFullForm({ ...fullForm, notes: e.target.value })} />
+                                            </div>
+                                        </div>
+                                        <button className="btn btn-action-primary" type="submit">Submit Full Update</button>
                                     </form>
                                 </div>
 
-                                <div className="doc-history">
-                                    <h4><History size={14} /> Late check-in history ({history.length})</h4>
+                                <div className="audit-history-box">
+                                    <div className="history-head">
+                                        <h4><History size={14} /> System Audit: Delay History</h4>
+                                        <span>Last {history.length} records</span>
+                                    </div>
                                     {!history.length ? (
-                                        <p>No records.</p>
+                                        <p className="empty">No recent incident logs found.</p>
                                     ) : (
-                                        <div className="doc-history-list">
-                                            {history.slice(0, 6).map((h) => (
-                                                <div key={h._id}>
-                                                    {new Date(h.date).toLocaleDateString()} | {prettyStatus(h.status)} | events: {h.late_checkins?.length || 0}
+                                        <div className="audit-list">
+                                            {history.slice(0, 5).map((h) => (
+                                                <div key={h._id} className="audit-item">
+                                                    <div className="audit-date">{new Date(h.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                                                    <div className="audit-status" data-status={h.status}>{prettyStatus(h.status)}</div>
+                                                    <div className="audit-meta">
+                                                        <span>{h.late_checkins?.length || 0} Events</span>
+                                                        {h.eta_time && <span>Goal: {h.eta_time}</span>}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             <style>{`
-                .doc-page { width: 100%; }
-                .doc-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-                .doc-head h1 { font-size: 2rem; margin: 0; }
+                .doc-page { width: 100%; font-family: 'Inter', sans-serif; }
+                .doc-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; }
+                .doc-head h1 { font-size: 1.75rem; font-weight: 850; letter-spacing: -0.03em; color: #0f172a; margin: 0; }
                 .doc-head-actions { display: flex; gap: 0.75rem; }
-                .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }
-                .doc-card { border-radius: 18px; padding: 1rem; }
-                .doc-card-head { display: flex; gap: 0.75rem; align-items: flex-start; }
-                .doc-avatar { width: 40px; height: 40px; border-radius: 12px; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; }
-                .doc-core h3 { font-size: 1.1rem; margin: 0 0 0.15rem; }
-                .doc-core p { margin: 0; color: #64748b; font-size: 0.9rem; }
-                .doc-core span { color: #475569; font-size: 0.8rem; font-weight: 600; }
+                
+                .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
+                .doc-card { border-radius: 20px; padding: 1.25rem; border: 1px solid #e2e8f0; background: #fff; transition: 0.3s; }
+                .doc-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); border-color: #6366f133; }
+                
+                .doc-card-head { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; }
+                .doc-avatar { width: 44px; height: 44px; border-radius: 12px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; }
+                .doc-core h3 { font-size: 1.1rem; font-weight: 800; margin: 0; color: #0f172a; }
+                .doc-core p { margin: 0.1rem 0; color: #6366f1; font-weight: 700; font-size: 0.8rem; }
+                .doc-core span { color: #94a3b8; font-size: 0.75rem; font-weight: 600; }
+                
                 .doc-card-head-actions { margin-left: auto; display: flex; gap: 0.4rem; }
-                .doc-card-head-actions button { border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; padding: 0.35rem; cursor: pointer; }
-                .doc-meta { margin-top: 0.8rem; color: #334155; display: grid; gap: 0.2rem; font-size: 0.88rem; }
-                .doc-actions-row { margin-top: 0.9rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
-                .doc-alert { display: flex; gap: 0.5rem; align-items: center; padding: 0.75rem 0.9rem; border-radius: 12px; margin-bottom: 0.75rem; border: 1px solid; }
-                .doc-alert span { flex: 1; font-size: 0.9rem; font-weight: 600; }
-                .doc-alert button { border: none; background: transparent; cursor: pointer; color: inherit; display: flex; }
-                .doc-alert-error { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
-                .doc-alert-success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
-                .doc-empty { text-align: center; color: #64748b; }
-                .doc-modal-wrap { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; justify-content: center; align-items: center; z-index: 999; padding: 1rem; }
-                .doc-modal { width: min(920px, 96vw); max-height: 92vh; overflow: auto; border-radius: 20px; padding: 1rem; }
+                .doc-card-head-actions button { border: 1.5px solid #f1f5f9; background: #fff; border-radius: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; transition: 0.2s; }
+                .doc-card-head-actions button:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
+                
+                .doc-meta { display: grid; gap: 0.5rem; padding: 1rem; background: #f8fafc; border-radius: 14px; font-size: 0.8rem; border: 1px solid #f1f5f9; }
+                .doc-meta strong { color: #64748b; font-weight: 700; width: 100px; display: inline-block; }
+                
+                .doc-actions-row { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+                .btn-outline { border: 1.5px solid #e2e8f0; background: #fff; color: #475569; font-weight: 800; border-radius: 12px; padding: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; transition: 0.2s; }
+                .btn-outline:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
+                .btn-primary { background: #6366f1; color: #fff; border: none; font-weight: 800; border-radius: 12px; padding: 0.6rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2); font-size: 0.8rem; }
+                .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+
+                /* Modal & Availability Styling */
+                .doc-modal-wrap { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 999; padding: 1rem; }
+                .doc-modal { background: #fff; border-radius: 28px; width: min(920px, 96vw); max-height: 94vh; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; }
                 .doc-availability-modal { width: min(1080px, 96vw); }
-                .doc-modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-                .doc-modal-head h3 { margin: 0; }
-                .doc-modal-head button { border: 1px solid #e2e8f0; background: #fff; border-radius: 10px; padding: 0.35rem; cursor: pointer; }
-                .doc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-                .doc-form-grid label { display: grid; gap: 0.3rem; font-size: 0.85rem; color: #334155; font-weight: 600; }
-                .doc-form-grid input, .doc-form-grid textarea, .doc-form-grid select { border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.6rem 0.7rem; background: #fff; }
-                .doc-json-field { grid-column: 1 / -1; }
-                .doc-check { grid-column: 1 / -1; display: flex !important; align-items: center; gap: 0.5rem; }
-                .doc-modal-foot { margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.6rem; }
-                .doc-availability-controls { display: flex; justify-content: space-between; gap: 0.9rem; align-items: flex-end; margin-bottom: 0.9rem; flex-wrap: wrap; }
-                .doc-date-wrap { display: grid; gap: 0.35rem; }
-                .doc-date-wrap label { font-size: 0.78rem; color: #475569; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
-                .doc-date-wrap input { min-width: 210px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.52rem 0.7rem; background: #fff; font-weight: 600; }
-                .doc-date-shortcuts { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
-                .doc-quick-date-active { border-color: #6366f1 !important; color: #4f46e5 !important; background: #eef2ff !important; }
-                .doc-guide { border: 1px solid #dbeafe; border-radius: 12px; padding: 0.8rem; background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%); margin-bottom: 0.85rem; }
-                .doc-guide h4 { margin: 0 0 0.55rem; font-size: 0.95rem; color: #1e3a8a; }
-                .doc-guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.55rem; }
-                .doc-guide-grid > div { border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; padding: 0.55rem; display: grid; gap: 0.2rem; }
-                .doc-guide-grid strong { font-size: 0.83rem; color: #0f172a; }
-                .doc-guide-grid span { font-size: 0.78rem; color: #64748b; line-height: 1.35; }
-                .doc-status-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; margin-bottom: 0.8rem; color: #334155; }
-                .doc-status-row > div { border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.55rem 0.65rem; background: #f8fafc; }
-                .doc-api-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.7rem; }
-                .doc-api-grid form { border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.7rem; display: grid; gap: 0.45rem; background: #fff; }
-                .doc-api-grid h4 { margin: 0 0 0.2rem; font-size: 0.95rem; }
-                .doc-api-grid input, .doc-api-grid select { border: 1px solid #cbd5e1; border-radius: 9px; padding: 0.52rem 0.6rem; }
-                .doc-form-help { margin: 0; font-size: 0.78rem; color: #64748b; line-height: 1.3; }
-                .doc-action-btn { width: 100%; justify-content: center; background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: #fff; border: none; font-weight: 700; }
-                .doc-action-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
-                .doc-history { margin-top: 0.9rem; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem; background: #f8fafc; }
-                .doc-history h4 { display: flex; gap: 0.45rem; align-items: center; margin: 0 0 0.45rem; font-size: 0.95rem; }
-                .doc-history p { margin: 0; color: #64748b; }
-                .doc-history-list { display: grid; gap: 0.35rem; color: #334155; font-size: 0.87rem; }
+                
+                .doc-modal-head { padding: 1.5rem 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fff; }
+                .modal-header-core { display: flex; gap: 1rem; align-items: center; }
+                .avatar-mini { width: 44px; height: 44px; border-radius: 14px; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; }
+                .modal-header-core h3 { margin: 0; font-size: 1.35rem; font-weight: 900; letter-spacing: -0.02em; }
+                .modal-header-core span { font-size: 0.8rem; color: #94a3b8; font-weight: 700; }
+                .btn-close-modal { width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid #f1f5f9; background: #fff; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+                .btn-close-modal:hover { background: #fef2f2; color: #ef4444; border-color: #fee2e2; }
+
+                .doc-availability-controls { padding: 1.25rem 2rem; background: #fafbfc; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+                .doc-date-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+                .doc-date-wrap label { font-size: 0.65rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+                .date-input-group { position: relative; display: flex; align-items: center; }
+                .date-input-group svg { position: absolute; left: 1rem; color: #6366f1; pointer-events: none; }
+                .date-input-group input { padding: 0.65rem 1rem 0.65rem 2.8rem; border-radius: 12px; border: 1.8px solid #e2e8f0; font-size: 0.85rem; font-weight: 800; color: #0f172a; outline: none; transition: 0.2s; width: 220px; }
+                .date-input-group input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08); }
+
+                .doc-date-shortcuts { display: flex; gap: 0.5rem; align-items: center; }
+                .btn-pill { padding: 0.6rem 1.25rem; border-radius: 50px; border: 1.8px solid #e2e8f0; background: #fff; font-size: 0.75rem; font-weight: 850; color: #64748b; cursor: pointer; transition: 0.2s; }
+                .btn-pill:hover { border-color: #6366f1; color: #6366f1; }
+                .btn-pill.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); }
+                .btn-icon-round { width: 38px; height: 38px; border-radius: 50%; border: 1.8px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; color: #475569; cursor: pointer; transition: 0.2s; }
+                .btn-icon-round:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1); }
+                .btn-indigo-flat { padding: 0.65rem 1.25rem; border-radius: 12px; background: #6366f115; border: none; font-size: 0.75rem; font-weight: 900; color: #6366f1; cursor: pointer; transition: 0.2s; }
+                .btn-indigo-flat:hover { background: #6366f125; }
+
+                .availability-scroll-box { flex: 1; padding: 1.5rem 2rem; overflow-y: auto; background: #fff; }
+                .dashboard-hero { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%); border: 1px solid #eef2ff; border-radius: 20px; }
+                .hero-data h4 { margin: 0; font-size: 1.35rem; font-weight: 900; color: #1e1b4b; letter-spacing: -0.02em; }
+                .hero-data p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #6366f1; font-weight: 600; }
+                .hero-badge { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.85rem; background: #6366f110; color: #6366f1; border-radius: 100px; font-size: 0.7rem; font-weight: 850; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid #6366f120; }
+                
+                .live-status-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 2rem; }
+                .status-stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 1.25rem; display: flex; gap: 1rem; align-items: center; transition: 0.2s; }
+                .status-stat-card:hover { border-color: #6366f144; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+                .icon-box { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+                .icon-box.status { background: #eff6ff; color: #2563eb; }
+                .icon-box.eta { background: #fff7ed; color: #ea580c; }
+                .icon-box.queue { background: #f0fdf4; color: #16a34a; }
+                .stat-info label { display: block; font-size: 0.65rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem; }
+                .stat-info strong { font-size: 1.1rem; font-weight: 950; color: #0f172a; letter-spacing: -0.01em; }
+                .stat-info strong.PRESENT { color: #10b981; }
+                .stat-info strong.LATE { color: #f59e0b; }
+                .stat-info strong.ABSENT { color: #ef4444; }
+
+                .doc-guide-v2 { padding: 0.75rem 1rem; background: #fafbfc; border: 1px dashed #e2e8f0; border-radius: 12px; display: flex; align-items: center; gap: 0.6rem; color: #64748b; font-size: 0.75rem; font-weight: 700; margin-bottom: 1.5rem; }
+                .doc-guide-v2 svg { color: #6366f1; }
+
+                .doc-api-grid-v2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 2rem; }
+                .action-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 1.5rem; display: flex; flex-direction: column; transition: 0.3s; }
+                .action-card:hover { border-color: #6366f1; box-shadow: 0 15px 30px -10px rgba(99, 102, 241, 0.1); }
+                .action-card .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+                .action-card h4 { margin: 0; font-size: 0.95rem; font-weight: 900; color: #1e293b; }
+                .action-card .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+                .action-card .dot.eta { background: #f59e0b; }
+                .action-card .dot.late { background: #ef4444; }
+                .action-card .dot.full { background: #6366f1; }
+                .action-card p { font-size: 0.7rem; color: #94a3b8; font-weight: 600; margin: 0 0 1.25rem 0; }
+                
+                .form-group { margin-bottom: 0.85rem; }
+                .form-group label { display: block; font-size: 0.6rem; font-weight: 900; color: #64748b; text-transform: uppercase; margin-bottom: 0.35rem; margin-left: 0.25rem; }
+                .form-row-compact { display: grid; grid-template-columns: 80px 1fr; gap: 0.6rem; margin-bottom: 0.85rem; }
+                
+                .action-card input, .action-card select { width: 100%; padding: 0.6rem 0.8rem; border-radius: 12px; border: 1.8px solid #f1f5f9; background: #f8fafc; font-size: 0.8rem; font-weight: 800; color: #0f172a; outline: none; transition: 0.2s; }
+                .action-card input:focus, .action-card select:focus { border-color: #6366f133; background: #fff; }
+                
+                .btn-action { margin-top: auto; padding: 0.7rem; border-radius: 12px; border: none; background: #f1f5f9; color: #475569; font-weight: 900; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+                .btn-action:hover { background: #6366f1; color: #fff; }
+                
+                .full-span { grid-column: 1 / -1; }
+                .full-update-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; }
+                .textarea-span { grid-column: 1 / -1; }
+                .btn-action-primary { padding: 0.8rem; border-radius: 12px; border: none; background: #6366f1; color: #fff; font-weight: 950; font-size: 0.8rem; cursor: pointer; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.15); transition: 0.2s; text-transform: uppercase; letter-spacing: 0.02em; }
+                .btn-action-primary:hover { background: #4f46e5; transform: scale(1.01); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2); }
+
+                .audit-history-box { background: #fafbfc; border: 1px solid #f1f5f9; border-radius: 20px; padding: 1.25rem; }
+                .history-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+                .history-head h4 { margin: 0; font-size: 0.85rem; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+                .history-head span { font-size: 0.65rem; font-weight: 850; color: #94a3b8; text-transform: uppercase; }
+                .audit-list { display: flex; flex-direction: column; gap: 0.5rem; }
+                .audit-item { background: #fff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1.5rem; transition: 0.2s; }
+                .audit-item:hover { border-color: #6366f122; transform: translateX(4px); }
+                .audit-date { font-size: 0.75rem; font-weight: 900; color: #0f172a; width: 60px; }
+                .audit-status { font-size: 0.65rem; font-weight: 950; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 6px; background: #f1f5f9; color: #64748b; }
+                .audit-status[data-status='PRESENT'] { background: #f0fdf4; color: #16a34a; }
+                .audit-status[data-status='LATE'] { background: #fff7ed; color: #ea580c; }
+                .audit-meta { margin-left: auto; display: flex; gap: 1.25rem; font-size: 0.7rem; font-weight: 750; color: #94a3b8; }
+                
+                .modal-loading { height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: #64748b; }
+                .spinning { animation: spin 1s linear infinite; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6366f155; }
+
+                @media (max-width: 1000px) {
+                    .doc-api-grid-v2 { grid-template-columns: 1fr 1fr; }
+                    .live-status-board { grid-template-columns: 1fr 1fr; }
+                }
+                @media (max-width: 700px) {
+                    .doc-api-grid-v2 { grid-template-columns: 1fr; }
+                    .live-status-board { grid-template-columns: 1fr; }
+                    .full-update-grid { grid-template-columns: 1fr 1fr; }
+                    .doc-head { flex-direction: column; align-items: flex-start; }
+                }
                 @media (max-width: 900px) {
                     .doc-head { flex-direction: column; align-items: flex-start; }
                     .doc-form-grid { grid-template-columns: 1fr; }
                     .doc-date-wrap input { min-width: 170px; width: 100%; }
                 }
             `}</style>
-        </div>
+        </div >
     );
 };
 

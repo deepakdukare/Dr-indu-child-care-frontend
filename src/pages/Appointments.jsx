@@ -429,8 +429,8 @@ const Appointments = () => {
                                     onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
                                 >
                                     <option value="" key="all-doc-combined">All Combined Doctors</option>
-                                    {doctors.map(doc => (
-                                        <option key={doc.doctor_id || doc._id} value={doc.doctor_id}>
+                                    {doctors.map((doc, idx) => (
+                                        <option key={doc.doctor_id || doc._id || `doc-${idx}`} value={doc.doctor_id}>
                                             {getDoctorDisplayName(doc)}
                                         </option>
                                     ))}
@@ -492,9 +492,9 @@ const Appointments = () => {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ) : filteredAppointments.map((appt) => (
+                                    ) : filteredAppointments.map((appt, idx) => (
                                         <AppointmentRow
-                                            key={appt.appointment_id}
+                                            key={appt.appointment_id || appt._id || `appt-${idx}`}
                                             appt={appt}
                                             onEdit={openBookingModal}
                                             onCancel={(id) => setCancelModal({ show: true, id, reason: '' })}

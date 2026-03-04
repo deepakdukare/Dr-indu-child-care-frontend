@@ -206,7 +206,7 @@ export const deleteDoctor = (id) => api.delete(`/doctors/${id}`);
 
 // Doctor availability
 export const updateDoctorAvailability = (data) => api.post('/doctor/availability/update', data);
-export const getDoctorAvailability = (doctorId) => api.get(`/doctor/availability/${doctorId}`);
+export const getDoctorAvailability = (doctorId, params) => api.get(`/doctor/availability/${doctorId}`, { params });
 export const patchDoctorAvailabilityStatus = (doctorId, data) => api.patch(`/doctor/availability/${doctorId}/status`, data);
 export const patchDoctorAvailabilityEta = (doctorId, data) => api.patch(`/doctor/availability/${doctorId}/eta`, data);
 export const logDoctorLateCheckin = (data) => api.post('/doctor/late-checkin', data);

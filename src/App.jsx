@@ -82,7 +82,7 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
         { name: 'Patients', path: '/patients', icon: Users, permission: 'view_patients' },
         { name: 'Bot Hub', path: '/bot-interactions', icon: MessageSquare, permission: 'view_bot_hub' },
         { name: 'Doctors', path: '/doctors', icon: Stethoscope, permission: 'view_doctors' },
-        { name: 'MRD', path: '/mrd', icon: FileText, permission: 'view_mrd' },
+        { name: 'Medical Documentation', path: '/mrd', icon: FileText, permission: 'view_mrd' },
         { name: 'Reports', path: '/reports', icon: BarChart2, permission: 'view_reports' },
         { name: 'Notifications', path: '/notifications', icon: BellIcon, permission: 'view_notifications' },
         { name: 'Settings', path: '/settings', icon: SettingsIcon, permission: 'view_settings' },
@@ -113,7 +113,7 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                                                 ? "Track interactions from people who haven't registered as patients yet."
                                                 : item.name === 'Doctors'
                                                     ? "Manage clinic practitioners and specialities."
-                                                    : item.name === 'MRD'
+                                                    : item.name === 'Medical Documentation'
                                                         ? "Search a patient to view or update their longitudinal health file."
                                                         : ""
                             }
