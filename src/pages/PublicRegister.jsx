@@ -4,7 +4,7 @@ import {
     AlertCircle, Stethoscope, Baby, Users, Briefcase, Mail,
     Clock, Smartphone, MapPinned, ChevronRight, ChevronLeft,
     Check, RefreshCw, Activity, Clipboard, Edit2, Plus,
-    ArrowRight, Map, ShieldCheck
+    ArrowRight, Map, ShieldCheck, ArrowLeft
 } from 'lucide-react';
 import { registerFromForm, bookByForm, getAvailableSlots, getDoctors, getPatientByWa } from '../api/index';
 
@@ -256,7 +256,7 @@ const PublicRegister = () => {
                 <header className="page-header">
                     <div className="logo-section">
                         <div className="logo-icon-wrap">
-                            <Stethoscope size={32} />
+                            <img src="/logo.jpg" alt="Logo" style={{ width: '100%', height: '100%', borderRadius: '18px', objectFit: 'cover' }} />
                         </div>
                         <div>
                             <h1 className="brand-name">Dr. Indu Child Care</h1>
@@ -323,6 +323,30 @@ const PublicRegister = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* ── Top Back Nav (steps 1, 2, 3) ── */}
+                    {step > 0 && (
+                        <div className="top-back-nav">
+                            <button
+                                type="button"
+                                className="top-back-btn"
+                                onClick={() => {
+                                    setError(null);
+                                    if (step === 1) setStep(0);
+                                    else if (step === 2) isNewPatient ? setStep(1) : setStep(0);
+                                    else { setStep(0); setVerifyError(null); setSearchWaId(''); setRegisteredPatient(null); }
+                                }}
+                            >
+                                <ArrowLeft size={18} />
+                                <span>
+                                    {step === 1 ? 'Back to Start'
+                                        : step === 2 ? (isNewPatient ? 'Back to Registration' : 'Back to Start')
+                                            : 'Start Over'}
+                                </span>
+                            </button>
+                            {step < 3 && <span className="top-step-label">Step {step} of 2</span>}
                         </div>
                     )}
 
@@ -643,9 +667,17 @@ const PublicRegister = () => {
                             </div>
                             <h2>Enrollment Complete</h2>
                             <p>Thank you. Your records have been synchronized with the clinical system. You will receive a confirmation on WhatsApp shortly.</p>
-                            <button onClick={() => window.location.reload()} className="btn-primary-v3 wide">
-                                Register Another Patient
-                            </button>
+                            <div className="success-actions">
+                                <button onClick={() => window.location.reload()} className="btn-primary-v3 wide">
+                                    Register Another Patient
+                                </button>
+                                <button
+                                    onClick={() => { setStep(0); setError(null); setVerifyError(null); setSearchWaId(''); setRegisteredPatient(null); setIsNewPatient(null); }}
+                                    className="btn-success-back"
+                                >
+                                    <ArrowLeft size={16} /> Back to Home
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -653,6 +685,37 @@ const PublicRegister = () => {
 
             <style>{`
                 * { box-sizing: border-box; }
+                /* Top back nav */
+                .top-back-nav {
+                    display: flex; align-items: center; justify-content: space-between;
+                    margin-bottom: 1.25rem; padding-bottom: 1rem;
+                    border-bottom: 1.5px solid #f1f5f9;
+                }
+                .top-back-btn {
+                    display: flex; align-items: center; gap: 0.5rem;
+                    background: none; border: none; cursor: pointer;
+                    color: #6366f1; font-weight: 700; font-size: 0.9rem;
+                    padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+                    border-radius: 10px; transition: 0.2s;
+                    min-height: 44px;
+                }
+                .top-back-btn:hover { background: #eef2ff; }
+                .top-step-label {
+                    font-size: 0.75rem; font-weight: 800;
+                    color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase;
+                }
+                /* Success actions */
+                .success-actions {
+                    display: flex; flex-direction: column; align-items: center; gap: 0.85rem;
+                }
+                .btn-success-back {
+                    display: flex; align-items: center; gap: 0.4rem;
+                    background: none; border: none; cursor: pointer;
+                    color: #64748b; font-weight: 700; font-size: 0.9rem;
+                    padding: 0.5rem 1rem; border-radius: 10px; transition: 0.2s;
+                }
+                .btn-success-back:hover { background: #f1f5f9; color: #334155; }
+
                 .public-reg-container {
                     min-height: 100vh;
                     background: #fdfdfe;
@@ -671,9 +734,10 @@ const PublicRegister = () => {
                 .page-header { display: flex; justify-content: center; margin-bottom: 1.25rem; }
                 .logo-section { display: flex; align-items: center; gap: 0.75rem; }
                 .logo-icon-wrap {
-                    width: 44px; height: 44px; background: white; color: #6366f1;
-                    border-radius: 14px; display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 8px 20px rgba(99,102,241,0.15); flex-shrink: 0;
+                    width: 100px; height: 100px; background: white;
+                    border-radius: 24px; display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 12px 30px rgba(99,102,241,0.15); flex-shrink: 0;
+                    padding: 4px; overflow: hidden;
                 }
                 .brand-name { font-size: 1.2rem; font-weight: 900; color: #0f172a; letter-spacing: -0.03em; margin: 0; }
                 .brand-tagline { font-size: 0.75rem; color: #64748b; font-weight: 600; margin: 0.1rem 0 0; }

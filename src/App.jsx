@@ -90,9 +90,9 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
 
     return (
         <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-            <div className="logo">
-                <div style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 4px 6px rgba(99, 102, 241, 0.2))' }}>🩺</div>
-                <span>Dr. Indu Child Care</span>
+            <div className="logo" style={{ flexDirection: 'column', gap: '1rem', padding: '1.5rem 0', paddingLeft: 0, marginBottom: '2rem', justifyContent: 'center' }}>
+                <img src="/logo.jpg" alt="Logo" style={{ width: '120px', height: '120px', borderRadius: '24px', objectFit: 'cover', boxShadow: '0 10px 25px rgba(99, 102, 241, 0.15)' }} />
+                <span style={{ fontSize: '1.25rem', textAlign: 'center', width: '100%' }}>Dr. Indu Child Care</span>
             </div>
             <ul className="nav-links">
                 {navItems.map((item) => (

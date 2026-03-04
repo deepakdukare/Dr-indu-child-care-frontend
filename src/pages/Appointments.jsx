@@ -694,7 +694,8 @@ const Appointments = () => {
                 .filter-group-v3 { display: flex; gap: 1rem; }
                 .filter-item-v3 { display: flex; align-items: center; background: #fff; border: 2px solid #f1f5f9; border-radius: 20px; padding: 0 1.25rem; height: 60px; transition: 0.2s; }
                 .f-icon { color: #6366f1; opacity: 0.5; margin-right: 0.75rem; }
-                .f-input, .f-select { border: none; background: transparent; outline: none; font-weight: 700; color: #1e293b; font-size: 0.9rem; }
+                .f-input, .f-select { border: none; background: transparent; outline: none; font-weight: 700; color: #1e293b; font-size: 0.9rem; width: 100%; }
+                .f-select option { color: #1e293b !important; background: #ffffff !important; padding: 10px; }
                 .search-pill-v3 { display: flex; align-items: center; background: #fff; border: 2px solid #f1f5f9; border-radius: 24px; padding: 0 1.5rem; flex: 1; max-width: 400px; height: 60px; gap: 0.75rem; color: #6366f1; }
                 .search-pill-v3 input { border: none; background: transparent; outline: none; flex: 1; font-weight: 600; color: #1e293b; font-size: 1rem; }
                 .repository-card-v3 { background: #fff; border-radius: 36px; border: 1px solid #f1f5f9; box-shadow: 0 10px 40px rgba(0,0,0,0.03); overflow: hidden; }
