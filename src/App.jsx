@@ -127,9 +127,6 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
             <div className="sidebar-admin-card">
                 <div className="sidebar-admin-row">
                     <div className="sidebar-admin-avatar">{initial}</div>
-                    <div className="sidebar-admin-meta">
-                        <strong>{displayName}</strong>
-                    </div>
                 </div>
             </div>
             <div style={{ marginTop: '0.5rem', padding: '0.5rem' }}>

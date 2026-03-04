@@ -207,7 +207,7 @@ h5 {
 .sidebar-admin-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  justify-content: center;
 }
 
 .sidebar-admin-avatar {
@@ -223,27 +223,8 @@ h5 {
   font-weight: 800;
 }
 
-.sidebar-admin-meta {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-admin-meta strong {
-  color: #0f172a;
-  font-size: 0.84rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .sidebar.collapsed .sidebar-admin-row {
   justify-content: center;
-}
-
-.sidebar.collapsed .sidebar-admin-meta {
-  display: none;
 }
 
 /* Main Content area */
