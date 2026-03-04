@@ -692,7 +692,6 @@ const Scheduling = () => {
             <header className="page-header-v3">
                 <div className="header-meta-group">
                     <h1 className="header-h1-v3">Scheduling</h1>
-                    <p className="header-sub-v3">Manage clinic time slots, professional rosters, and real-time availability.</p>
                 </div>
 
                 <div className="header-nav-v3">
