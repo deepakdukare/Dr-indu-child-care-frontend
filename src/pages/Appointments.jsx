@@ -77,6 +77,8 @@ const Appointments = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [queueSearch, setQueueSearch] = useState('');
+    const [docDropOpen, setDocDropOpen] = useState(false);
+    const [statusDropOpen, setStatusDropOpen] = useState(false);
 
     // Queue Filters
     const [filters, setFilters] = useState({
@@ -342,33 +344,43 @@ const Appointments = () => {
                                     className="f-input"
                                 />
                             </div>
-                            <div className="filter-item-v3">
+                            {/* Custom Doctor Dropdown */}
+                            <div className="filter-item-v3" style={{ position: 'relative', cursor: 'pointer', minWidth: '170px' }} onClick={() => { setDocDropOpen(o => !o); setStatusDropOpen(false); }}>
                                 <Stethoscope size={18} className="f-icon" />
-                                <select
-                                    value={filters.doctor_id}
-                                    onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
-                                    className="f-select"
-                                >
-                                    <option value="">All Doctors</option>
-                                    {doctors.map(doc => (
-                                        <option key={doc._id} value={doc.doctor_id}>{doc.full_name}</option>
-                                    ))}
-                                </select>
+                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem', flex: 1 }}>
+                                    {filters.doctor_id ? (doctors.find(d => d.doctor_id === filters.doctor_id)?.full_name || 'All Doctors') : 'All Doctors'}
+                                </span>
+                                <span style={{ marginLeft: '0.5rem', color: '#94a3b8', fontSize: '0.8rem' }}>▾</span>
+                                {docDropOpen && (
+                                    <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 9999, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: '200px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                                        {[{ label: 'All Doctors', value: '' }, ...doctors.map(d => ({ label: d.full_name, value: d.doctor_id }))].map(opt => (
+                                            <div key={opt.value} onClick={() => { setFilters({ ...filters, doctor_id: opt.value }); setDocDropOpen(false); }}
+                                                style={{ padding: '0.75rem 1.25rem', color: '#1e293b', fontWeight: filters.doctor_id === opt.value ? 800 : 500, fontSize: '0.9rem', background: filters.doctor_id === opt.value ? '#f0f4ff' : '#fff', cursor: 'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#f8faff'}
+                                                onMouseLeave={e => e.currentTarget.style.background = filters.doctor_id === opt.value ? '#f0f4ff' : '#fff'}
+                                            >{opt.label}</div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            <div className="filter-item-v3">
+                            {/* Custom Status Dropdown */}
+                            <div className="filter-item-v3" style={{ position: 'relative', cursor: 'pointer', minWidth: '150px' }} onClick={() => { setStatusDropOpen(o => !o); setDocDropOpen(false); }}>
                                 <Activity size={18} className="f-icon" />
-                                <select
-                                    value={filters.status}
-                                    onChange={e => setFilters({ ...filters, status: e.target.value })}
-                                    className="f-select"
-                                >
-                                    <option value="">All Status</option>
-                                    <option value="CONFIRMED">Confirmed</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                    <option value="PENDING">Pending</option>
-                                    <option value="NO_SHOW">No Show</option>
-                                </select>
+                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem', flex: 1 }}>
+                                    {filters.status ? filters.status.charAt(0) + filters.status.slice(1).toLowerCase().replace('_', ' ') : 'All Status'}
+                                </span>
+                                <span style={{ marginLeft: '0.5rem', color: '#94a3b8', fontSize: '0.8rem' }}>▾</span>
+                                {statusDropOpen && (
+                                    <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 9999, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: '180px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                                        {[{ label: 'All Status', value: '' }, { label: 'Confirmed', value: 'CONFIRMED' }, { label: 'Completed', value: 'COMPLETED' }, { label: 'Cancelled', value: 'CANCELLED' }, { label: 'Pending', value: 'PENDING' }, { label: 'No Show', value: 'NO_SHOW' }].map(opt => (
+                                            <div key={opt.value} onClick={() => { setFilters({ ...filters, status: opt.value }); setStatusDropOpen(false); }}
+                                                style={{ padding: '0.75rem 1.25rem', color: '#1e293b', fontWeight: filters.status === opt.value ? 800 : 500, fontSize: '0.9rem', background: filters.status === opt.value ? '#f0f4ff' : '#fff', cursor: 'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = '#f8faff'}
+                                                onMouseLeave={e => e.currentTarget.style.background = filters.status === opt.value ? '#f0f4ff' : '#fff'}
+                                            >{opt.label}</div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="search-pill-v3">
