@@ -25,7 +25,8 @@ import {
     getPatients,
     getUnregisteredInteractions,
     getPendingMessages,
-    getNotifications
+    getNotifications,
+    toIsoDate
 } from '../api/index';
 import { hasPermission } from '../utils/auth';
 
@@ -84,7 +85,7 @@ const AlertItem = ({ title, desc, icon: Icon, color, badge }) => (
 const Dashboard = () => {
     const today = new Date();
     const dateStr = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    const apiDate = today.toISOString().split('T')[0];
+    const apiDate = toIsoDate();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -199,7 +200,6 @@ const Dashboard = () => {
                                     <FileText size={20} />
                                     <span>Appointments Schedule</span>
                                 </h3>
-                                <p className="card-subtitle-premium">Live schedule queue for {dateStr}</p>
                             </div>
                             <Link to="/appointments" className="add-btn-premium">
                                 <Plus size={18} />
@@ -564,13 +564,6 @@ const Dashboard = () => {
                     font-weight: 800;
                     color: #0f172a;
                     margin: 0;
-                }
-
-                .card-subtitle-premium {
-                    font-size: 0.95rem;
-                    color: #94a3b8;
-                    font-weight: 500;
-                    margin-top: 0.4rem;
                 }
 
                 .add-btn-premium {

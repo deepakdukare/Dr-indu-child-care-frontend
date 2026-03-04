@@ -22,15 +22,7 @@ const AdminProfile = ({
 }) => {
     return (
         <div className="card-premium-v3">
-            <div className="card-header" style={{ padding: '2rem 2rem 1.5rem' }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.25rem' }}>
-                    <UserIcon size={24} className="text-primary" />
-                    Account Settings
-                </h3>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>View and update your administrative profile details.</p>
-            </div>
-
-            <div style={{ padding: '0 2rem 2rem' }}>
+            <div style={{ padding: '1.25rem 2rem 2rem' }}>
                 <div className="profile-summary">
                     <div className="profile-avatar">
                         {(profile?.full_name || profile?.username || 'A').charAt(0).toUpperCase()}

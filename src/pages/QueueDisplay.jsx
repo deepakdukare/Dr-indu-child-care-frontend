@@ -7,7 +7,8 @@ import {
 import {
     getDoctors, getDailyTokens, getClinicDisplayData,
     nextToken, checkInToken, updateTokenStatus, autoReschedule, bookAppointmentWithToken,
-    getTokenStatus
+    getTokenStatus,
+    toIsoDate
 } from '../api/index';
 
 const STATUS_CONFIG = {
@@ -77,7 +78,7 @@ const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
 };
 
 const QueueDisplay = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toIsoDate();
     const [doctors, setDoctors] = useState([]);
     const [selectedDoctor, setSelectedDoctor] = useState('');
     const [date, setDate] = useState(today);
@@ -209,8 +210,7 @@ const QueueDisplay = () => {
         <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Token Queue</h1>
-                    <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontWeight: 500 }}>Manage clinic queue tokens and patient flow</p>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Queue Tokens</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <a href="/clinic-display" target="_blank" rel="noopener noreferrer"

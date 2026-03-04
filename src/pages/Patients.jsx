@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import PatientForm, { EMPTY_FORM } from '../components/PatientForm';
-import { getPatients, registerPatient, updatePatient, getDoctors, uploadPatientPhoto } from '../api/index';
+import { getPatients, registerPatient, updatePatient, getDoctors, uploadPatientPhoto, toIsoDate } from '../api/index';
 
 
 const Patients = () => {
@@ -160,7 +160,7 @@ const Patients = () => {
                 if (!rawDob) return '';
                 try {
                     const d = new Date(rawDob);
-                    return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+                    return isNaN(d.getTime()) ? '' : toIsoDate(d);
                 } catch (e) {
                     return '';
                 }

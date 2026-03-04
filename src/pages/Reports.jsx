@@ -3,7 +3,7 @@ import {
     BarChart2, RefreshCw, AlertCircle, TrendingUp, Users,
     Calendar, CheckCircle2, XCircle, Clock, Download, Filter, Search
 } from 'lucide-react';
-import { getReportsDashboard, getAppointmentsReport, getDoctors } from '../api/index';
+import { getReportsDashboard, getAppointmentsReport, getDoctors, toIsoDate } from '../api/index';
 
 const StatCard = ({ title, value, icon: Icon, color, loading }) => (
     <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
@@ -20,8 +20,12 @@ const StatCard = ({ title, value, icon: Icon, color, loading }) => (
 );
 
 const Reports = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const today = toIsoDate();
+    const firstOfMonth = (() => {
+        const d = new Date();
+        d.setDate(1);
+        return toIsoDate(d);
+    })();
     const [dateFrom, setDateFrom] = useState(firstOfMonth);
     const [dateTo, setDateTo] = useState(today);
     const [doctorId, setDoctorId] = useState('');
@@ -86,7 +90,6 @@ const Reports = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Reports & Analytics</h1>
-                    <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontWeight: 500 }}>Clinic performance metrics and appointment data</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>

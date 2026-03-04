@@ -109,13 +109,13 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                                         ? "Configure session timings and clinical capacity matrix."
                                         : item.name === 'Patients'
                                             ? "Manage patient records and registrations."
-                                        : item.name === 'Bot Hub'
-                                            ? "Track interactions from people who Haven't registered as patients yet."
-                                            : item.name === 'Doctors'
-                                                ? "Manage clinic practitioners and specialities."
-                                                        : item.name === 'MRD'
-                                                            ? "Search a patient to view or update their longitudinal health file."
-                                                            : ""
+                                            : item.name === 'Bot Hub'
+                                                ? "Track interactions from people who haven't registered as patients yet."
+                                                : item.name === 'Doctors'
+                                                    ? "Manage clinic practitioners and specialities."
+                                                    : item.name === 'MRD'
+                                                        ? "Search a patient to view or update their longitudinal health file."
+                                                        : ""
                             }
                         >
                             <item.icon size={20} />
@@ -124,11 +124,7 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                     </li>
                 ))}
             </ul>
-            <div className="sidebar-admin-card">
-                <div className="sidebar-admin-row">
-                    <div className="sidebar-admin-avatar">{initial}</div>
-                </div>
-            </div>
+            {/* Removed user avatar button as requested */}
             <div style={{ marginTop: '0.5rem', padding: '0.5rem' }}>
                 <button
                     onClick={onLogout}

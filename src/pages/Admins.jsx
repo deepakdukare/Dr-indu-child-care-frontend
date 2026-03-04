@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     AlertCircle, CheckCircle2, Edit2, Eye, Mail, Plus, RefreshCw, Search,
-    Shield, ShieldCheck, ShieldX, Trash2, User, Users
+    Shield, ShieldCheck, ShieldX, Trash2, User, Users, X, Fingerprint
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import AdminUserForm from '../components/AdminUserForm';
@@ -105,6 +105,8 @@ const Admins = () => {
         new_password: ''
     });
     const [profileLookupLoading, setProfileLookupLoading] = useState(false);
+    const [activeSection, setActiveSection] = useState('');
+    const [editingProfile, setEditingProfile] = useState(false);
 
     const localUser = useMemo(() => JSON.parse(localStorage.getItem('user') || '{}'), []);
     const isDoctor = localUser?.role === 'doctor';
@@ -330,9 +332,8 @@ const Admins = () => {
                 <div className="admins-head">
                     <div>
                         <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <ShieldCheck size={28} /> Admin Control Center
+                            <ShieldCheck size={28} /> Settings
                         </h1>
-                        <p>Manage admin accounts, access roles, permission tags, and your own profile.</p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.65rem' }}>
                         <button className="btn btn-outline" onClick={refreshAll} disabled={refreshing || loading}>
@@ -373,63 +374,297 @@ const Admins = () => {
                 <StatCard label="Audit Logs" value={overview?.counts?.total_audit_logs} icon={Eye} color="#f59e0b" className="stat-pill-premium-v3" />
             </div>
 
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <div className="card-header">
-                    <h3>Role Distribution</h3>
+            {/* Tab Navigation */}
+            <div className="card" style={{ marginBottom: '1.5rem', padding: '0' }}>
+                <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #f1f5f9' }}>
+                    <button
+                        onClick={() => setActiveSection('roles')}
+                        style={{
+                            flex: 1,
+                            padding: '1.5rem 2rem',
+                            border: 'none',
+                            background: activeSection === 'roles' ? '#fff' : '#fcfdfe',
+                            borderBottom: activeSection === 'roles' ? '3px solid #6366f1' : 'none',
+                            color: activeSection === 'roles' ? '#6366f1' : '#64748b',
+                            fontWeight: activeSection === 'roles' ? 800 : 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeSection !== 'roles') {
+                                e.target.style.background = '#f8fafc';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeSection !== 'roles') {
+                                e.target.style.background = '#fcfdfe';
+                            }
+                        }}
+                    >
+                        Role Distribution
+                    </button>
+                    <button
+                        onClick={() => setActiveSection('account')}
+                        style={{
+                            flex: 1,
+                            padding: '1.5rem 2rem',
+                            border: 'none',
+                            background: activeSection === 'account' ? '#fff' : '#fcfdfe',
+                            borderBottom: activeSection === 'account' ? '3px solid #6366f1' : 'none',
+                            color: activeSection === 'account' ? '#6366f1' : '#64748b',
+                            fontWeight: activeSection === 'account' ? 800 : 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            textAlign: 'left',
+                            borderLeft: '1px solid #f1f5f9'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeSection !== 'account') {
+                                e.target.style.background = '#f8fafc';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeSection !== 'account') {
+                                e.target.style.background = '#fcfdfe';
+                            }
+                        }}
+                    >
+                        Account Settings
+                    </button>
+                    <button
+                        onClick={() => setActiveSection('directory')}
+                        style={{
+                            flex: 1,
+                            padding: '1.5rem 2rem',
+                            border: 'none',
+                            background: activeSection === 'directory' ? '#fff' : '#fcfdfe',
+                            borderBottom: activeSection === 'directory' ? '3px solid #6366f1' : 'none',
+                            color: activeSection === 'directory' ? '#6366f1' : '#64748b',
+                            fontWeight: activeSection === 'directory' ? 800 : 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            textAlign: 'left',
+                            borderLeft: '1px solid #f1f5f9'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeSection !== 'directory') {
+                                e.target.style.background = '#f8fafc';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeSection !== 'directory') {
+                                e.target.style.background = '#fcfdfe';
+                            }
+                        }}
+                    >
+                        Admin User Directory
+                    </button>
                 </div>
-                <div className="roles-grid">
-                    {roleCards.map((role) => {
-                        const roleId = normalizeRole(role.id || role.role);
-                        const roleCount = overview?.roles?.[roleId]
-                            ?? (roleId === 'super_admin' ? overview?.roles?.superadmin : undefined)
-                            ?? 0;
-                        return (
-                            <div key={roleId} className="role-chip">
-                                <div>
-                                    <div className="role-chip-title">{role.label || toRoleLabel(roleId)}</div>
-                                    <div className="role-chip-desc">{role.description || 'System role'}</div>
+            </div>
+
+            {/* Tab Content - Role Distribution */}
+            {activeSection === 'roles' && (
+                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                    <div className="card-header">
+                        <h3>Role Distribution</h3>
+                    </div>
+                    <div className="roles-grid">
+                        {roleCards.map((role) => {
+                            const roleId = normalizeRole(role.id || role.role);
+                            const roleCount = overview?.roles?.[roleId]
+                                ?? (roleId === 'super_admin' ? overview?.roles?.superadmin : undefined)
+                                ?? 0;
+                            return (
+                                <div key={roleId} className="role-chip">
+                                    <div>
+                                        <div className="role-chip-title">{role.label || toRoleLabel(roleId)}</div>
+                                        <div className="role-chip-desc">{role.description || 'System role'}</div>
+                                    </div>
+                                    <span className="badge badge-primary">{roleCount}</span>
                                 </div>
-                                <span className="badge badge-primary">{roleCount}</span>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="admins-grid">
-                <AdminProfile
-                    profile={profile}
-                    profileForm={profileForm}
-                    setProfileForm={setProfileForm}
-                    onSaveProfile={handleSaveProfile}
-                    loading={profileLookupLoading}
-                    submitting={submittingProfile}
-                    formatDate={formatDate}
+            {/* Tab Content - Account Settings */}
+            {activeSection === 'account' && (
+                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                    <div className="card-header" style={{ padding: '1.75rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Account Settings</h3>
+                        </div>
+                        {!editingProfile && (
+                            <button
+                                onClick={() => setEditingProfile(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.65rem 1.25rem',
+                                    background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.opacity = '0.85'}
+                                onMouseLeave={(e) => e.target.style.opacity = '1'}
+                                title="Edit Profile"
+                            >
+                                <Edit2 size={16} />
+                                Edit
+                            </button>
+                        )}
+                    </div>
+                    <div style={{ padding: '1.5rem 2rem' }}>
+                        {!editingProfile ? (
+                            <>
+                                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '16px' }}>
+                                    <div style={{
+                                        width: '56px',
+                                        height: '56px',
+                                        borderRadius: '14px',
+                                        background: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                                        color: '#fff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 800,
+                                        fontSize: '1.4rem'
+                                    }}>
+                                        {(profile?.full_name || profile?.username || 'A').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>{profile?.full_name || 'System Admin'}</div>
+                                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                            <span style={{
+                                                background: '#6366f1',
+                                                color: '#fff',
+                                                padding: '0.35rem 0.85rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700
+                                            }}>
+                                                {toRoleLabel(profile?.role).toUpperCase()}
+                                            </span>
+                                            <span style={{
+                                                background: profile?.is_active ? '#d1fae5' : '#fee2e2',
+                                                color: profile?.is_active ? '#059669' : '#dc2626',
+                                                padding: '0.35rem 0.85rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700
+                                            }}>
+                                                {profile?.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                                    <div style={{
+                                        padding: '1.25rem',
+                                        border: '1px solid #f1f5f9',
+                                        borderRadius: '12px',
+                                        background: '#fff'
+                                    }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Fingerprint size={14} /> Username
+                                        </div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{profile?.username || '-'}</div>
+                                    </div>
+                                    <div style={{
+                                        padding: '1.25rem',
+                                        border: '1px solid #f1f5f9',
+                                        borderRadius: '12px',
+                                        background: '#fff'
+                                    }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Mail size={14} /> Email
+                                        </div>
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', wordBreak: 'break-all' }}>{profile?.email || '-'}</div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <AdminProfile
+                                    profile={profile}
+                                    profileForm={profileForm}
+                                    setProfileForm={setProfileForm}
+                                    onSaveProfile={(e) => {
+                                        handleSaveProfile(e);
+                                        setEditingProfile(false);
+                                    }}
+                                    loading={profileLookupLoading}
+                                    submitting={submittingProfile}
+                                    formatDate={formatDate}
+                                />
+                                <button
+                                    onClick={() => setEditingProfile(false)}
+                                    style={{
+                                        marginTop: '1rem',
+                                        padding: '0.7rem 1.5rem',
+                                        background: '#f1f5f9',
+                                        color: '#64748b',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.9rem',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.background = '#e2e8f0';
+                                        e.target.style.borderColor = '#cbd5e1';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.background = '#f1f5f9';
+                                        e.target.style.borderColor = '#e2e8f0';
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* optional user form overlay remains unchanged */}
+            {showUserForm && (
+                <AdminUserForm
+                    userForm={userForm}
+                    setUserForm={setUserForm}
+                    onSubmit={handleSaveUser}
+                    onCancel={() => { setShowUserForm(false); setEditingId(null); setUserForm(emptyUserForm); }}
+                    submitting={submittingUser}
+                    editingId={editingId}
+                    roles={roles}
                 />
+            )}
 
-                {showUserForm && (
-                    <AdminUserForm
-                        userForm={userForm}
-                        setUserForm={setUserForm}
-                        onSubmit={handleSaveUser}
-                        onCancel={() => { setShowUserForm(false); setEditingId(null); setUserForm(emptyUserForm); }}
-                        submitting={submittingUser}
-                        editingId={editingId}
-                        roles={roles}
-                    />
-                )}
-            </div>
-
-            {!isDoctor && (
-                <div className="card shadow-premium" style={{ marginTop: '2.5rem', padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
-                    <div className="card-header" style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9' }}>
+            {!isDoctor && activeSection === 'directory' && (
+                <div className="card shadow-premium" style={{ padding: '0', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div
+                        className="card-header"
+                        style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9' }}
+                    >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Admin User Directory</h3>
-                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Manage system access for staff, doctors, and operators.</p>
                             </div>
                             <span className="badge-v3" style={{ background: '#f1f5f9', color: '#475569', padding: '0.5rem 1rem' }}>
-                                {filteredUsers.length} Total Identities
+                                {filteredUsers.length} Total Users
                             </span>
                         </div>
                     </div>
@@ -470,98 +705,98 @@ const Admins = () => {
                         ) : (
                             <div className="admin-table-wrap">
                                 <table className="admin-table-premium">
-                                <thead>
-                                    <tr>
-                                        <th>Identity Profile</th>
-                                        <th>Access Level</th>
-                                        <th>Authorized Pages</th>
-                                        <th>Status</th>
-                                        <th>Safety Check</th>
-                                        <th style={{ textAlign: 'right' }}>Management</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredUsers.length === 0 ? (
+                                    <thead>
                                         <tr>
-                                            <td colSpan={6} className="admin-empty-cell">No matching users found for current filters.</td>
+                                            <th>Identity Profile</th>
+                                            <th>Access Level</th>
+                                            <th>Authorized Pages</th>
+                                            <th>Status</th>
+                                            <th>Safety Check</th>
+                                            <th style={{ textAlign: 'right' }}>Management</th>
                                         </tr>
-                                    ) : filteredUsers.map((user) => (
-                                        <tr key={user._id}>
-                                            <td>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #6366f1, #4338ca)', width: '48px', height: '48px', borderRadius: '15px' }}>
-                                                        {(user.full_name || user.username || 'U').charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>{user.full_name || user.username}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
-                                                            <Mail size={12} /> {user.email || 'No email attached'}
+                                    </thead>
+                                    <tbody>
+                                        {filteredUsers.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="admin-empty-cell">No matching users found for current filters.</td>
+                                            </tr>
+                                        ) : filteredUsers.map((user) => (
+                                            <tr key={user._id}>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                        <div className="user-avatar" style={{ background: 'linear-gradient(135deg, #6366f1, #4338ca)', width: '48px', height: '48px', borderRadius: '15px' }}>
+                                                            {(user.full_name || user.username || 'U').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>{user.full_name || user.username}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
+                                                                <Mail size={12} /> {user.email || 'No email attached'}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {(() => {
-                                                    const roleKey = normalizeRole(user.role);
-                                                    const isSuperAdminRole = roleKey === 'super_admin';
-                                                    const isDoctorRole = roleKey === 'doctor';
-                                                    return (
-                                                <span className="role-badge-v3" style={{
-                                                    background: isSuperAdminRole ? '#fef2f2' : isDoctorRole ? '#ecfdf5' : '#eff6ff',
-                                                    color: isSuperAdminRole ? '#ef4444' : isDoctorRole ? '#10b981' : '#3b82f6',
-                                                    border: `1px solid ${isSuperAdminRole ? '#fee2e2' : isDoctorRole ? '#d1fae5' : '#dbeafe'}`
-                                                }}>
-                                                    {toRoleLabel(user.role)}
-                                                </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td>
-                                                <div className="permission-list" style={{ display: 'flex', gap: '0.35rem' }}>
-                                                    {(user.permissions || []).slice(0, 3).map((p) => (
-                                                        <span key={p} className="tag-badge-v3">{toPermissionLabel(p)}</span>
-                                                    ))}
-                                                    {(user.permissions || []).length > 3 && (
-                                                        <span className="tag-badge-v3" style={{ background: '#fff' }}>+{(user.permissions || []).length - 3} more</span>
-                                                    )}
-                                                    {!(user.permissions || []).length && (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 600 }}>Standard Default</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {user.is_active ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontWeight: 800, fontSize: '0.75rem' }}>
-                                                        <div style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></div>
-                                                        ACTIVE
+                                                </td>
+                                                <td>
+                                                    {(() => {
+                                                        const roleKey = normalizeRole(user.role);
+                                                        const isSuperAdminRole = roleKey === 'super_admin';
+                                                        const isDoctorRole = roleKey === 'doctor';
+                                                        return (
+                                                            <span className="role-badge-v3" style={{
+                                                                background: isSuperAdminRole ? '#fef2f2' : isDoctorRole ? '#ecfdf5' : '#eff6ff',
+                                                                color: isSuperAdminRole ? '#ef4444' : isDoctorRole ? '#10b981' : '#3b82f6',
+                                                                border: `1px solid ${isSuperAdminRole ? '#fee2e2' : isDoctorRole ? '#d1fae5' : '#dbeafe'}`
+                                                            }}>
+                                                                {toRoleLabel(user.role)}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </td>
+                                                <td>
+                                                    <div className="permission-list" style={{ display: 'flex', gap: '0.35rem' }}>
+                                                        {(user.permissions || []).slice(0, 3).map((p) => (
+                                                            <span key={p} className="tag-badge-v3">{toPermissionLabel(p)}</span>
+                                                        ))}
+                                                        {(user.permissions || []).length > 3 && (
+                                                            <span className="tag-badge-v3" style={{ background: '#fff' }}>+{(user.permissions || []).length - 3} more</span>
+                                                        )}
+                                                        {!(user.permissions || []).length && (
+                                                            <span style={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 600 }}>Standard Default</span>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f43f5e', fontWeight: 800, fontSize: '0.75rem' }}>
-                                                        <div style={{ width: '6px', height: '6px', background: '#f43f5e', borderRadius: '50%' }}></div>
-                                                        RESTRICTED
+                                                </td>
+                                                <td>
+                                                    {user.is_active ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', fontWeight: 800, fontSize: '0.75rem' }}>
+                                                            <div style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></div>
+                                                            ACTIVE
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f43f5e', fontWeight: 800, fontSize: '0.75rem' }}>
+                                                            <div style={{ width: '6px', height: '6px', background: '#f43f5e', borderRadius: '50%' }}></div>
+                                                            RESTRICTED
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                                                        Last seen: <span style={{ color: '#1e293b' }}>{formatDate(user.last_login_at)}</span>
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
-                                                    Last seen: <span style={{ color: '#1e293b' }}>{formatDate(user.last_login_at)}</span>
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'inline-flex', gap: '0.6rem' }}>
-                                                    <button className="btn-action" onClick={() => handleEditClick(user)} title="Configure Access">
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    {normalizeRole(user.role) !== 'super_admin' && (
-                                                        <button className="btn-action btn-danger" onClick={() => handleDeactivate(user)} title="Revoke Access">
-                                                            <Trash2 size={16} />
+                                                </td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.6rem' }}>
+                                                        <button className="btn-action" onClick={() => handleEditClick(user)} title="Configure Access">
+                                                            <Edit2 size={16} />
                                                         </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
+                                                        {normalizeRole(user.role) !== 'super_admin' && (
+                                                            <button className="btn-action btn-danger" onClick={() => handleDeactivate(user)} title="Revoke Access">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
                                 </table>
                             </div>
                         )}

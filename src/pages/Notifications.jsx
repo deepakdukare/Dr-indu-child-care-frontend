@@ -109,7 +109,6 @@ const Notifications = () => {
                         <Bell size={28} color="#6366f1" /> Notifications
                         {unreadCount > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50px', padding: '0.1rem 0.6rem', fontSize: '0.8rem', fontWeight: 800 }}>{unreadCount}</span>}
                     </h1>
-                    <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontWeight: 500 }}>System alerts, escalations, and reminders</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {unreadCount > 0 && (

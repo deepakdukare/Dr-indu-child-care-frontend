@@ -28,7 +28,8 @@ import {
     getAvailableSlots,
     searchPatients,
     registerPatient,
-    bookAppointmentWithToken
+    bookAppointmentWithToken,
+    toIsoDate
 } from '../api/index';
 
 const getDoctorDisplayName = (doctor) => doctor?.full_name || doctor?.name || doctor?.doctor_name || doctor?.doctor_id || 'Unknown Doctor';
@@ -76,7 +77,7 @@ const Appointments = () => {
 
     // Queue Filters
     const [filters, setFilters] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: toIsoDate(),
         doctor_id: '',
         status: ''
     });
@@ -221,7 +222,7 @@ const Appointments = () => {
             if (editMode) {
                 await updateAppointment(selectedAppointment.appointment_id, form);
             } else {
-                const isTodayStr = new Date().toISOString().split('T')[0];
+                const isTodayStr = toIsoDate();
                 const isToday = form.appointment_date === isTodayStr;
                 if (isToday) {
                     await bookAppointmentWithToken(form);
@@ -276,7 +277,7 @@ const Appointments = () => {
             setForm({
                 patient_id: '',
                 doctor_name: 'Dr. Indu',
-                appointment_date: filters.date || new Date().toISOString().split('T')[0],
+                appointment_date: filters.date || toIsoDate(),
                 slot_id: '',
                 doctor_id: doctors.find(d => getDoctorDisplayName(d) === 'Dr. Indu')?.doctor_id || '',
                 doctor_speciality: 'Pediatrics',
@@ -427,7 +428,7 @@ const Appointments = () => {
                                     value={filters.doctor_id}
                                     onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
                                 >
-                                    <option value="">All Doctors</option>
+                                    <option value="" key="all-doc-combined">All Combined Doctors</option>
                                     {doctors.map(doc => (
                                         <option key={doc.doctor_id || doc._id} value={doc.doctor_id}>
                                             {getDoctorDisplayName(doc)}

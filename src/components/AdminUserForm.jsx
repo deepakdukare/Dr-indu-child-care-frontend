@@ -15,11 +15,8 @@ const AdminUserForm = ({
             <div className="card-header" style={{ padding: '2rem 2rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
-                        {editingId ? 'Edit Management Identity' : 'Enroll New Administrator'}
+                        {editingId ? 'Edit Profile' : 'Enroll New Administrator'}
                     </h3>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                        Configure profile details and granular page permissions.
-                    </p>
                 </div>
                 <button
                     onClick={onCancel}
@@ -167,7 +164,7 @@ const AdminUserForm = ({
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
                     <button className="btn-primary-v3" disabled={submitting} style={{ flex: 1, padding: '1rem' }}>
                         {submitting ? <RefreshCw size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
-                        {editingId ? 'Synchronize Identity' : 'Complete Enrollment'}
+                        {editingId ? 'Save' : 'Complete Enrollment'}
                     </button>
                 </div>
             </form>

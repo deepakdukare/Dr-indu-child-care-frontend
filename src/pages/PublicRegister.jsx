@@ -6,7 +6,7 @@ import {
     Check, RefreshCw, Activity, Clipboard, Edit2, Plus,
     ArrowRight, Map, ShieldCheck, ArrowLeft
 } from 'lucide-react';
-import { registerFromForm, bookByForm, getAvailableSlots, getDoctors, getPatientByWa } from '../api/index';
+import { registerFromForm, bookByForm, getAvailableSlots, getDoctors, getPatientByWa, toIsoDate } from '../api/index';
 
 const SALUTATIONS = ['Master', 'Miss', 'Baby', 'Baby of', 'Mr.', 'Ms.'];
 const GENDERS = ['Male', 'Female', 'Other'];
@@ -83,7 +83,7 @@ const PublicRegister = () => {
     const [bookingForm, setBookingForm] = useState({
         wa_id: '',
         doctor_name: 'Dr. Indu',
-        appointment_date: new Date().toISOString().split('T')[0],
+        appointment_date: toIsoDate(),
         slot_id: '',
         doctor_speciality: 'Pediatrics',
         visit_type: 'CONSULTATION',

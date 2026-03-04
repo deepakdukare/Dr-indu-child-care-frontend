@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Monitor, RefreshCw, User, Users, Clock, Hash, ArrowRight, Activity, Zap } from 'lucide-react';
-import { getClinicDisplayData } from '../api/index';
+import { getClinicDisplayData, toIsoDate } from '../api/index';
 
 const ClinicDisplay = () => {
     const [displayData, setDisplayData] = useState([]);
@@ -10,7 +10,7 @@ const ClinicDisplay = () => {
 
     const fetchData = useCallback(async () => {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = toIsoDate();
             const res = await getClinicDisplayData({ date: today });
             setDisplayData(res.data?.display || res.data?.data || []);
             setLastUpdated(new Date());
@@ -38,7 +38,6 @@ const ClinicDisplay = () => {
                     <div className="brand-icon-v2">🩺</div>
                     <div className="brand-text-v2">
                         <h1>Dr. Indu Child Care</h1>
-                        <p>Live Clinic Console • {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                     </div>
                 </div>
                 <div className="header-meta-v2">
@@ -169,15 +168,6 @@ const ClinicDisplay = () => {
                     background: linear-gradient(to right, #fff, #94a3b8);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
-                }
-
-                .brand-text-v2 p {
-                    margin: 0.25rem 0 0;
-                    color: #6366f1;
-                    font-weight: 700;
-                    letter-spacing: 0.1em;
-                    text-transform: uppercase;
-                    font-size: 0.8rem;
                 }
 
                 .header-meta-v2 {
@@ -419,3 +409,4 @@ const ClinicDisplay = () => {
 };
 
 export default ClinicDisplay;
+

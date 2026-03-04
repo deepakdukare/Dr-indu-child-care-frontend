@@ -25,15 +25,16 @@ import {
     patchDoctorAvailabilityEta,
     logDoctorLateCheckin,
     getDoctorLateCheckins,
-    getDoctorAvailabilityDashboard
+    getDoctorAvailabilityDashboard,
+    toIsoDate
 } from '../api/index';
 
 const STATUS_OPTIONS = ['PRESENT', 'LATE', 'ABSENT', 'ON_LEAVE'];
-const todayISO = () => new Date().toISOString().split('T')[0];
+const todayISO = () => toIsoDate();
 const tomorrowISO = () => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    return toIsoDate(d);
 };
 const prettyStatus = (v) => (v || 'N/A').replace(/_/g, ' ');
 
@@ -239,7 +240,6 @@ const Doctors = () => {
             <div className="doc-head">
                 <div>
                     <h1>Doctors</h1>
-                    <p>Doctor profile management and real-time availability workflows</p>
                 </div>
                 <div className="doc-head-actions">
                     <button className="btn btn-outline" onClick={fetchDoctorsData}>
@@ -545,7 +545,6 @@ const Doctors = () => {
                 .doc-page { width: 100%; }
                 .doc-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
                 .doc-head h1 { font-size: 2rem; margin: 0; }
-                .doc-head p { color: #64748b; margin-top: 0.25rem; }
                 .doc-head-actions { display: flex; gap: 0.75rem; }
                 .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }
                 .doc-card { border-radius: 18px; padding: 1rem; }

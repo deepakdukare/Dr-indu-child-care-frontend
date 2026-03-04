@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Download, Printer, Lock, Paperclip, Plus, X, FileText, RefreshCw, Activity, User, Calendar, Shield, ArrowRight } from 'lucide-react';
-import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getEntryByAppointment } from '../api/index';
-
-const today = () => new Date().toISOString().split('T')[0];
+import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getEntryByAppointment, toIsoDate } from '../api/index';
 
 const EMPTY_ENTRY = {
-    patient_id: '', appointment_id: '', visit_date: today(),
+    patient_id: '', appointment_id: '', visit_date: toIsoDate(),
     visit_type: 'CONSULTATION', attending_doctor: 'Dr. Indu',
     chief_complaint: '', clinical_notes: '', diagnosis: '',
     prescription: '', investigations: '', next_visit_due: '', recorded_by: 'Dr. Indu'
@@ -119,7 +117,7 @@ const MRD = () => {
             const b = new Blob([JSON.stringify(r.data.data, null, 2)], { type: 'application/json' });
             const u = URL.createObjectURL(b), a = document.createElement('a');
             a.href = u;
-            a.download = `MRD_${selectedPatient.patient_id}_${today()}.json`;
+            a.download = `MRD_${selectedPatient.patient_id}_${toIsoDate()}.json`;
             a.click();
             URL.revokeObjectURL(u);
         } catch (e) { console.error(e); } finally { setExporting(false); }
@@ -171,7 +169,6 @@ const MRD = () => {
             <header className="mrd-header-v3">
                 <div className="title-section">
                     <h1 title="Medical Records Department">MRD</h1>
-                    <p className="subtitle">Longitudinal Health Registry & Clinical Records</p>
                 </div>
                 <div className="header-actions">
                     <div className="search-bar-v3">
@@ -491,7 +488,6 @@ const MRD = () => {
                 
                 .mrd-header-v3 { padding: 1.5rem 2rem; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
                 .mrd-header-v3 h1 { font-size: 1.75rem; font-weight: 900; color: #0f172a; margin: 0; }
-                .mrd-header-v3 .subtitle { font-size: 0.85rem; color: #64748b; margin: 0; font-weight: 600; }
                 
                 .header-actions { display: flex; gap: 1rem; align-items: center; }
                 .search-bar-v3 { position: relative; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; padding: 0 1rem; width: 260px; }

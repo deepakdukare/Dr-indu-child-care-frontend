@@ -36,7 +36,14 @@ const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAY_NUMS = [0, 1, 2, 3, 4, 5, 6];
 const SESSION_ORDER = { MORNING: 1, AFTERNOON: 2, EVENING: 3 };
 
-const toIsoDate = (date) => date.toISOString().split('T')[0];
+const toIsoDate = (date = new Date()) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const getSunday = (seed = new Date()) => {
     const d = new Date(seed);
     d.setHours(0, 0, 0, 0);
@@ -507,7 +514,6 @@ const Scheduling = () => {
                         </div>
                         <div>
                             <h3 className="card-title-v3">{template.name}</h3>
-                            <span className="card-subtitle-v3">{template.slot_count} Clinical Slots Defined</span>
                         </div>
                     </div>
                     <div className="table-responsive-v3">
@@ -576,7 +582,6 @@ const Scheduling = () => {
                         </div>
                         <div>
                             <h3 className="card-title-v3">{title}</h3>
-                            <span className="card-subtitle-v3">{data.length} Slots Operating</span>
                         </div>
                     </div>
 
@@ -945,7 +950,6 @@ const Scheduling = () => {
 
                 .page-header-v3 { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; }
                 .header-h1-v3 { font-size: 2.75rem; font-weight: 900; color: #0f172a; margin-bottom: 0.4rem; letter-spacing: -0.04em; font-family: 'Outfit', sans-serif; }
-                .header-sub-v3 { font-size: 1rem; color: #64748b; font-weight: 500; }
 
                 .header-nav-v3 { display: flex; background: #fff; padding: 0.4rem; border-radius: 18px; border: 1px solid var(--border-color, #e5e7eb); box-shadow: var(--shadow-sm); }
                 .nav-tab-v3 { display: flex; align-items: center; gap: 0.65rem; padding: 0.85rem 1.4rem; border: none; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; border-radius: 12px; transition: all 0.2s; white-space: nowrap; font-size: 0.9rem; }
@@ -977,7 +981,6 @@ const Scheduling = () => {
                 .card-header-v3 { display: flex; align-items: center; gap: 1.25rem; padding: 1.5rem 2rem; background: #fff; border-bottom: 1px solid var(--border-color, #e5e7eb); }
                 .header-icon-wrap { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
                 .card-title-v3 { font-size: 1.1rem; font-weight: 900; color: #1e293b; margin: 0; font-family: 'Outfit', sans-serif; }
-                .card-subtitle-v3 { font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
 
                 .table-responsive-v3 { overflow-x: auto; }
                 .table-v3 { width: 100%; border-collapse: collapse; }

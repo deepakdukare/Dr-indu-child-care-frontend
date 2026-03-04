@@ -87,7 +87,6 @@ const BotInteractions = () => {
                     <h1 style={{ fontSize: '2.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #1e293b 0%, #4338ca 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         Bot Hub
                     </h1>
-                    <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1.1rem' }}>Monitor WhatsApp automation, lead captures, and assistance requests</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button

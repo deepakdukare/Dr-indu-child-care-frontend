@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const REMOTE_API_BASE_URL = 'https://api-dr-indu-child-care.brahmaastra.ai/api';
+const REMOTE_API_BASE_URL = 'http://localhost:5000/api';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
 
 const api = axios.create({
@@ -52,9 +52,13 @@ api.interceptors.response.use(
     }
 );
 
-const toIsoDate = (date = new Date()) => {
+export const toIsoDate = (date = new Date()) => {
     if (typeof date === 'string') return date;
-    return date.toISOString().split('T')[0];
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 const buildDoctorSlotParams = (doctorRef, date, extraParams = {}) => {
