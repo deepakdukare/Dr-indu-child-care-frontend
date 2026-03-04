@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const REMOTE_API_BASE_URL = 'http://localhost:5000/api';
+const REMOTE_API_BASE_URL = 'https://api-dr-indu-child-care.brahmaastra.ai/api';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
 
 const api = axios.create({

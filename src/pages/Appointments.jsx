@@ -763,7 +763,7 @@ const Appointments = () => {
                 @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 .page-header-v3 { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
                 .header-meta-group { flex: 1; }
-                .header-h1-v3 { font-size: 2rem; font-weight: 900; letter-spacing: -0.03em; color: #1e293b; margin: 0 0 0.75rem; background: none; -webkit-text-fill-color: initial; }
+                .header-h1-v3 { font-size: 2rem; font-weight: 900; letter-spacing: -0.03em; background: linear-gradient(135deg, #0f172a 0%, #4338ca 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 0.75rem; }
                 .header-h1-v3.compact-title-v3 { font-size: 1.35rem; margin-bottom: 0.35rem; }
 
                 .stats-row-mini-v3 { display: flex; gap: 0.85rem; flex-wrap: wrap; }

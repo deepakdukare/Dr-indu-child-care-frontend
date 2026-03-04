@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+    RefreshCw,
     RotateCw,
     Plus,
     Edit2,
@@ -12,8 +13,10 @@ import {
     History,
     CheckCircle2,
     AlertCircle,
-    Calendar,
-    Shield
+    Calendar as CalendarIcon,
+    Shield,
+    Sliders,
+    Settings2
 } from 'lucide-react';
 import {
     getDoctors,
@@ -378,7 +381,7 @@ const Doctors = () => {
                             <div className="doc-date-wrap">
                                 <label>Target Working Date</label>
                                 <div className="date-input-group">
-                                    <Calendar size={16} />
+                                    <CalendarIcon size={16} />
                                     <input
                                         type="date"
                                         value={selectedDate}
@@ -402,6 +405,7 @@ const Doctors = () => {
                                         await fetchAvailabilityData(selectedDoctor.doctor_id, d);
                                     }}
                                 >
+                                    <CalendarIcon size={13} />
                                     Today
                                 </button>
                                 <button
@@ -414,16 +418,25 @@ const Doctors = () => {
                                         await fetchAvailabilityData(selectedDoctor.doctor_id, d);
                                     }}
                                 >
+                                    <CalendarIcon size={13} />
                                     Tomorrow
                                 </button>
-                                <button className="btn btn-icon-round" onClick={reloadAvailability} title="Reload Data">
-                                    <RefreshCw size={16} className={availabilityLoading ? 'spinning' : ''} />
+                                <button
+                                    className="btn btn-pill"
+                                    onClick={reloadAvailability}
+                                    title="Reload Data"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    <RefreshCw size={13} className={availabilityLoading ? 'spinning' : ''} />
+                                    Sync
                                 </button>
                                 <button
                                     type="button"
                                     className="btn btn-indigo-flat"
                                     onClick={() => navigate('/scheduling')}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                 >
+                                    <Settings2 size={14} />
                                     Manage Slots
                                 </button>
                             </div>
@@ -625,7 +638,7 @@ const Doctors = () => {
             <style>{`
                 .doc-page { width: 100%; font-family: 'Inter', sans-serif; }
                 .doc-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; }
-                .doc-head h1 { font-size: 1.75rem; font-weight: 850; letter-spacing: -0.03em; color: #0f172a; margin: 0; }
+                .doc-head h1 { font-size: 2rem; font-weight: 900; letter-spacing: -0.03em; margin: 0; background: linear-gradient(135deg, #0f172a 0%, #4338ca 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                 .doc-head-actions { display: flex; gap: 0.75rem; }
                 
                 .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
@@ -673,7 +686,7 @@ const Doctors = () => {
                 .date-input-group input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08); }
 
                 .doc-date-shortcuts { display: flex; gap: 0.5rem; align-items: center; }
-                .btn-pill { padding: 0.6rem 1.25rem; border-radius: 50px; border: 1.8px solid #e2e8f0; background: #fff; font-size: 0.75rem; font-weight: 850; color: #64748b; cursor: pointer; transition: 0.2s; }
+                .btn-pill { padding: 0.6rem 1.25rem; border-radius: 50px; border: 1.8px solid #e2e8f0; background: #fff; font-size: 0.75rem; font-weight: 850; color: #64748b; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 0.5rem; }
                 .btn-pill:hover { border-color: #6366f1; color: #6366f1; }
                 .btn-pill.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); }
                 .btn-icon-round { width: 38px; height: 38px; border-radius: 50%; border: 1.8px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; color: #475569; cursor: pointer; transition: 0.2s; }

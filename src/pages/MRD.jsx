@@ -753,48 +753,51 @@ const MRD = () => {
                 
                 .header-actions { display: flex; gap: 1rem; align-items: center; }
                 .mrd-page-v3 { height: calc(100vh - 80px); display: flex; flex-direction: column; background: #f8fafc; overflow: hidden; }
-                .mrd-top-bar { padding: 0.75rem 2rem; display: flex; justify-content: flex-start; align-items: center; gap: 1.5rem; background: #fff; border-bottom: 1.5px solid #e2e8f0; }
-                .page-title-v3 { font-size: 1.15rem; font-weight: 950; color: #0f172a; margin: 0; letter-spacing: -0.04em; white-space: nowrap; }
+                .mrd-top-bar { padding: 1.25rem 2rem; display: flex; justify-content: space-between; align-items: center; background: #fff; border-bottom: 1.2px solid #e2e8f0; }
+                .page-title-v3 { font-size: 2rem; font-weight: 900; letter-spacing: -0.04em; margin: 0; background: linear-gradient(135deg, #0f172a 0%, #4338ca 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
                 
-                .header-actions { display: flex; gap: 0.65rem; align-items: center; }
-                .btn-sync-v3 { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.75rem; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; color: #1e293b; font-weight: 900; font-size: 0.65rem; cursor: pointer; transition: 0.2s; white-space: nowrap; }
-                .btn-sync-v3:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
+                .header-actions { display: flex; gap: 0.85rem; align-items: center; }
+                .btn-sync-v3 { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; background: #fff; border: 1.8px solid #e2e8f0; border-radius: 12px; color: #475569; font-weight: 850; font-size: 0.75rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+                .btn-sync-v3:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); }
                 .btn-primary-v3 { display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; background: #6366f1; color: #fff; border: none; border-radius: 10px; font-weight: 900; font-size: 0.7rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); white-space: nowrap; }
                 .btn-primary-v3:hover { background: #4f46e5; transform: translateY(-1px); }
                 
-                .mrd-workspace-v3 { flex: 1; display: grid; grid-template-columns: 280px 340px 1fr; gap: 1rem; padding: 1rem 1.5rem 1.25rem; overflow: hidden; }
-                .mrd-panel-v3 { background: #fff; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03); }
+                .mrd-workspace-v3 { flex: 1; display: grid; grid-template-columns: 320px 380px 1fr; gap: 1.5rem; padding: 1.5rem 2rem 2rem; overflow: hidden; }
+                .mrd-panel-v3 { background: #fff; border-radius: 24px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04); }
                 
-                .sidebar-panel { background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; gap: 1rem; }
-                .worklist-section { background: #fff; border: 1.5px dashed #6366f1; border-radius: 18px; padding: 1rem; background: #fdfdff; }
-                .panel-label { font-size: 0.6rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.6rem; padding: 0 0.5rem; letter-spacing: 0.05em; }
+                .sidebar-panel { background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; gap: 1.5rem; }
+                .worklist-section { background: #fff; border: 1.5px dashed #6366f1; border-radius: 20px; padding: 1.25rem; background: #fdfdff; }
+                .panel-label { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; margin-bottom: 0.75rem; padding: 0 0.5rem; letter-spacing: 0.08em; }
                 
-                .worklist-container { max-height: 180px; overflow-y: auto; padding-right: 0.25rem; }
-                .worklist-item { padding: 0.75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 0.4rem; cursor: pointer; transition: 0.2s; }
-                .worklist-item:hover { border-color: #6366f1; transform: translateX(3px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1); }
-                .worklist-item .p-name { font-weight: 900; font-size: 0.8rem; color: #1e293b; margin-bottom: 0.2rem; }
-                .worklist-item .meta-row { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 750; color: #64748b; }
-                .badge { background: #6366f1; color: #fff; padding: 0.1rem 0.4rem; border-radius: 6px; font-size: 0.6rem; font-weight: 800; }
+                .worklist-container { max-height: 200px; overflow-y: auto; padding-right: 0.4rem; }
+                .worklist-item { padding: 1rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 0.65rem; cursor: pointer; transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+                .worklist-item:hover { border-color: #6366f1; transform: translateX(4px); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.08); }
+                .worklist-item .wi-name { font-weight: 950; font-size: 0.85rem; color: #1e293b; margin-bottom: 0.35rem; }
+                .worklist-item .wi-meta { font-size: 0.65rem; font-weight: 800; color: #64748b; }
+                .badge { background: #6366f1; color: #fff; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.6rem; font-weight: 900; }
                 
-                .directory-search-container { display: flex; flex-direction: column; gap: 0.5rem; }
-                .sidebar-search { width: 100% !important; background: #fff !important; }
-                .search-bar-v3 { position: relative; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; padding: 0 0.75rem; transition: 0.2s; }
-                .search-bar-v3:focus-within { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.05); }
-                .search-bar-v3 input { border: none; background: transparent; height: 32px; padding: 0 0.4rem; width: 100%; outline: none; font-size: 0.7rem; font-weight: 750; color: #1e293b; }
+                .directory-search-container { display: flex; flex-direction: column; gap: 0.75rem; }
+                .sidebar-search { width: 100% !important; background: #fff !important; height: 46px !important; }
+                .search-bar-v3 { position: relative; background: #fff; border: 1.8px solid #e2e8f0; border-radius: 14px; display: flex; align-items: center; padding: 0 1rem; transition: 0.3s; }
+                .search-bar-v3:focus-within { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08); }
+                .search-bar-v3 input { border: none; background: transparent; height: 100%; padding: 0 0.75rem; width: 100%; outline: none; font-size: 0.8rem; font-weight: 800; color: #0f172a; }
+                .search-bar-v3 input::placeholder { color: #94a3b8; font-weight: 700; }
                 .search-bar-v3 .search-icon { color: #6366f1; }
                 
-                .dir-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; overflow-y: auto; flex: 1; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03); }
-                .patient-item-v3 { padding: 0.7rem 0.85rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.1s; border-radius: 12px; margin: 0.2rem; }
+                .patient-list-v3 { background: #fff; border: 1px solid #e2e8f0; border-radius: 24px; overflow-y: auto; flex: 1; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.02); padding: 0.5rem; }
+                .patient-item-v3 { padding: 0.9rem 1rem; display: flex; align-items: center; gap: 1rem; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: 0.2s; border-radius: 16px; margin-bottom: 0.25rem; }
                 .patient-item-v3:hover { background: #f8fafc; }
-                .patient-item-v3.selected { background: #eff6ff; border-left: 3px solid #6366f1; }
-                .p-avatar-v3 { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 950; color: #fff; }
-                .p-details-v3 .name { display: block; font-weight: 900; font-size: 0.8rem; color: #1e293b; }
-                .p-details-v3 .sub { font-size: 0.6rem; color: #94a3b8; font-weight: 750; }
+                .patient-item-v3.selected { background: #6366f110; border: 1px solid #6366f130; }
+                .patient-item-v3 .avatar { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 950; flex-shrink: 0; }
+                .patient-item-v3 .info .p-name { display: block; font-weight: 950; font-size: 0.9rem; color: #0f172a; margin-bottom: 0.15rem; }
+                .patient-item-v3 .info .p-meta { font-size: 0.65rem; color: #64748b; font-weight: 800; }
+                .selected-indicator { color: #6366f1; margin-left: auto; }
                 
-                .panel-header-v3 { padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-                .selected-patient-meta h3 { margin: 0; font-size: 0.95rem; font-weight: 950; color: #0f172a; }
-                .selected-patient-meta p { margin: 0.15rem 0 0 0; font-size: 0.75rem; font-weight: 750; color: #94a3b8; }
-                .btn-add-mini { width: 30px; height: 30px; border-radius: 8px; border: none; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2); }
+                .panel-header-v3 { padding: 1.5rem 1.75rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+                .selected-patient-meta h3 { margin: 0; font-size: 1.1rem; font-weight: 950; color: #0f172a; letter-spacing: -0.02em; }
+                .selected-patient-meta p { margin: 0.2rem 0 0 0; font-size: 0.7rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.02em; }
+                .btn-add-mini { width: 38px; height: 38px; border-radius: 12px; border: none; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 6px 15px rgba(99, 102, 241, 0.2); }
+                .btn-add-mini:hover { background: #4f46e5; transform: scale(1.05); }
                 
                 .timeline-filters { padding: 0.8rem; display: flex; flex-direction: column; gap: 0.65rem; border-bottom: 1px solid #f1f5f9; }
                 .keyword-search { position: relative; display: flex; align-items: center; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0 0.75rem; }
@@ -844,19 +847,21 @@ const MRD = () => {
                 .info-block-v3 label { display: block; font-size: 0.6rem; font-weight: 950; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.05em; }
                 .info-block-v3 p { margin: 0; font-size: 0.8rem; line-height: 1.6; color: #1e293b; font-weight: 500; }
                 
-                .vitals-display { background: #f8fafc; border: 1.5px dashed #e2e8f0; border-radius: 12px; padding: 0.85rem; }
-                .vitals-grid { display: flex; flex-wrap: wrap; gap: 1.15rem; }
-                .vital-item { font-size: 0.7rem; display: flex; align-items: baseline; gap: 0.3rem; }
-                .vital-item span { color: #94a3b8; font-weight: 900; text-transform: uppercase; font-size: 0.55rem; }
-                .vital-item strong { color: #0f172a; font-weight: 950; }
+                .vitals-display { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.25rem; margin-bottom: 1.5rem; }
+                .vitals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1.25rem; }
+                .vital-item { display: flex; flex-direction: column; gap: 0.25rem; }
+                .vital-item span { color: #94a3b8; font-weight: 850; text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.02em; }
+                .vital-item strong { color: #0f172a; font-weight: 950; font-size: 0.95rem; letter-spacing: -0.01em; }
                 
                 .sym-chip { background: #eef2ff; color: #6366f1; padding: 0.2rem 0.55rem; border-radius: 50px; font-size: 0.6rem; font-weight: 900; }
                 .rx-line-v3 { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem; background: #f8fafc; border-radius: 8px; border: 1.5px solid #f1f5f9; }
                 .rx-num { width: 20px; height: 20px; background: #6366f1; color: #fff; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: 950; font-size: 0.6rem; }
                 .rx-text { font-weight: 850; color: #1e293b; font-size: 0.75rem; }
                 
-                .next-due-card { display: flex; align-items: center; gap: 0.85rem; padding: 1rem; background: #fffbe6; border-radius: 12px; border: 1.5px solid #ffec3d; color: #856404; max-width: 300px; }
-                .next-due-card .val { font-size: 0.95rem; font-weight: 950; }
+                .empty-selection { padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; }
+                .empty-selection h3 { color: #1e293b; font-weight: 950; font-size: 1.25rem; margin: 1.25rem 0 0.5rem; letter-spacing: -0.02em; }
+                .empty-selection p { font-size: 0.85rem; font-weight: 700; max-width: 240px; line-height: 1.5; color: #94a3b8; }
+                .empty-selection svg { color: #6366f1; opacity: 0.2; }
                 
                 .spinning { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

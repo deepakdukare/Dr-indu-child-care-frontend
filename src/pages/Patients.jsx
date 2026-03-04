@@ -39,6 +39,7 @@ const Patients = () => {
 
     // Metadata
     const [doctors, setDoctors] = useState([]);
+    const [todayCount, setTodayCount] = useState(0);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -78,6 +79,22 @@ const Patients = () => {
             }
         };
         loadMetadata();
+    }, []);
+
+    // Fetch today's registration count
+    useEffect(() => {
+        const fetchTodayCount = async () => {
+            try {
+                const today = toIsoDate();
+                const res = await getPatients({ registration_date: today, limit: 1 });
+                // The API should return total count in header or we can count from response
+                setTodayCount(res.data.total || 0);
+            } catch (e) {
+                console.error("Failed to load today's count", e);
+                setTodayCount(0);
+            }
+        };
+        fetchTodayCount();
     }, []);
 
 
@@ -221,7 +238,7 @@ const Patients = () => {
                     <h1 className="header-title-premium-v2">Patients</h1>
                     <div className="stats-pill-row">
                         <StatCard label="Total Registry" value={pagination.total} icon={Users} color="#6366f1" />
-                        <StatCard label="Registered Today" value="8" icon={Activity} color="#10b981" />
+                        <StatCard label="Registered Today" value={todayCount} icon={Activity} color="#10b981" />
                     </div>
                 </div>
                 <div className="header-actions-premium" style={{ gap: '1.5rem' }}>
