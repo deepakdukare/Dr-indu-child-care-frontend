@@ -73,6 +73,7 @@ const Doctors = () => {
     const [etaForm, setEtaForm] = useState({ eta_minutes: '', eta_time: '', reason: '' });
     const [lateForm, setLateForm] = useState({ eta_minutes: '', reason: '' });
     const [fullForm, setFullForm] = useState({ status: 'PRESENT', eta_minutes: '', eta_time: '', notes: '', date: todayISO() });
+    const [cardAvailability, setCardAvailability] = useState({});
 
     const fetchDoctorsData = useCallback(async () => {
         setLoading(true);
@@ -91,7 +92,32 @@ const Doctors = () => {
                 );
             }
 
-            setDoctors(allDocs);
+            // Fetch full profile + availability for all doctors in parallel
+            const availMap = {};
+            const enrichedDocs = [...allDocs];
+            await Promise.allSettled(
+                allDocs.map(async (doc, idx) => {
+                    try {
+                        const [profileRes, dashRes, avRes] = await Promise.all([
+                            getDoctorById(doc.doctor_id),
+                            getDoctorAvailabilityDashboard(doc.doctor_id),
+                            getDoctorAvailability(doc.doctor_id, { date: todayISO() })
+                        ]);
+                        // Merge full profile data into the doctor object
+                        const profile = profileRes.data?.data || {};
+                        enrichedDocs[idx] = { ...doc, ...profile };
+                        availMap[doc.doctor_id] = {
+                            dash: dashRes.data?.data || null,
+                            av: avRes.data?.data || null
+                        };
+                    } catch {
+                        availMap[doc.doctor_id] = null;
+                    }
+                })
+            );
+
+            setDoctors(enrichedDocs);
+            setCardAvailability(availMap);
         } catch (e) {
             setError(e.response?.data?.message || e.message || 'Failed to load doctors');
         } finally {
@@ -279,39 +305,72 @@ const Doctors = () => {
                 <div className="card doc-empty">No doctors found. Add your first doctor profile.</div>
             ) : (
                 <div className="doc-grid">
-                    {doctors.map((doc) => (
-                        <div key={doc.doctor_id} className="card doc-card">
-                            <div className="doc-card-head">
-                                <div className="doc-avatar"><User size={20} /></div>
-                                <div className="doc-core">
-                                    <h3>{doc.name}</h3>
-                                    <p>{doc.speciality || 'Not specified'}</p>
-                                    <span>{doc.doctor_id}</span>
-                                </div>
-                                <div className="doc-card-head-actions">
-                                    <button onClick={() => openEdit(doc)}><Edit2 size={15} /></button>
-                                    <button onClick={() => removeDoctor(doc.doctor_id)}><Trash2 size={15} /></button>
-                                </div>
-                            </div>
+                    {doctors.map((doc) => {
+                        const ca = cardAvailability[doc.doctor_id];
+                        const status = ca?.av?.status || ca?.dash?.availability?.status || null;
+                        const queue = ca?.av?.queue?.total ?? ca?.dash?.queue_summary?.total ?? null;
+                        const eta = ca?.av?.eta_minutes;
+                        const etaTime = ca?.av?.eta_time;
 
-                            <div className="doc-meta">
-                                <div><strong>Qualification:</strong> {doc.qualification || 'N/A'}</div>
-                                <div><strong>Experience:</strong> {doc.experience || 'N/A'}</div>
-                                <div><strong>Slots:</strong> {doc.available_slots ? Object.keys(doc.available_slots).length : 0} day(s)</div>
-                            </div>
+                        const statusColor = {
+                            PRESENT: { bg: '#f0fdf4', color: '#16a34a', dot: '#22c55e' },
+                            LATE: { bg: '#fff7ed', color: '#ea580c', dot: '#f97316' },
+                            ABSENT: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
+                            ON_LEAVE: { bg: '#f8fafc', color: '#64748b', dot: '#94a3b8' },
+                        }[status] || { bg: '#f8fafc', color: '#94a3b8', dot: '#cbd5e1' };
 
-                            <div className="doc-actions-row">
-                                <button className="btn btn-outline" onClick={() => openAvailabilityModal(doc)}>
-                                    <Activity size={14} />
-                                    Availability
-                                </button>
-                                <button className={`btn ${doc.is_active ? 'btn-outline' : 'btn-primary'}`} onClick={() => toggleActive(doc)}>
-                                    <Clock3 size={14} />
-                                    {doc.is_active ? 'Set On Leave' : 'Set Active'}
-                                </button>
+                        return (
+                            <div key={doc.doctor_id} className="card doc-card">
+                                <div className="doc-card-head">
+                                    <div className="doc-avatar"><User size={20} /></div>
+                                    <div className="doc-core">
+                                        <h3>{doc.name}</h3>
+                                        <p>{doc.speciality || 'Not specified'}</p>
+                                        <span>{doc.doctor_id}</span>
+                                    </div>
+                                    <div className="doc-card-head-actions">
+                                        <button onClick={() => openEdit(doc)}><Edit2 size={15} /></button>
+                                        <button onClick={() => removeDoctor(doc.doctor_id)}><Trash2 size={15} /></button>
+                                    </div>
+                                </div>
+
+                                {/* Real-time status strip */}
+                                <div className="doc-realtime-strip">
+                                    <div className="doc-status-pill" style={{ background: statusColor.bg, color: statusColor.color }}>
+                                        <span className="doc-status-dot" style={{ background: statusColor.dot }}></span>
+                                        {status ? prettyStatus(status) : (ca === undefined ? '...' : 'No Record')}
+                                    </div>
+                                    <div className="doc-rt-stats">
+                                        <div className="doc-rt-stat">
+                                            <Activity size={13} />
+                                            <span>{queue !== null ? `${queue} in queue` : '—'}</span>
+                                        </div>
+                                        <div className="doc-rt-stat">
+                                            <Clock3 size={13} />
+                                            <span>{eta !== undefined && eta !== null ? `ETA ${eta}m${etaTime ? ` (${etaTime})` : ''}` : 'On time'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="doc-meta">
+                                    <div><strong>Qualification:</strong> {doc.qualification || 'N/A'}</div>
+                                    <div><strong>Experience:</strong> {doc.experience || 'N/A'}</div>
+                                    <div><strong>Slots:</strong> {doc.available_slots ? Object.keys(doc.available_slots).length : 0} day(s)</div>
+                                </div>
+
+                                <div className="doc-actions-row">
+                                    <button className="btn btn-outline" onClick={() => openAvailabilityModal(doc)}>
+                                        <Activity size={14} />
+                                        Availability
+                                    </button>
+                                    <button className={`btn ${doc.is_active ? 'btn-outline' : 'btn-primary'}`} onClick={() => toggleActive(doc)}>
+                                        <Clock3 size={14} />
+                                        {doc.is_active ? 'Set On Leave' : 'Set Active'}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -783,9 +842,16 @@ const Doctors = () => {
                 .doc-card-head-actions button { border: 1.5px solid #f1f5f9; background: #fff; border-radius: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; transition: 0.2s; }
                 .doc-card-head-actions button:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
                 
-                .doc-meta { display: grid; gap: 0.5rem; padding: 1rem; background: #f8fafc; border-radius: 14px; font-size: 0.8rem; border: 1px solid #f1f5f9; }
+                .doc-meta { display: grid; gap: 0.5rem; padding: 1rem; background: #f8fafc; border-radius: 14px; font-size: 0.8rem; border: 1px solid #f1f5f9; margin-top: 0.85rem; }
                 .doc-meta strong { color: #64748b; font-weight: 700; width: 100px; display: inline-block; }
-                
+
+                .doc-realtime-strip { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 12px; background: #fafbff; border: 1.5px solid #eef2ff; margin-bottom: 0.25rem; }
+                .doc-status-pill { display: flex; align-items: center; gap: 0.45rem; padding: 0.3rem 0.75rem; border-radius: 50px; font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+                .doc-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+                .doc-rt-stats { display: flex; gap: 0.75rem; }
+                .doc-rt-stat { display: flex; align-items: center; gap: 0.35rem; color: #64748b; font-size: 0.72rem; font-weight: 700; }
+                .doc-rt-stat svg { color: #94a3b8; }
+
                 .doc-actions-row { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
                 .btn-outline { border: 1.5px solid #e2e8f0; background: #fff; color: #475569; font-weight: 800; border-radius: 12px; padding: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; transition: 0.2s; }
                 .btn-outline:hover { border-color: #6366f1; color: #6366f1; background: #fdfdff; }
