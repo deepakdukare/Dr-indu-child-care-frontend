@@ -21,6 +21,7 @@ export default defineConfig({
             '/api': {
                 target: 'https://api-dr-indu-child-care.brahmaastra.ai/',
                 changeOrigin: true,
+                secure: false,
             },
         },
     },

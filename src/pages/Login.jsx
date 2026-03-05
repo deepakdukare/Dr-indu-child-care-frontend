@@ -45,17 +45,28 @@ const Login = ({ onLogin }) => {
                 {/* Left Section: Branding & Visuals */}
                 <div className="login-branding">
                     <div className="branding-content">
+                        <div className="clinic-portal-label">Clinic Portal</div>
                         <div className="login-logo">
                             <img src="/logo.jpg" alt="Dr. Indu Child Care Logo" className="logo-image" />
                             <h1>Dr. Indu Child Care</h1>
                         </div>
+                        <div className="branding-highlights">
+                            <div className="highlight-item">
+                                <div className="highlight-dot"></div>
+                                <p>Specialized Patient Management</p>
+                            </div>
+                            <div className="highlight-item">
+                                <div className="highlight-dot"></div>
+                                <p>Real-time Appointment Tracking</p>
+                            </div>
+                            <div className="highlight-item">
+                                <div className="highlight-dot"></div>
+                                <p>Digital Clinical Records (MRD)</p>
+                            </div>
+                        </div>
                     </div>
                     <div className="dev-credit">
-                        <p>Designed and developed by <span>brahaastra.ai</span></p>
-                    </div>
-                    <div className="branding-bg-elements">
-                        <div className="bg-circle bg-circle-1"></div>
-                        <div className="bg-circle bg-circle-2"></div>
+                        <p>Designed and developed by <span>brahmaastra.ai</span></p>
                     </div>
                 </div>
 
