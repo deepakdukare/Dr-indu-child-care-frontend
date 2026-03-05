@@ -364,6 +364,116 @@ h5 {
   color: #64748b;
 }
 
+/* Premium Filter/Tab Styles */
+.filter-group-premium {
+  display: flex;
+  background: #f1f5f9;
+  padding: 0.4rem;
+  border-radius: 16px;
+  gap: 0.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-tab-premium {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.filter-tab-premium svg {
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.filter-tab-premium:hover {
+  color: #4338ca;
+  background: #fff;
+}
+
+.filter-tab-premium.active {
+  background: #fff;
+  color: #4338ca;
+  box-shadow: 0 4px 12px rgba(67, 56, 202, 0.08);
+}
+
+.filter-tab-premium.active svg {
+  color: #4338ca;
+}
+
+/* Premium Button Styles */
+.btn-premium {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary-premium {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.btn-secondary-premium:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8fafc;
+}
+
+.btn-danger-premium {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 14px;
+  border: none;
+  background: #fee2e2;
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger-premium:hover {
+  background: #fecaca;
+  color: #dc2626;
+}
+
 .title-section h1 {
   font-size: 2rem;
   font-weight: 800;
