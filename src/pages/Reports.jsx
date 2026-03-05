@@ -4,6 +4,7 @@ import {
     Calendar, CheckCircle2, XCircle, Clock, Download, Filter, Search
 } from 'lucide-react';
 import { getReportsDashboard, getAppointmentsReport, getDoctors, toIsoDate } from '../api/index';
+import { removeSalutation } from '../utils/formatters';
 
 const StatCard = ({ title, value, icon: Icon, color, loading }) => (
     <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', border: '1px solid #e2e8f0', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
@@ -161,7 +162,7 @@ const Reports = () => {
                                     return (
                                         <tr key={a.appointment_id || i} style={{ borderBottom: '1px solid #f8fafc' }}>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: '#64748b' }}>{a.date || '—'}</td>
-                                            <td style={{ padding: '0.9rem 1.25rem', fontWeight: 700, color: '#1e293b' }}>{a.child_name || '—'}</td>
+                                            <td style={{ padding: '0.9rem 1.25rem', fontWeight: 700, color: '#1e293b' }}>{removeSalutation(a.child_name) || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace' }}>{a.patient_id || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: '#475569' }}>{a.doctor_name || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: '#64748b' }}>{a.slot_label || '—'}</td>

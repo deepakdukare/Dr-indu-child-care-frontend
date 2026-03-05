@@ -10,6 +10,7 @@ import {
     getTokenStatus,
     toIsoDate
 } from '../api/index';
+import { removeSalutation } from '../utils/formatters';
 
 const STATUS_CONFIG = {
     WAITING: { color: '#f59e0b', bg: '#fef3c7', label: 'Waiting' },
@@ -69,7 +70,7 @@ const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
                 </div>
             </td>
             <td style={{ padding: '0.6rem 1rem' }}>
-                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem' }}>{token.child_name || token.patient_name || '—'}</div>
+                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem' }}>{removeSalutation(token.child_name || token.patient_name) || '—'}</div>
                 <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{token.patient_id || ''}</div>
                 {!token.is_single_doctor && token.doctor_name && (
                     <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 700, marginTop: '0.1rem', textTransform: 'uppercase' }}>

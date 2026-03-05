@@ -328,7 +328,7 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
             return (
                 <div style={styles.summaryContainer}>
                     <div style={styles.summaryGrid}>
-                        {steps.filter(s => s.type !== 'summary').map(s => (
+                        {steps.filter(s => s.type !== 'summary' && s.field !== 'salutation').map(s => (
                             <div key={s.id} style={styles.summaryItem}>
                                 <div style={styles.summaryLabel}>{s.field.replace(/_/g, ' ')}</div>
                                 <div style={styles.summaryValue}>{data[s.field] || '—'}</div>

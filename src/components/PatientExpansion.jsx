@@ -1,5 +1,5 @@
-import React from 'react';
 import { Activity, Camera, Info, MapPin, User, Users } from 'lucide-react';
+import { removeSalutation } from '../utils/formatters';
 
 const PatientExpansion = ({ patient: p, onPhotoUpload }) => {
     return (
@@ -25,7 +25,7 @@ const PatientExpansion = ({ patient: p, onPhotoUpload }) => {
                             <div style={{ flex: 1 }}>
                                 <div className="exp-card-header"><Activity size={18} /> <span>Medical Profile</span></div>
                                 <div className="exp-info-list" style={{ display: 'grid', gap: '0.4rem' }}>
-                                    <div className="exp-info-item" style={{ display: 'flex', justifyContent: 'space-between' }}><span>Full Name</span><strong>{p.full_name}</strong></div>
+                                    <div className="exp-info-item" style={{ display: 'flex', justifyContent: 'space-between' }}><span>Full Name</span><strong>{removeSalutation(p.full_name)}</strong></div>
                                     <div className="exp-info-item" style={{ display: 'flex', justifyContent: 'space-between' }}><span>Status</span><strong>{p.is_active ? 'Active' : 'Inactive'}</strong></div>
                                     <div className="exp-info-item" style={{ display: 'flex', justifyContent: 'space-between' }}><span>Birth Date</span><strong>{p.dob ? new Date(p.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown'}</strong></div>
                                     <div className="exp-info-item" style={{ display: 'flex', justifyContent: 'space-between' }}><span>Registry ID</span><strong>{p.patient_id}</strong></div>
