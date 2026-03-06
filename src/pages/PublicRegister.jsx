@@ -12,7 +12,8 @@ const SALUTATIONS = ['Master', 'Miss', 'Baby', 'Baby of', 'Mr.', 'Ms.'];
 const GENDERS = ['Male', 'Female', 'Other'];
 const COMM_PREFERENCES = ['WhatsApp', 'SMS', 'Email'];
 const ENROLLMENT_OPTIONS = [
-    { value: 'just_enroll', label: 'Enroll & Book Visit' }
+    { value: 'just_enroll', label: 'Just Enroll' },
+    { value: 'book_appointment', label: 'Enroll & Book Visit' }
 ];
 
 const formatTime12h = (t) => {
@@ -71,7 +72,7 @@ const PublicRegister = () => {
         preferred_doctor: '',
         notes: '',
         enrollment_option: 'just_enroll',
-        registration_source: 'public_form'
+        registration_source: 'form'
     });
 
     const [bookingForm, setBookingForm] = useState({
@@ -210,8 +211,28 @@ const PublicRegister = () => {
     const handleRegistration = async (e) => {
         e.preventDefault();
         setRegSubmitted(true);
-        setLoading(true);
         setError(null);
+
+        const requiredFields = [
+            { key: 'first_name', label: 'First Name' },
+            { key: 'last_name', label: 'Last Name' },
+            { key: 'gender', label: 'Gender' },
+            { key: 'dob', label: 'Date of Birth' },
+            { key: 'wa_id', label: 'WhatsApp Number' },
+            { key: 'city', label: 'City' },
+            { key: 'pin_code', label: 'Pin Code' },
+            { key: 'address', label: 'Residential Address' },
+            { key: 'preferred_doctor', label: 'Preferred Doctor' }
+        ];
+
+        const missing = requiredFields.filter(f => !patientForm[f.key]?.trim());
+        if (missing.length > 0) {
+            setError(`Please fill in required fields: ${missing.map(m => m.label).join(', ')}`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        setLoading(true);
         try {
             const matchedDoc = doctors.find(d => getDoctorDisplayName(d) === patientForm.preferred_doctor);
             const rawDocName = matchedDoc ? getRawDoctorName(matchedDoc) : patientForm.preferred_doctor;
@@ -229,7 +250,6 @@ const PublicRegister = () => {
                 mother_mobile: patientForm.mother_mobile || null,
                 parent_mobile: patientForm.wa_id,
                 wa_id: patientForm.wa_id,
-                email: patientForm.email || null,
                 address: patientForm.address,
                 city: patientForm.city,
                 state: patientForm.state,
@@ -241,20 +261,28 @@ const PublicRegister = () => {
                 enrollment_option: patientForm.enrollment_option,
             };
 
+            if (patientForm.email?.trim()) {
+                payload.email = patientForm.email.trim();
+            }
+
             const res = await registerFromForm(payload);
             const patientData = res.data?.data;
             if (patientData) {
                 setRegisteredPatient(patientData);
-                setBookingForm(prev => ({
-                    ...prev,
-                    wa_id: patientData.wa_id,
-                    doctor_name: rawDocName
-                }));
-                setStep(2);
+                if (patientForm.enrollment_option === 'just_enroll') {
+                    setStep(3);
+                } else {
+                    setBookingForm(prev => ({
+                        ...prev,
+                        wa_id: patientData.wa_id,
+                        doctor_name: rawDocName
+                    }));
+                    setStep(2);
+                }
             }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
-            setError(err.response?.data?.message || "Registration failed");
+            setError(err.response?.data?.message || "Registration failed. Please check all fields.");
         } finally {
             setLoading(false);
         }
@@ -491,6 +519,13 @@ const PublicRegister = () => {
                                                 </div>
                                             </div>
                                             <div className="f-group-v4 col-2">
+                                                <label>Email Address</label>
+                                                <div className="icon-input-v4">
+                                                    <Mail size={18} className="i-v4" />
+                                                    <input type="email" placeholder="parent@example.com" value={patientForm.email} onChange={e => setPatientForm({ ...patientForm, email: e.target.value })} />
+                                                </div>
+                                            </div>
+                                            <div className="f-group-v4 col-2">
                                                 <label>City *</label>
                                                 <input required value={patientForm.city} onChange={e => setPatientForm({ ...patientForm, city: e.target.value })} />
                                             </div>
@@ -519,6 +554,15 @@ const PublicRegister = () => {
                                             <div className="f-group-v4 col-2">
                                                 <label>Remarks / Notes</label>
                                                 <input placeholder="Optional extra info" value={patientForm.notes} onChange={e => setPatientForm({ ...patientForm, notes: e.target.value })} />
+                                            </div>
+                                            <div className="f-group-v4 col-2">
+                                                <label>Enrollment Option</label>
+                                                <div className="sel-wrap-v4">
+                                                    <select value={patientForm.enrollment_option} onChange={e => setPatientForm({ ...patientForm, enrollment_option: e.target.value })}>
+                                                        {ENROLLMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                    </select>
+                                                    <ChevronDown size={18} className="arrow-v4" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
