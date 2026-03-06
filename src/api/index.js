@@ -1,7 +1,10 @@
 import axios from 'axios';
 
 const REMOTE_API_BASE_URL = 'https://api-dr-indu-child-care.brahmaastra.ai/api';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
+let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
+if (API_BASE_URL.endsWith('/')) {
+    API_BASE_URL = API_BASE_URL.slice(0, -1);
+}
 
 const api = axios.create({
     baseURL: API_BASE_URL,

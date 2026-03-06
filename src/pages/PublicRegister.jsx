@@ -297,15 +297,23 @@ const PublicRegister = () => {
         setLoading(true);
         setError(null);
         try {
+            console.log("Submitting booking...", { id: bookingForm.reschedule_from, data: bookingForm });
             if (bookingForm.reschedule_from) {
-                await updateAppointment(bookingForm.reschedule_from, bookingForm);
+                const reschedulePayload = {
+                    appointment_date: bookingForm.appointment_date,
+                    slot_id: bookingForm.slot_id,
+                    doctor_name: bookingForm.doctor_name
+                };
+                await updateAppointment(bookingForm.reschedule_from, reschedulePayload);
             } else {
                 await bookByForm(bookingForm);
             }
             setStep(3);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
-            setError(err.response?.data?.message || "Booking failed");
+            console.error("Booking detailed error:", err.response || err);
+            const serverMsg = err.response?.data?.message || err.response?.data?.error;
+            setError(serverMsg || "Booking failed. Please check if the time slot is still available.");
         } finally {
             setLoading(false);
         }
@@ -669,21 +677,32 @@ const PublicRegister = () => {
                                         {patientAppointments.length > 0 ? patientAppointments.map(appt => (
                                             <div key={appt._id} className="appt-card-v4">
                                                 <div className="appt-info-v4">
-                                                    <strong>{appt.appointment_date}</strong>
-                                                    <span>{formatTime12h(appt.start_time)} • {appt.doctor_name}</span>
+                                                    <div className="a-date-wrap">
+                                                        <Calendar size={18} className="a-icon" />
+                                                        <strong>{new Date(appt.appointment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                                                    </div>
+                                                    <div className="a-meta-wrap">
+                                                        <span>{formatTime12h(appt.start_time)} • {appt.doctor_name}</span>
+                                                    </div>
                                                 </div>
-                                                <button onClick={() => {
+                                                <button className="btn-reschedule-v4" onClick={() => {
                                                     setBookingForm({
                                                         ...bookingForm,
                                                         wa_id: appt.wa_id,
                                                         doctor_name: appt.doctor_name,
-                                                        reschedule_from: appt._id
+                                                        reschedule_from: appt.appointment_id || appt._id
                                                     });
                                                     setStep(2);
-                                                }}>Reschedule</button>
+                                                }}>
+                                                    <RefreshCw size={18} />
+                                                    <span>Reschedule</span>
+                                                </button>
                                             </div>
                                         )) : (
-                                            <div className="no-appts-v4">No pending appointments found</div>
+                                            <div className="no-appts-v4">
+                                                <AlertCircle size={40} />
+                                                <p>No pending appointments found</p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -932,6 +951,36 @@ const PublicRegister = () => {
                 @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
                 .success-screen-v4 h1 { font-size: 2.5rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; }
                 .success-screen-v4 p { font-size: 1.1rem; color: #64748b; font-weight: 600; line-height: 1.6; max-width: 500px; margin: 0 auto 3rem; }
+
+                /* Reschedule UI */
+                .reschedule-panel-v4 { padding: 1rem 0; width: 100%; }
+                .pan-header { margin-bottom: 2.5rem; }
+                .pan-header h2 { font-size: 2rem; font-weight: 900; color: #0f172a; margin: 0 0 0.5rem; letter-spacing: -1px; }
+                .pan-header p { font-size: 1.1rem; color: #64748b; font-weight: 600; }
+                .appt-list-v4 { display: flex; flex-direction: column; gap: 1.25rem; }
+                .appt-card-v4 { 
+                    background: #fff; border: 2px solid #f1f5f9; border-radius: 24px; 
+                    padding: 1.75rem; display: flex; align-items: center; justify-content: space-between;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .appt-card-v4:hover { border-color: #6366f1; transform: translateY(-4px); box-shadow: 0 15px 35px rgba(99,102,241,0.1); }
+                .appt-info-v4 { display: flex; flex-direction: column; gap: 0.5rem; }
+                .a-date-wrap { display: flex; align-items: center; gap: 0.75rem; }
+                .a-icon { color: #6366f1; }
+                .a-date-wrap strong { font-size: 1.25rem; font-weight: 900; color: #1e293b; }
+                .a-meta-wrap span { font-size: 1rem; font-weight: 700; color: #64748b; }
+                .btn-reschedule-v4 {
+                    height: 52px; padding: 0 1.75rem; border-radius: 14px;
+                    background: #eef2ff; color: #6366f1; border: none;
+                    font-size: 1rem; font-weight: 800; cursor: pointer;
+                    display: flex; align-items: center; gap: 0.75rem; transition: 0.2s;
+                }
+                .btn-reschedule-v4:hover { background: #6366f1; color: #fff; }
+                .no-appts-v4 { 
+                    text-align: center; padding: 4rem 2rem; background: #f8fafc; 
+                    border-radius: 24px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 1rem;
+                }
+                .no-appts-v4 p { font-size: 1.1rem; font-weight: 700; margin: 0; }
 
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
