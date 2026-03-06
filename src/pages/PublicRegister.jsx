@@ -301,8 +301,7 @@ const PublicRegister = () => {
             if (bookingForm.reschedule_from) {
                 const reschedulePayload = {
                     appointment_date: bookingForm.appointment_date,
-                    slot_id: bookingForm.slot_id,
-                    doctor_name: bookingForm.doctor_name
+                    slot_id: bookingForm.slot_id
                 };
                 await updateAppointment(bookingForm.reschedule_from, reschedulePayload);
             } else {
@@ -311,9 +310,9 @@ const PublicRegister = () => {
             setStep(3);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
-            console.error("Booking detailed error:", err.response || err);
-            const serverMsg = err.response?.data?.message || err.response?.data?.error;
-            setError(serverMsg || "Booking failed. Please check if the time slot is still available.");
+            console.error("Booking detailed error:", err.response?.data || err);
+            const serverMsg = (err.response?.data?.message || err.response?.data?.error || err.response?.data?.details);
+            setError(serverMsg || "Booking failed. The selected time slot might no longer be available.");
         } finally {
             setLoading(false);
         }

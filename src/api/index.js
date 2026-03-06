@@ -5,6 +5,7 @@ let API_BASE_URL = import.meta.env.VITE_API_BASE_URL || REMOTE_API_BASE_URL;
 if (API_BASE_URL.endsWith('/')) {
     API_BASE_URL = API_BASE_URL.slice(0, -1);
 }
+console.log("DICC Connectivity:", { version: '1.0.4v', api_endpoint: API_BASE_URL });
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -182,10 +183,13 @@ export const bookAppointment = (data) => api.post('/appointments', {
 });
 export const bookByWhatsapp = (data) => api.post('/appointments/whatsapp', data);
 export const bookByForm = (data) => api.post('/appointments/form', data);
-export const updateAppointment = (id, data) => api.patch(`/appointments/${id}`, {
-    ...data,
-    doctor_name: data?.doctor_name ? canonicalDoctorName(data.doctor_name) : data?.doctor_name,
-});
+export const updateAppointment = (id, data) => {
+    const payload = { ...data };
+    if (data?.doctor_name) {
+        payload.doctor_name = canonicalDoctorName(data.doctor_name);
+    }
+    return api.patch(`/appointments/${id}`, payload);
+};
 export const cancelAppointment = (id, data) => api.patch(`/appointments/${id}/cancel`, data);
 export const completeAppointment = (id, data) => api.patch(`/appointments/${id}/complete`, data);
 export const markNoShow = (id, data) => api.patch(`/appointments/${id}/no-show`, data);
