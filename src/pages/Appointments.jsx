@@ -314,7 +314,7 @@ const Appointments = () => {
         <div className="appointments-page-v3">
             <div className="header-section-premium">
                 <div className="header-content-premium">
-                    <h1 className="header-title-premium">Appointments</h1>
+                    <h1 className="header-title-premium">Appointments Registry</h1>
                     <div className="live-pill-premium">
                         <span className="live-dot"></span>
                         <span className="live-text">{stats?.total_today || 0} Total Today</span>
@@ -326,7 +326,7 @@ const Appointments = () => {
                         className={`btn-action-premium ${activeView === 'queue' ? 'active' : ''}`}
                         onClick={() => setActiveView('queue')}
                     >
-                        <Calendar size={18} />
+                        <CalendarIcon size={18} />
                         <span>Schedule Queue</span>
                     </button>
 
@@ -338,124 +338,124 @@ const Appointments = () => {
                         <span>Book Visit</span>
                     </button>
 
-                    <button className="sync-btn-premium" onClick={fetchData}>
+                    <button className="sync-btn-premium" onClick={fetchData} title="Sync Clinic Registry">
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
             </div>
 
-            {activeView === 'queue' ? (
-                <div className="view-content-v3">
-                    <div className="filter-shelf-premium">
-                        <div className="search-pill-v3">
-                            <Search size={22} className="s-icon" />
-                            <input
-                                type="text"
-                                placeholder="Patient Search..."
-                                value={queueSearch}
-                                onChange={(e) => setQueueSearch(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="filter-group-v3">
-                            <div className="filter-item-v3 date-pill-v3" onClick={openDatePicker}>
-                                <CalendarIcon size={18} className="f-icon" />
+            <div className="view-content-v3" style={{ width: '100%', maxWidth: '100%' }}>
+                {activeView === 'queue' ? (
+                    <>
+                        <div className="filter-shelf-premium">
+                            <div className="search-pill-v3">
+                                <Search size={22} className="s-icon" />
                                 <input
-                                    ref={dateInputRef}
-                                    type="date"
-                                    value={filters.date}
-                                    onChange={e => setFilters({ ...filters, date: e.target.value })}
-                                    className="date-input-v3"
+                                    type="text"
+                                    placeholder="Search clinical registry..."
+                                    value={queueSearch}
+                                    onChange={(e) => setQueueSearch(e.target.value)}
                                 />
-                                <span className="f-label">{formatCompactDate(filters.date)}</span>
-                                <ChevronDown size={14} className="drop-icon" />
                             </div>
 
-                            <div className="filter-item-v3 select-pill-v3">
-                                <Stethoscope size={18} className="f-icon" />
-                                <select
-                                    className="f-select"
-                                    value={filters.doctor_id}
-                                    onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
-                                >
-                                    <option value="">All Combined Doctors</option>
-                                    {doctors.map((doc, idx) => (
-                                        <option key={doc.doctor_id || idx} value={doc.doctor_id}>
-                                            {getDoctorDisplayName(doc)}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="drop-icon" />
-                            </div>
+                            <div className="filter-group-v3">
+                                <div className="filter-item-v3 date-pill-v3" onClick={openDatePicker}>
+                                    <CalendarIcon size={18} className="f-icon" />
+                                    <input
+                                        ref={dateInputRef}
+                                        type="date"
+                                        value={filters.date}
+                                        onChange={e => setFilters({ ...filters, date: e.target.value })}
+                                        className="date-input-v3"
+                                    />
+                                    <span className="f-label">{formatCompactDate(filters.date)}</span>
+                                    <ChevronDown size={14} className="drop-icon" />
+                                </div>
 
-                            <div className="filter-item-v3 select-pill-v3">
-                                <Activity size={18} className="f-icon" />
-                                <select
-                                    className="f-select"
-                                    value={filters.status}
-                                    onChange={e => setFilters({ ...filters, status: e.target.value })}
-                                >
-                                    <option value="">All Status</option>
-                                    <option value="CONFIRMED">Confirmed</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                    <option value="PENDING">Pending</option>
-                                    <option value="NO_SHOW">No Show</option>
-                                </select>
-                                <ChevronDown size={14} className="drop-icon" />
+                                <div className="filter-item-v3 select-pill-v3">
+                                    <Stethoscope size={18} className="f-icon" />
+                                    <select
+                                        className="f-select"
+                                        value={filters.doctor_id}
+                                        onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
+                                    >
+                                        <option value="">All Combined Doctors</option>
+                                        {doctors.map((doc, idx) => (
+                                            <option key={doc.doctor_id || idx} value={doc.doctor_id}>
+                                                {getDoctorDisplayName(doc)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={14} className="drop-icon" />
+                                </div>
+
+                                <div className="filter-item-v3 select-pill-v3">
+                                    <Activity size={18} className="f-icon" />
+                                    <select
+                                        className="f-select"
+                                        value={filters.status}
+                                        onChange={e => setFilters({ ...filters, status: e.target.value })}
+                                    >
+                                        <option value="">All Status</option>
+                                        <option value="CONFIRMED">Confirmed</option>
+                                        <option value="COMPLETED">Completed</option>
+                                        <option value="CANCELLED">Cancelled</option>
+                                        <option value="PENDING">Pending</option>
+                                        <option value="NO_SHOW">No Show</option>
+                                    </select>
+                                    <ChevronDown size={14} className="drop-icon" />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="repository-card-v3">
-                        <div className="table-flow-v3">
-                            <table className="main-table-v3">
-                                <thead>
-                                    <tr>
-                                        <th>Patient / Mobile</th>
-                                        <th>Schedule / Date</th>
-                                        <th>Assigned Provider</th>
-                                        <th>Condition / Reason</th>
-                                        <th>Registration Status</th>
-                                        <th style={{ textAlign: 'center' }}>Management</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loading && !appointments.length ? (
-                                        Array(6).fill(0).map((_, i) => (
-                                            <tr key={i}><td colSpan={6}><div className="skeleton-line-v3"></div></td></tr>
-                                        ))
-                                    ) : filteredAppointments.length === 0 ? (
+                        <div className="repository-card-v3">
+                            <div className="table-flow-v3">
+                                <table className="main-table-v3">
+                                    <thead>
                                         <tr>
-                                            <td colSpan={6} className="empty-state-card">
-                                                <div className="empty-content">
-                                                    <div className="empty-icon-wrap">
-                                                        <CalendarIcon size={48} />
-                                                    </div>
-                                                    <h3>No Appointments Found</h3>
-                                                    <p>We couldn't find any visits matching your current filters.</p>
-                                                    <button className="btn-save" onClick={() => openBookingModal()} style={{ marginTop: '1.5rem' }}>
-                                                        <Plus size={20} />
-                                                        <span>New Booking</span>
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            <th>Patient / Mobile</th>
+                                            <th>Schedule / Date</th>
+                                            <th>Assigned Provider</th>
+                                            <th>Condition / Reason</th>
+                                            <th>Registration Status</th>
+                                            <th style={{ textAlign: 'center' }}>Management</th>
                                         </tr>
-                                    ) : filteredAppointments.map((appt, idx) => (
-                                        <AppointmentRow
-                                            key={appt.appointment_id || idx}
-                                            appt={appt}
-                                            onEdit={openBookingModal}
-                                            onCancel={(id) => setCancelModal({ show: true, id, reason: '' })}
-                                        />
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {loading && !appointments.length ? (
+                                            Array(6).fill(0).map((_, i) => (
+                                                <tr key={i}><td colSpan={6}><div className="skeleton-line-v3"></div></td></tr>
+                                            ))
+                                        ) : filteredAppointments.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="empty-state-card">
+                                                    <div className="empty-content">
+                                                        <div className="empty-icon-wrap">
+                                                            <CalendarIcon size={48} />
+                                                        </div>
+                                                        <h3>No Appointments Found</h3>
+                                                        <p>We couldn't find any visits matching your current filters.</p>
+                                                        <button className="btn-save" onClick={() => openBookingModal()} style={{ marginTop: '1.5rem' }}>
+                                                            <Plus size={20} />
+                                                            <span>New Booking</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : filteredAppointments.map((appt, idx) => (
+                                            <AppointmentRow
+                                                key={appt.appointment_id || idx}
+                                                appt={appt}
+                                                onEdit={openBookingModal}
+                                                onCancel={(id) => setCancelModal({ show: true, id, reason: '' })}
+                                            />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="view-content-v3">
+                    </>
+                ) : (
                     <div className="authorizer-panel-premium">
                         <div className="authorizer-header-v3">
                             <div className="header-flex">
@@ -665,8 +665,8 @@ const Appointments = () => {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             {cancelModal.show && (
                 <div className="modal-overlay-premium">
@@ -693,6 +693,166 @@ const Appointments = () => {
                 </div>
             )}
 
+            <style>{`
+                .btn-action-premium {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    padding: 0.85rem 1.75rem;
+                    background: #fff;
+                    border: 1.5px solid #e2e8f0;
+                    border-radius: 20px;
+                    color: #64748b;
+                    font-weight: 800;
+                    font-size: 0.95rem;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+                }
+
+                .btn-action-premium:hover {
+                    border-color: #6366f1;
+                    color: #6366f1;
+                    background: #f5f3ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.15);
+                }
+
+                .btn-action-premium.active {
+                    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+                    color: #fff;
+                    border-color: transparent;
+                    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+                }
+
+                .view-content-v3 {
+                    animation: fadeIn 0.4s ease-out;
+                }
+
+                .filter-shelf-premium {
+                    display: flex;
+                    align-items: center;
+                    gap: 1.5rem;
+                    margin-bottom: 2.5rem;
+                    flex-wrap: wrap;
+                }
+
+                .search-pill-v3 {
+                    flex: 1;
+                    min-width: 400px;
+                    height: 64px;
+                    background: #fff;
+                    border-radius: 24px;
+                    padding: 0 1.75rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 1.25rem;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+                    transition: 0.3s;
+                }
+
+                .search-pill-v3:focus-within {
+                    border-color: #6366f1;
+                    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.08);
+                }
+
+                .search-pill-v3 input {
+                    flex: 1;
+                    border: none;
+                    background: transparent;
+                    outline: none;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                }
+
+                .filter-group-v3 {
+                    display: flex;
+                    gap: 1rem;
+                }
+
+                .filter-item-v3 {
+                    height: 64px;
+                    background: #fff;
+                    border-radius: 20px;
+                    padding: 0 1.5rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.85rem;
+                    border: 1px solid #e2e8f0;
+                    cursor: pointer;
+                    transition: 0.3s;
+                    position: relative;
+                }
+
+                .filter-item-v3:hover {
+                    border-color: #cbd5e1;
+                    background: #fcfdfe;
+                }
+
+                .date-input-v3 {
+                    position: absolute;
+                    inset: 0;
+                    opacity: 0;
+                    cursor: pointer;
+                }
+
+                .f-label {
+                    font-weight: 800;
+                    color: #334155;
+                    font-size: 1rem;
+                }
+
+                .f-select {
+                    border: none;
+                    background: transparent;
+                    outline: none;
+                    font-weight: 800;
+                    color: #334155;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    appearance: none;
+                    padding-right: 1.5rem;
+                }
+
+                .skeleton-line-v3 {
+                    height: 80px;
+                    margin: 1rem;
+                    background: linear-gradient(90deg, #f8fafc 25%, #f1f5f9 50%, #f8fafc 75%);
+                    background-size: 200% 100%;
+                    animation: shim 2s infinite;
+                    border-radius: 20px;
+                }
+
+                @keyframes shim {
+                    0% { background-position: 200% 0; }
+                    100% { background-position: -200% 0; }
+                }
+
+                .empty-state-card {
+                    padding: 8rem 2rem;
+                    text-align: center;
+                }
+
+                .empty-content {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1.5rem;
+                }
+
+                .empty-icon-wrap {
+                    width: 100px;
+                    height: 100px;
+                    background: #f8fafc;
+                    border-radius: 30px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #cbd5e1;
+                }
+            `}</style>
         </div>
     );
 };
