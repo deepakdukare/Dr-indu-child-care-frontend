@@ -699,9 +699,14 @@ const PublicRegister = () => {
                                             <h1>Registration Complete!</h1>
                                             <p>Your registration has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
                                         </>
+                                    ) : bookingForm.reschedule_from ? (
+                                        <>
+                                            <h1>Appointment Rescheduled!</h1>
+                                            <p>Your appointment has been rescheduled successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
+                                        </>
                                     ) : (
                                         <>
-                                            <h1>Booking Confirmed!</h1>
+                                            <h1>Appointment Confirmed!</h1>
                                             <p>Your appointment has been scheduled successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
                                         </>
                                     )}
