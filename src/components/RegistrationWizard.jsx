@@ -13,21 +13,13 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
         first_name: '',
         middle_name: '',
         last_name: '',
-        gender: '',
+        gender: 'boy',
         dob: '',
         age_years: '',
         age_months: '',
-        birth_time_hours: '',
-        birth_time_minutes: '',
-        birth_time_ampm: 'AM',
         father_name: '',
-        father_mobile: '',
         father_occupation: '',
         mother_name: '',
-        mother_mobile: '',
-        area: '',
-        city: 'Mumbai',
-        pin_code: '',
         wa_id: '',
         email: '',
         doctor: 'Dr. Indu',
@@ -79,7 +71,7 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
             field: 'gender',
             title: "Gender",
             type: 'selection',
-            options: ['Male', 'Female', 'Other'],
+            options: ['boy', 'girl'],
             icon: <Activity size={24} />,
             validate: (val) => val ? null : "Selection required"
         },
@@ -114,47 +106,12 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
             validate: (val) => null
         },
         {
-            id: 9,
-            field: 'birth_time_hours',
-            title: "Birth Time (Hours)",
-            type: 'number',
-            placeholder: "1-12",
-            icon: <Clock size={24} />,
-            validate: (val) => (val === '' || (parseInt(val) >= 1 && parseInt(val) <= 12)) ? null : "Enter 1-12"
-        },
-        {
-            id: 10,
-            field: 'birth_time_minutes',
-            title: "Birth Time (Minutes)",
-            type: 'number',
-            placeholder: "0-59",
-            icon: <Clock size={24} />,
-            validate: (val) => (val === '' || (parseInt(val) >= 0 && parseInt(val) <= 59)) ? null : "Enter 0-59"
-        },
-        {
-            id: 11,
-            field: 'birth_time_ampm',
-            title: "Time Period",
-            type: 'selection',
-            options: ['AM', 'PM'],
-            icon: <Clock size={24} />,
-            validate: (val) => val ? null : "Selection required"
-        },
-        {
             id: 12,
             field: 'father_name',
             title: "Father's Full Name",
             placeholder: "e.g. Rohit Sharma",
             icon: <Users size={24} />,
             validate: (val) => val.length >= 3 ? null : "Full name required"
-        },
-        {
-            id: 13,
-            field: 'father_mobile',
-            title: "Father's Mobile Number",
-            placeholder: "10-digit number",
-            icon: <Smartphone size={24} />,
-            validate: (val) => /^[6-9]\d{9}$/.test(val) ? null : "Enter valid 10-digit Indian mobile"
         },
         {
             id: 14,
@@ -173,45 +130,12 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
             validate: (val) => val.length >= 3 ? null : "Full name required"
         },
         {
-            id: 16,
-            field: 'mother_mobile',
-            title: "Mother's Mobile Number",
-            placeholder: "10-digit number",
-            icon: <Smartphone size={24} />,
-            validate: (val) => (val === '' || /^[6-9]\d{9}$/.test(val)) ? null : "Enter valid 10-digit mobile"
-        },
-        {
             id: 17,
             field: 'wa_id',
             title: "WhatsApp ID for Updates",
             placeholder: "Same as father/mother mobile?",
             icon: <MessageSquare size={24} />,
             validate: (val) => /^[6-9]\d{9}$/.test(val) ? null : "Enter valid 10-digit mobile"
-        },
-        {
-            id: 18,
-            field: 'area',
-            title: "Residential Area",
-            placeholder: "e.g. Bandra",
-            icon: <MapPin size={24} />,
-            validate: (val) => val ? null : "Area is required"
-        },
-        {
-            id: 19,
-            field: 'city',
-            title: "City",
-            placeholder: "e.g. Mumbai",
-            icon: <MapPin size={24} />,
-            validate: (val) => val ? null : "City is required"
-        },
-        {
-            id: 20,
-            field: 'pin_code',
-            title: "Pin Code",
-            type: 'number',
-            placeholder: "6-digit code",
-            icon: <MapPin size={24} />,
-            validate: (val) => /^\d{6}$/.test(val) ? null : "Enter valid 6-digit pin"
         },
         {
             id: 21,
@@ -442,3 +366,4 @@ const styles = {
 };
 
 export default RegistrationWizard;
+

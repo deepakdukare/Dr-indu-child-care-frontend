@@ -4,12 +4,13 @@ import {
     User, Phone, Mail, MapPin, Calendar as CalendarIcon,
     FileText, Share2, Shield, Heart, MoreVertical,
     ChevronRight, Info, Filter, CheckCircle2, Camera,
-    Activity, ArrowRight, Baby, Users, Clipboard, Zap
+    Activity, ArrowRight, Baby, Users, Clipboard, Zap, Stethoscope
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import PatientForm, { EMPTY_FORM } from '../components/PatientForm';
-import { getPatients, registerPatient, updatePatient, getDoctors, uploadPatientPhoto, toIsoDate } from '../api/index';
+import { getPatients, registerPatient, updatePatient, getDoctors, getReferringDoctors, uploadPatientPhoto, toIsoDate, getMRDByPatientId } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
+import { hasPermission } from '../utils/auth';
 
 
 const Patients = () => {
@@ -18,6 +19,9 @@ const Patients = () => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [selected, setSelected] = useState(null);
+    const [patientTab, setPatientTab] = useState('summary'); // summary, documents
+    const [patientDocs, setPatientDocs] = useState([]);
+    const [docsLoading, setDocsLoading] = useState(false);
 
     // Filters & Pagination
     const [search, setSearch] = useState('');
@@ -37,10 +41,13 @@ const Patients = () => {
     const [form, setForm] = useState(EMPTY_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
 
     // Metadata
     const [doctors, setDoctors] = useState([]);
+    const [referringDoctors, setReferringDoctors] = useState([]);
     const [todayCount, setTodayCount] = useState(0);
+    const REQUIRED_FORM_FIELDS = ['first_name', 'last_name', 'gender', 'dob', 'father_name', 'mother_name', 'wa_id', 'email'];
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -73,10 +80,12 @@ const Patients = () => {
     useEffect(() => {
         const loadMetadata = async () => {
             try {
-                const res = await getDoctors();
+                const res = await getDoctors({ all: true });
                 setDoctors(res.data.data || []);
+                const refRes = await getReferringDoctors();
+                setReferringDoctors(refRes.data.data || []);
             } catch (e) {
-                console.error("Failed to load doctors", e);
+                console.error("Failed to load metadata", e);
             }
         };
         loadMetadata();
@@ -99,19 +108,56 @@ const Patients = () => {
     }, []);
 
 
+    const validateForm = (singleField = null) => {
+        const errs = singleField ? { ...formErrors } : {};
+        const fieldsToValidate = singleField ? [singleField] : REQUIRED_FORM_FIELDS;
+
+        fieldsToValidate.forEach(field => {
+            if (!REQUIRED_FORM_FIELDS.includes(field)) {
+                delete errs[field];
+                return;
+            }
+            const val = form[field];
+            if (!val || (typeof val === 'string' && !val.trim())) {
+                const labelMap = { dob: 'Date of Birth', wa_id: 'WhatsApp ID / Mobile' };
+                const label = labelMap[field] || field.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                errs[field] = `${label} is required`;
+            } else {
+                delete errs[field];
+            }
+        });
+
+        setFormErrors(errs);
+
+        if (!singleField && Object.keys(errs).length > 0) {
+            const first = Object.keys(errs)[0];
+            const el = document.getElementsByName(first)[0];
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+            } else {
+                window.scrollTo({ top: 300, behavior: 'smooth' });
+            }
+            return false;
+        }
+        return Object.keys(errs).length === 0;
+    };
+
     const handleFormSubmit = async (e) => {
-        e.preventDefault();
-        setSubmitting(true);
+        if (e) e.preventDefault();
         setError(null);
+        setSuccess(null);
+
+        if (!validateForm()) return;
+
+        setSubmitting(true);
         try {
             const payload = {
                 ...form,
                 age_years: form.age_years ? parseInt(form.age_years) : undefined,
                 age_months: form.age_months ? parseInt(form.age_months) : undefined,
-                birth_time_hours: form.birth_time_hours ? parseInt(form.birth_time_hours) : undefined,
-                birth_time_minutes: form.birth_time_minutes ? parseInt(form.birth_time_minutes) : undefined,
-                parent_mobile: (form.parent_mobile || form.father_mobile || form.wa_id).toString(),
-                wa_id: (form.wa_id || form.parent_mobile || form.father_mobile).toString(),
+                wa_id: form.wa_id.toString(),
+                parent_mobile: form.wa_id.toString(),
             };
 
             if (editId) {
@@ -119,20 +165,25 @@ const Patients = () => {
                 setSuccess("Success: Patient profile updated and synced.");
             } else {
                 const res = await registerPatient(payload);
-                setSuccess(`Success: Registry ID ${res.data.data.patient_id} activated.`);
+                setSuccess(`Success: Patient ID ${res.data.data.patient_id} activated.`);
             }
             setShowInlineForm(false);
             setViewMode('list');
             setEditId(null);
             setForm(EMPTY_FORM);
+            setFormErrors({});
             fetchData();
             setTimeout(() => setSuccess(null), 4000);
         } catch (e) {
-            const errorMsg = e.response?.data?.message || e.message;
+            const baseErrorMsg = e.response?.data?.message || e.message;
+            const detailErrorMsg = Array.isArray(e.response?.data?.details)
+                ? e.response.data.details.map((item) => item.message).join(', ')
+                : '';
+            const errorMsg = detailErrorMsg ? baseErrorMsg + ': ' + detailErrorMsg : baseErrorMsg;
             if (e.response?.status === 409) {
-                setError("Profile Exists: Patient with this Registry ID or WhatsApp already exists.");
+                setError("Profile Exists: Patient with this Patient ID or WhatsApp already exists.");
             } else if (errorMsg.includes("E11000") && errorMsg.includes("patient_id")) {
-                setError("System Conflict: The generated ID (e.g. DICC-2026-0001) already has an existing Medical Record. This usually happens if a previous record wasn't fully cleared. Please contact support to sync the registry.");
+                setError("System Conflict: The generated ID (e.g. 26-AA1) already has an existing Medical Record. This usually happens if a previous record wasn't fully cleared. Please contact support to sync the registry.");
             } else {
                 setError(errorMsg);
             }
@@ -172,7 +223,7 @@ const Patients = () => {
             first_name: p.first_name || nameParts[0] || '',
             middle_name: p.middle_name || (nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : ''),
             last_name: p.last_name || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''),
-            gender: p.gender || 'Male',
+            gender: p.gender || 'boy',
             dob: (() => {
                 const rawDob = p.date_of_birth || p.dob;
                 if (!rawDob) return '';
@@ -185,16 +236,9 @@ const Patients = () => {
             })(),
             age_years: p.age_years || '',
             age_months: p.age_months || '',
-            birth_time_hours: p.birth_time_hours || '',
-            birth_time_minutes: p.birth_time_minutes || '',
-            birth_time_ampm: p.birth_time_ampm || 'AM',
-            father_name: p.parent_full_name || p.father_name || '',
-            father_mobile: p.parent_mobile || p.father_mobile || '',
-            father_occupation: p.father_occupation || '',
+            father_name: p.father_name || '',
             mother_name: p.mother_name || '',
-            mother_mobile: p.mother_mobile || p.alt_mobile || '',
-            parent_mobile: p.parent_mobile || p.wa_id || '',
-            address: p.address || '',
+            parent_mobile: p.wa_id || '',
             area: p.area || '',
             city: p.city || '',
             state: p.state || '',
@@ -202,8 +246,8 @@ const Patients = () => {
             wa_id: p.wa_id || p.parent_mobile || '',
             email: p.email || '',
             doctor: p.doctor || '',
-            communication_preference: p.communication_preference || 'whatsapp',
-            remark: p.remark || p.remarks || '',
+            communication_preference: p.communication_preference || 'WhatsApp',
+            remarks: p.remarks || '',
             enrollment_source: p.enrollment_source || p.registration_source || 'dashboard',
             enrollment_option: p.enrollment_option || 'just_enroll'
         });
@@ -239,7 +283,7 @@ const Patients = () => {
                     <h1 className="header-title-premium">Patients</h1>
                     <div className="live-pill-premium">
                         <span className="live-dot"></span>
-                        <span className="live-text">{pagination.total} Total Registry</span>
+                        <span className="live-text">{pagination.total} Total Patients</span>
                     </div>
                 </div>
 
@@ -290,10 +334,13 @@ const Patients = () => {
                         form={form}
                         setForm={setForm}
                         onSubmit={handleFormSubmit}
-                        onCancel={() => { setShowInlineForm(false); setViewMode('list'); setEditId(null); setForm(EMPTY_FORM); }}
+                        onBlur={(e) => validateForm(e.target.name)}
+                        onCancel={() => { setShowInlineForm(false); setViewMode('list'); setEditId(null); setForm(EMPTY_FORM); setFormErrors({}); }}
                         submitting={submitting}
                         editId={editId}
                         doctors={doctors}
+                        referringDoctors={referringDoctors}
+                        errors={formErrors}
                     />
                 </div>
             )}
@@ -305,7 +352,7 @@ const Patients = () => {
                             <Search className="search-icon-premium" size={22} />
                             <input
                                 type="text"
-                                placeholder="Search by name, Registry ID, or mobile..."
+                                placeholder="Search by name, Patient ID, or mobile..."
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                                 className="search-input-premium"
@@ -323,6 +370,19 @@ const Patients = () => {
                                     <option value="dashboard">Dashboard</option>
                                     <option value="whatsapp">WhatsApp</option>
                                     <option value="form">Form Integration</option>
+                                </select>
+                            </div>
+                            <div className="filter-select-wrap">
+                                <Stethoscope size={16} className="filter-icon" />
+                                <select
+                                    value={filters.doctor}
+                                    onChange={e => setFilters({ ...filters, doctor: e.target.value })}
+                                    className="filter-select-premium"
+                                >
+                                    <option value="">All Doctors</option>
+                                    {doctors.map(d => (
+                                        <option key={d.doctor_id} value={d.name}>{d.name}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="filter-select-wrap">
@@ -349,6 +409,7 @@ const Patients = () => {
                                     <tr>
                                         <th>Patient Identity</th>
                                         <th>Parental Profile</th>
+                                        <th>Mobile</th>
                                         <th>Contact & Location</th>
                                         <th>Enrollment</th>
                                         <th style={{ textAlign: 'center' }}>Management</th>
@@ -366,7 +427,7 @@ const Patients = () => {
                                             <td colSpan={5} className="empty-state-cell">
                                                 <div className="empty-box-premium">
                                                     <Info size={48} />
-                                                    <h3>Registry is empty</h3>
+                                                    <h3>No patients found</h3>
                                                     <p>No patient records found matching your current filters.</p>
                                                 </div>
                                             </td>
@@ -376,7 +437,7 @@ const Patients = () => {
                                             <tr className={`patient-row-v2 ${selected?._id === p._id ? 'is-active' : ''}`}>
                                                 <td>
                                                     <div className="patient-meta-box">
-                                                        <div className={`avatar-premium ${p.gender === 'Female' ? 'pink' : 'blue'}`}>
+                                                        <div className={`avatar-premium ${String(p.gender || '').toLowerCase() === 'female' || String(p.gender || '').toLowerCase() === 'girl' ? 'pink' : 'blue'}`}>
                                                             {p.first_name?.charAt(0) || 'P'}
                                                         </div>
                                                         <div className="patient-name-stack">
@@ -396,14 +457,19 @@ const Patients = () => {
                                                     </div>
                                                 </td>
                                                 <td>
+                                                    <div className="wa-box-mini mobile-col-v2">
+                                                        <Phone size={14} className="wa-icon-glow" />
+                                                        <strong>{hasPermission('view_patient_mobile') ? (p.wa_id) : '**********'}</strong>
+                                                    </div>
+                                                </td>
+                                                <td>
                                                     <div className="contact-inline">
-                                                        <div className="wa-box-mini">
-                                                            <Zap size={14} className="wa-icon-glow" />
-                                                            {p.wa_id || p.father_mobile || p.parent_mobile}
-                                                        </div>
                                                         <div className="loc-box-mini">
                                                             <MapPin size={12} />
                                                             {p.city || 'Remote'}
+                                                        </div>
+                                                        <div className="area-box-mini">
+                                                            <span>{p.area || 'N/A'}</span>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -413,6 +479,7 @@ const Patients = () => {
                                                             {p.registration_status}
                                                         </span>
                                                         <span className="source-meta">Via {p.enrollment_source || p.registration_source || 'Dashboard'}</span>
+                                                        <span className="source-meta" style={{ color: '#6366f1', fontWeight: 700 }}>Doc: {p.doctor || 'Clinic'}</span>
                                                         {p.balance > 0 && <span className="source-meta" style={{ color: '#ef4444' }}>Bal: ₹{p.balance}</span>}
                                                     </div>
                                                 </td>
@@ -434,63 +501,122 @@ const Patients = () => {
                                             {selected?._id === p._id && (
                                                 <tr className="expansion-row">
                                                     <td colSpan={5}>
-                                                        <div className="expansion-content-premium">
-                                                            <div className="expansion-grid">
-                                                                <div className="expansion-card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-                                                                    <div className="avatar-preview-box">
-                                                                        <div className="large-avatar-premium" style={{ width: '100px', height: '100px', borderRadius: '24px', background: '#f8fafc', overflow: 'hidden', border: '2px solid #eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                            {p.photo || p.patient_photo ? (
-                                                                                <img src={p.photo || p.patient_photo} alt="Patient" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                            ) : (
-                                                                                <User size={48} color="#cbd5e1" />
-                                                                            )}
-                                                                        </div>
-                                                                        <label className="btn-upload-avatar" style={{ marginTop: '0.75rem', width: '100%', padding: '0.5rem', borderRadius: '10px', background: '#f1f5f9', border: 'none', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                                                                            <Camera size={14} />
-                                                                            <span>Upload</span>
-                                                                            <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(p.patient_id, e)} />
-                                                                        </label>
-                                                                    </div>
-                                                                    <div style={{ flex: 1 }}>
-                                                                        <div className="exp-card-header"><Activity size={18} /> <span>Medical Profile</span></div>
-                                                                        <div className="exp-info-list">
-                                                                            <div className="exp-info-item"><span>Full Name</span><strong>{removeSalutation(p.full_name)}</strong></div>
-                                                                            <div className="exp-info-item"><span>Status</span><strong>{p.is_active ? 'Active' : 'Inactive'}</strong></div>
-                                                                            <div className="exp-info-item"><span>Birth Date</span><strong>{p.dob ? new Date(p.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown'}</strong></div>
-                                                                            <div className="exp-info-item"><span>Registry ID</span><strong>{p.patient_id}</strong></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="expansion-card">
-                                                                    <div className="exp-card-header"><Users size={18} /> <span>Family Details</span></div>
-                                                                    <div className="exp-info-list">
-                                                                        <div className="exp-info-item"><span>Father</span><strong>{p.father_name || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Mother</span><strong>{p.mother_name || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>WhatsApp</span><strong>{p.wa_id || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Email</span><strong>{p.email || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Preferences</span><strong>{p.communication_preference || 'WhatsApp'}</strong></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="expansion-card">
-                                                                    <div className="exp-card-header"><MapPin size={18} /> <span>Address & Assignments</span></div>
-                                                                    <div className="exp-info-list" style={{ gap: '0.5rem' }}>
-                                                                        <div className="exp-info-item"><span>Area</span><strong>{p.area || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>City</span><strong>{p.city || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>State</span><strong>{p.state || '—'}</strong></div>
-                                                                        <div className="exp-info-item"><span>Address</span><strong style={{ fontSize: '0.8rem', textAlign: 'right' }}>{p.address || '—'}</strong></div>
-                                                                        <div className="exp-info-item" style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}><span>Doctor</span><strong>{p.doctor || 'Clinic Registry'}</strong></div>
-                                                                    </div>
-                                                                </div>
+                                                        <div className="expansion-content-premium" style={{ paddingTop: '1rem' }}>
+                                                            <div className="expansion-tabs" style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', borderBottom: '1px solid #f1f5f9', padding: '0 1rem' }}>
+                                                                <button
+                                                                    onClick={() => setPatientTab('summary')}
+                                                                    style={{ padding: '0.75rem 0.5rem', border: 'none', background: 'transparent', fontSize: '0.85rem', fontWeight: 800, color: patientTab === 'summary' ? '#6366f1' : '#94a3b8', cursor: 'pointer', borderBottom: patientTab === 'summary' ? '2px solid #6366f1' : 'none', transition: '0.2s' }}
+                                                                >
+                                                                    Profile Summary
+                                                                </button>
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        setPatientTab('documents');
+                                                                        if (patientDocs.length === 0 || selected?.patient_id !== p.patient_id) {
+                                                                            setDocsLoading(true);
+                                                                            try {
+                                                                                const r = await getMRDByPatientId(p.patient_id);
+                                                                                const entries = r.data?.data?.entries || [];
+                                                                                const docs = entries.flatMap(e => (e.attachments || []).map(a => ({ ...a, date: e.visit_date || e.createdAt, diagnosis: e.diagnosis })));
+                                                                                setPatientDocs(docs);
+                                                                            } catch (e) { console.error(e); }
+                                                                            finally { setDocsLoading(false); }
+                                                                        }
+                                                                    }}
+                                                                    style={{ padding: '0.75rem 0.5rem', border: 'none', background: 'transparent', fontSize: '0.85rem', fontWeight: 800, color: patientTab === 'documents' ? '#6366f1' : '#94a3b8', cursor: 'pointer', borderBottom: patientTab === 'documents' ? '2px solid #6366f1' : 'none', transition: '0.2s' }}
+                                                                >
+                                                                    Patient Documents
+                                                                </button>
                                                             </div>
-                                                            {(p.remark || p.remarks) && (
-                                                                <div className="expansion-footer-premium" style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#fff', borderRadius: '15px', border: '1px solid #eef2ff' }}>
-                                                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                                                                        <Info size={16} style={{ color: '#6366f1', marginTop: '0.2rem' }} />
-                                                                        <div>
-                                                                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Administrative Remarks</span>
-                                                                            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.9rem', color: '#475569', fontWeight: 600, lineHeight: 1.5 }}>{p.remark || p.remarks}</p>
+
+                                                            {patientTab === 'summary' ? (
+                                                                <>
+                                                                    <div className="expansion-grid">
+                                                                        <div className="expansion-card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                                                                            <div className="avatar-preview-box">
+                                                                                <div className="large-avatar-premium" style={{ width: '100px', height: '100px', borderRadius: '24px', background: '#f8fafc', overflow: 'hidden', border: '2px solid #eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                                    {p.patient_photo ? (
+                                                                                        <img src={p.patient_photo} alt="Patient" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                                    ) : (
+                                                                                        <User size={48} color="#cbd5e1" />
+                                                                                    )}
+                                                                                </div>
+                                                                                <label className="btn-upload-avatar" style={{ marginTop: '0.75rem', width: '100%', padding: '0.5rem', borderRadius: '10px', background: '#f1f5f9', border: 'none', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                                                                                    <Camera size={14} />
+                                                                                    <span>Upload</span>
+                                                                                    <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(p.patient_id, e)} />
+                                                                                </label>
+                                                                            </div>
+                                                                            <div style={{ flex: 1 }}>
+                                                                                <div className="exp-card-header"><Activity size={18} /> <span>Medical Profile</span></div>
+                                                                                <div className="exp-info-list">
+                                                                                    <div className="exp-info-item"><span>Full Name</span><strong>{removeSalutation(p.full_name)}</strong></div>
+                                                                                    <div className="exp-info-item"><span>Status</span><strong>{p.is_active ? 'Active' : 'Inactive'}</strong></div>
+                                                                                    <div className="exp-info-item"><span>Birth Date</span><strong>{p.dob ? new Date(p.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown'}</strong></div>
+                                                                                    <div className="exp-info-item"><span>Patient ID</span><strong>{p.patient_id}</strong></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="expansion-card">
+                                                                            <div className="exp-card-header"><Users size={18} /> <span>Family Details</span></div>
+                                                                            <div className="exp-info-list">
+                                                                                <div className="exp-info-item"><span>Father</span><strong>{p.father_name || '—'}</strong></div>
+                                                                                <div className="exp-info-item"><span>Mother</span><strong>{p.mother_name || '—'}</strong></div>
+                                                                                <div className="exp-info-item"><span>WhatsApp</span><strong>{hasPermission('view_patient_mobile') ? (p.wa_id || '—') : '**********'}</strong></div>
+                                                                                <div className="exp-info-item"><span>Email</span><strong>{hasPermission('view_patient_email') ? (p.email || '—') : '**********'}</strong></div>
+                                                                                <div className="exp-info-item"><span>Preferences</span><strong>{p.communication_preference || 'WhatsApp'}</strong></div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="expansion-card">
+                                                                            <div className="exp-card-header"><MapPin size={18} /> <span>Address & Assignments</span></div>
+                                                                            <div className="exp-info-list" style={{ gap: '0.5rem' }}>
+                                                                                <div className="exp-info-item"><span>Area</span><strong>{p.area || '—'}</strong></div>
+                                                                                <div className="exp-info-item"><span>City</span><strong>{p.city || '—'}</strong></div>
+                                                                                <div className="exp-info-item"><span>State</span><strong>{p.state || '—'}</strong></div>
+                                                                                <div className="exp-info-item" style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}><span>Doctor</span><strong>{p.doctor || 'Clinic'}</strong></div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
+                                                                    {p.remarks && (
+                                                                        <div key="remarks" style={{ display: 'flex', gap: '0.75rem', padding: '1rem', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                                                                            <FileText size={18} color="#6366f1" style={{ flexShrink: 0 }} />
+                                                                            <div>
+                                                                                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Clinical Note / Remarks</div>
+                                                                                <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.9rem', color: '#475569', fontWeight: 600, lineHeight: 1.5 }}>{p.remarks}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <div className="documents-view-premium">
+                                                                    {docsLoading ? (
+                                                                        <div style={{ padding: '4rem', textAlign: 'center' }}><RefreshCw size={24} className="animate-spin" /></div>
+                                                                    ) : patientDocs.length === 0 ? (
+                                                                        <div className="empty-docs-premium" style={{ padding: '4rem', textAlign: 'center', opacity: 0.5 }}>
+                                                                            <FileText size={48} style={{ marginBottom: '1rem' }} />
+                                                                            <p>No medical documents found for this patient.</p>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="doc-grid-premium" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.5rem', padding: '1rem' }}>
+                                                                            {patientDocs.map((doc, idx) => (
+                                                                                <div key={idx} className="doc-card-premium" style={{ background: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '16px', overflow: 'hidden', transition: '0.2s' }}>
+                                                                                    <div style={{ height: '140px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                                        {doc.file_type === 'application/pdf' ? <FileText size={40} color="#94a3b8" /> : <img src={doc.url} alt={doc.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                                                    </div>
+                                                                                    <div style={{ padding: '1rem' }}>
+                                                                                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                                                                                        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(doc.date).toLocaleDateString()} • {doc.diagnosis || 'Visit'}</div>
+                                                                                        <button
+                                                                                            onClick={() => window.open(doc.url, '_blank')}
+                                                                                            style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800, color: '#4338ca', cursor: 'pointer' }}
+                                                                                        >
+                                                                                            View Original
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -525,594 +651,11 @@ const Patients = () => {
                 </>
             )}
 
-            <style>{`
-                .segmented-control-premium {
-                    background: #f1f5f9;
-                    padding: 0.4rem;
-                    border-radius: 20px;
-                    display: flex;
-                    gap: 0.25rem;
-                    border: 1px solid #e2e8f0;
-                }
-                .segment-btn {
-                    padding: 0.6rem 1.25rem;
-                    border-radius: 16px;
-                    border: none;
-                    background: transparent;
-                    color: #64748b;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    cursor: pointer;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    font-size: 0.9rem;
-                    white-space: nowrap;
-                }
-                .segment-btn.active {
-                    background: #fff;
-                    color: #6366f1;
-                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
-                }
-                .segment-btn:not(.active):hover {
-                    color: #1e293b;
-                    background: rgba(255,255,255,0.5);
-                }
 
-                .patients-page-v2 {
-                    padding: 2.5rem;
-                    max-width: 1600px;
-                    margin: 0 auto;
-                    animation: pageIn 0.5s ease-out;
-                }
-
-                @keyframes pageIn {
-                    from { opacity: 0; transform: translateY(15px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .header-section-premium {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 3.5rem;
-                }
-
-                .header-title-premium-v2 {
-                    font-size: 2.5rem;
-                    font-weight: 900;
-                    letter-spacing: -0.03em;
-                    background: linear-gradient(135deg, #0f172a 0%, #4338ca 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    margin-bottom: 1rem;
-                }
-
-                .stats-pill-row {
-                    display: flex;
-                    gap: 1.25rem;
-                }
-
-                .stat-pill-premium {
-                    background: #fff;
-                    padding: 0.6rem 1.25rem;
-                    border-radius: 50px;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-                }
-
-                .stat-pill-icon {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .stat-pill-content {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .stat-pill-value {
-                    font-size: 1rem;
-                    font-weight: 800;
-                    color: #1e293b;
-                    line-height: 1;
-                }
-
-                .stat-pill-label {
-                    font-size: 0.7rem;
-                    color: #94a3b8;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                }
-
-                .header-actions-premium {
-                    display: flex;
-                    gap: 1rem;
-                }
-
-                .btn-share-premium {
-                    padding: 0.85rem 1.75rem;
-                    border-radius: 18px;
-                    border: 2px solid #e2e8f0;
-                    background: #fff;
-                    color: #64748b;
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .btn-share-premium:hover {
-                    border-color: #6366f1;
-                    color: #6366f1;
-                    background: #f5f3ff;
-                }
-
-                .btn-add-premium {
-                    padding: 0.85rem 1.75rem;
-                    border-radius: 18px;
-                    border: none;
-                    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-                    color: #fff;
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
-                }
-
-                .btn-add-premium:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 12px 20px rgba(99, 102, 241, 0.35);
-                }
-
-                .search-filter-section {
-                    display: grid;
-                    grid-template-columns: 1fr auto;
-                    gap: 1.5rem;
-                    margin-bottom: 2.5rem;
-                }
-
-                .search-container-premium {
-                    position: relative;
-                    background: #fff;
-                    border-radius: 24px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-                    overflow: hidden;
-                    transition: all 0.3s;
-                }
-
-                .search-container-premium:focus-within {
-                    border-color: #6366f1;
-                    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.08);
-                }
-
-                .search-icon-premium {
-                    position: absolute;
-                    left: 1.5rem;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #cbd5e1;
-                }
-
-                .search-input-premium {
-                    width: 100%;
-                    height: 64px;
-                    padding: 0 1.5rem 0 4rem;
-                    border: none;
-                    outline: none;
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    color: #1e293b;
-                }
-
-                .filters-group-premium {
-                    display: flex;
-                    gap: 1rem;
-                    background: #fff;
-                    padding: 0.6rem;
-                    border-radius: 24px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-                }
-
-                .filter-select-wrap {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0 1.25rem;
-                    background: #f8fafc;
-                    border-radius: 16px;
-                    border: 1px solid transparent;
-                    transition: all 0.2s;
-                }
-
-                .filter-select-wrap:hover {
-                    border-color: #e2e8f0;
-                }
-
-                .filter-select-premium {
-                    border: none;
-                    background: transparent;
-                    font-weight: 700;
-                    color: #64748b;
-                    font-size: 0.9rem;
-                    height: 48px;
-                    outline: none;
-                    cursor: pointer;
-                    min-width: 140px;
-                }
-
-                .status-dot-mini {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background: #cbd5e1;
-                }
-                .status-dot-mini.success { background: #10b981; box-shadow: 0 0 8px #10b981; }
-                .status-dot-mini.warning { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
-
-                .refresh-btn-v2 {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 14px;
-                    border: 1px solid #e2e8f0;
-                    background: #fff;
-                    color: #94a3b8;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .refresh-btn-v2:hover {
-                    color: #6366f1;
-                    border-color: #6366f1;
-                    transform: rotate(180deg);
-                }
-
-                .repository-card-premium {
-                    background: #fff;
-                    border-radius: 32px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 30px rgba(0,0,0,0.02);
-                    overflow: hidden;
-                }
-
-                .table-premium-v3 {
-                    width: 100%;
-                    border-collapse: separate;
-                    border-spacing: 0;
-                }
-
-                .table-premium-v3 th {
-                    padding: 1.5rem 2rem;
-                    background: #fdfdff;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    text-align: left;
-                    border-bottom: 1px solid #f8fafc;
-                }
-
-                .patient-row-v2 td {
-                    padding: 1.5rem 2rem;
-                    border-bottom: 1px solid #f8fafc;
-                    transition: all 0.2s;
-                }
-
-                .patient-row-v2.is-active td {
-                    background: #f5f8ff;
-                }
-
-                .patient-row-v2:hover td {
-                    background: #fcfdff;
-                }
-
-                .avatar-premium {
-                    width: 52px;
-                    height: 52px;
-                    border-radius: 18px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 800;
-                    font-size: 1.25rem;
-                    color: #fff;
-                    box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-                }
-
-                .avatar-premium.pink { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); }
-                .avatar-premium.blue { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); }
-
-                .patient-meta-box {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                }
-
-                .name-bold-v2 {
-                    font-size: 1.1rem;
-                    font-weight: 800;
-                    color: #0f172a;
-                    margin-bottom: 0.15rem;
-                }
-
-                .id-tag-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                }
-
-                .id-label { color: #6366f1; }
-                .age-label { color: #94a3b8; }
-
-                .parent-inline {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .parent-main {
-                    font-weight: 700;
-                    color: #334155;
-                    font-size: 0.95rem;
-                }
-
-                .parent-sub {
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                    font-weight: 500;
-                }
-
-                .wa-box-mini {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-weight: 800;
-                    color: #1e293b;
-                    font-size: 0.95rem;
-                    background: #f0fdf4;
-                    padding: 0.35rem 0.75rem;
-                    border-radius: 10px;
-                    width: fit-content;
-                }
-
-                .wa-icon-glow { color: #10b981; filter: drop-shadow(0 0 5px #10b981); }
-
-                .loc-box-mini {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.4rem;
-                    color: #94a3b8;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    margin-top: 0.4rem;
-                    padding-left: 0.5rem;
-                }
-
-                .status-badge-stack {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.35rem;
-                }
-
-                .status-chip-v3 {
-                    padding: 0.35rem 0.85rem;
-                    border-radius: 50px;
-                    font-size: 0.7rem;
-                    font-weight: 900;
-                    letter-spacing: 0.05em;
-                    width: fit-content;
-                }
-
-                .status-chip-v3.complete { background: #f0fdf4; color: #16a34a; }
-                .status-chip-v3.pending { background: #fefce8; color: #a16207; }
-
-                .source-meta {
-                    font-size: 0.7rem;
-                    color: #cbd5e1;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                }
-
-                .action-hub-premium {
-                    display: flex;
-                    justify-content: center;
-                    gap: 0.75rem;
-                }
-
-                .hub-btn-info, .hub-btn-edit {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 14px;
-                    border: none;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .hub-btn-info { background: #f8fafc; color: #64748b; }
-                .hub-btn-info.active { background: #0f172a; color: #fff; }
-                .hub-btn-edit { background: #eef2ff; color: #6366f1; }
-                
-                .hub-btn-edit:hover { background: #6366f1; color: #fff; transform: scale(1.1); }
-
-                .expansion-content-premium {
-                    background: #f8faff;
-                    padding: 2.5rem;
-                    border-bottom: 1px solid #f1f5f9;
-                    animation: slideDown 0.3s ease-out;
-                }
-
-                @keyframes slideDown {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .expansion-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 2rem;
-                }
-
-                .expansion-card {
-                    background: #fff;
-                    border-radius: 20px;
-                    padding: 1.5rem;
-                    border: 1px solid #eef2ff;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
-                }
-
-                .exp-card-header {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    font-weight: 800;
-                    color: #0f172a;
-                    margin-bottom: 1.25rem;
-                    padding-bottom: 0.75rem;
-                    border-bottom: 2px solid #f8fafc;
-                }
-
-                .exp-card-header span { font-size: 0.95rem; }
-
-                .exp-info-list { display: flex; flex-direction: column; gap: 0.85rem; }
-                .exp-info-item { display: flex; justify-content: space-between; align-items: center; }
-                .exp-info-item span { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-                .exp-info-item strong { font-size: 0.9rem; font-weight: 700; color: #334155; }
-
-                .pagination-premium {
-                    padding: 2.5rem;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    gap: 2rem;
-                    background: #fdfdff;
-                }
-
-                .pag-btn {
-                    padding: 0.75rem 1.5rem;
-                    border-radius: 16px;
-                    border: 2px solid #e2e8f0;
-                    background: #fff;
-                    color: #64748b;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-                .pag-btn:not(:disabled):hover { border-color: #6366f1; color: #6366f1; }
-
-                .pag-info { font-size: 1rem; color: #64748b; font-weight: 600; }
-                .pag-info strong { color: #0f172a; }
-                .pag-total { margin-left: 0.5rem; font-size: 0.8rem; opacity: 0.7; }
-
-                .inline-form-premium {
-                    margin-bottom: 3.5rem;
-                    animation: slideDownEffect 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-                }
-
-                @keyframes slideDownEffect {
-                    from { opacity: 0; transform: translateY(-30px) scale(0.98); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                }
-
-                .alert-premium {
-                    padding: 1.5rem 2rem;
-                    border-radius: 24px;
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                    margin-bottom: 2.5rem;
-                    font-weight: 800;
-                    position: relative;
-                    animation: alertEntry 0.4s ease-out;
-                }
-
-                @keyframes alertEntry {
-                    from { transform: translateX(20px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-
-                .alert-premium.success {
-                    background: #f0fdf4;
-                    border: 1.5px solid #bbf7d0;
-                    color: #166534;
-                    box-shadow: 0 10px 25px rgba(22, 101, 52, 0.08);
-                }
-
-                .alert-premium.error {
-                    background: #fef2f2;
-                    border: 1.5px solid #fecaca;
-                    color: #991b1b;
-                    box-shadow: 0 10px 25px rgba(153, 27, 27, 0.08);
-                }
-
-                .alert-close {
-                    position: absolute;
-                    right: 1.5rem;
-                    background: transparent;
-                    border: none;
-                    font-size: 1.5rem;
-                    cursor: pointer;
-                    opacity: 0.6;
-                    color: currentColor;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .alert-close:hover { opacity: 1; }
-
-                .skeleton-row-premium {
-                    height: 80px;
-                    background: linear-gradient(90deg, #f8fafc 25%, #f1f5f9 50%, #f8fafc 75%);
-                    background-size: 200% 100%;
-                    animation: shim 2s infinite;
-                    border-radius: 20px;
-                    margin: 0.5rem 0;
-                }
-
-                @keyframes shim {
-                    0% { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
-                }
-
-                @media (max-width: 1200px) {
-                    .header-section-premium { flex-direction: column; align-items: flex-start; gap: 2rem; }
-                }
-
-                @media (max-width: 768px) {
-                    .header-section-premium { padding: 2rem; }
-                    .alert-premium { margin: 1rem; }
-                }
-            `}</style>
         </div>
     );
 };
 
 export default Patients;
+
+

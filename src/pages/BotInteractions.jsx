@@ -5,14 +5,21 @@ import {
     MessageCircle, ExternalLink, Filter, HelpCircle, Activity,
     Zap, Headphones, ShieldCheck
 } from 'lucide-react';
-import { getUnregisteredInteractions, getNotifications, markNotificationRead } from '../api/index';
+import { getUnregisteredInteractions, getNotifications, markNotificationRead, getChatHistory } from '../api/index';
+import { hasPermission } from '../utils/auth';
 
 const BotInteractions = () => {
-    const [tab, setTab] = useState('leads'); // leads, escalations
-    const [data, setData] = useState({ leads: [], escalations: [] });
+    const [tab, setTab] = useState('leads'); // leads, escalations, history
+    const [data, setData] = useState({ leads: [], escalations: [], history: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [resolving, setResolving] = useState(null);
+    const [filters, setFilters] = useState({
+        wa_id: '',
+        child_name: '',
+        start_date: '',
+        end_date: ''
+    });
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -38,10 +45,11 @@ const BotInteractions = () => {
                     escalated_at: item.escalated_at || item.created_at || item.timestamp || item.updated_at,
                 }));
 
-            setData({
+            setData(prev => ({
+                ...prev,
                 leads: leadsRes.data.data || [],
                 escalations,
-            });
+            }));
         } catch (e) {
             setError(e.response?.data?.message || e.message);
         } finally {
@@ -49,9 +57,25 @@ const BotInteractions = () => {
         }
     }, []);
 
+    const fetchHistory = async () => {
+        setLoading(true);
+        try {
+            const res = await getChatHistory(filters);
+            setData(prev => ({ ...prev, history: res.data.data || [] }));
+        } catch (e) {
+            setError("Failed to fetch history");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (tab === 'history') {
+            fetchHistory();
+        } else {
+            fetchData();
+        }
+    }, [tab, fetchData]);
 
     const handleResolve = async (id) => {
         if (!id) return;
@@ -84,44 +108,56 @@ const BotInteractions = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #1e293b 0%, #4338ca 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #1e293b 0%, #4338ca 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         Bot Hub
                     </h1>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button
-                        onClick={fetchData}
+                        onClick={tab === 'history' ? fetchHistory : fetchData}
                         className="btn btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: '14px', background: '#fff', border: '1px solid var(--border-color)', fontWeight: 600 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.9rem', borderRadius: '12px', background: '#fff', border: '1px solid var(--border-color)', fontWeight: 600, fontSize: '0.85rem' }}
                     >
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         Sync Bot Data
                     </button>
-                    <div style={{ display: 'flex', background: '#f8fafc', padding: '0.4rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', background: '#f8fafc', padding: '0.3rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <button
                             onClick={() => setTab('leads')}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem', borderRadius: '10px',
-                                border: 'none', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 1rem', borderRadius: '9px',
+                                border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
                                 background: tab === 'leads' ? 'var(--primary)' : 'transparent',
                                 color: tab === 'leads' ? '#fff' : '#64748b',
                                 transition: 'all 0.2s'
                             }}
                         >
-                            <Zap size={16} /> Insights
+                            <Zap size={14} /> Insights
                         </button>
                         <button
                             onClick={() => setTab('escalations')}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1.25rem', borderRadius: '10px',
-                                border: 'none', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 1rem', borderRadius: '9px',
+                                border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
                                 background: tab === 'escalations' ? '#ef4444' : 'transparent',
                                 color: tab === 'escalations' ? '#fff' : '#64748b',
                                 transition: 'all 0.2s'
                             }}
                         >
-                            <Headphones size={16} /> Escalations
-                            {data.escalations.length > 0 && <span style={{ background: tab === 'escalations' ? '#fff' : '#ef4444', color: tab === 'escalations' ? '#ef4444' : '#fff', padding: '1px 6px', borderRadius: '8px', fontSize: '0.7rem' }}>{data.escalations.length}</span>}
+                            <Headphones size={14} /> Escalations
+                            {data.escalations.length > 0 && <span style={{ background: tab === 'escalations' ? '#fff' : '#ef4444', color: tab === 'escalations' ? '#ef4444' : '#fff', padding: '1px 5px', borderRadius: '6px', fontSize: '0.65rem', marginLeft: '0.2rem' }}>{data.escalations.length}</span>}
+                        </button>
+                        <button
+                            onClick={() => setTab('history')}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.45rem 1rem', borderRadius: '9px',
+                                border: 'none', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                                background: tab === 'history' ? '#0f172a' : 'transparent',
+                                color: tab === 'history' ? '#fff' : '#64748b',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <Clock size={14} /> Chat History
                         </button>
                     </div>
                 </div>
@@ -135,44 +171,95 @@ const BotInteractions = () => {
             )}
 
             {/* Quick Stats Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                <div className="card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ padding: '1rem', borderRadius: '16px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)' }}>
-                        <Bot size={24} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="card" style={{ padding: '1rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)' }}>
+                        <Bot size={20} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bot Captures</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{data.leads.length} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-muted)' }}>Unregistered</span></div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bot Captures</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>{data.leads.length} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)' }}>Unregistered</span></div>
                     </div>
                 </div>
-                <div className="card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ padding: '1rem', borderRadius: '16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
-                        <ShieldAlert size={24} />
+                <div className="card" style={{ padding: '1rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                        <ShieldAlert size={20} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Help Needed</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#ef4444' }}>{data.escalations.length} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>Pending Support</span></div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Help Needed</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>{data.escalations.length} <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>Pending Support</span></div>
                     </div>
                 </div>
-                <div className="card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ padding: '1rem', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                        <ShieldCheck size={24} />
+                <div className="card" style={{ padding: '1rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(20px)', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div style={{ padding: '0.75rem', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                        <ShieldCheck size={20} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bot Health</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>Optimal <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#64748b' }}>No Errors</span></div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bot Health</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>Optimal <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#64748b' }}>No Errors</span></div>
                     </div>
                 </div>
             </div>
 
+            {/* History Filters */}
+            {tab === 'history' && (
+                <div className="card" style={{ padding: '1.5rem', borderRadius: '20px', marginBottom: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile / WA ID</label>
+                        <input
+                            type="text"
+                            placeholder="91XXXXXXXXXX"
+                            value={filters.wa_id}
+                            onChange={(e) => setFilters({ ...filters, wa_id: e.target.value })}
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Patient Name</label>
+                        <input
+                            type="text"
+                            placeholder="Child Name"
+                            value={filters.child_name}
+                            onChange={(e) => setFilters({ ...filters, child_name: e.target.value })}
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>From</label>
+                        <input
+                            type="date"
+                            value={filters.start_date}
+                            onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>To</label>
+                        <input
+                            type="date"
+                            value={filters.end_date}
+                            onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <button
+                        onClick={fetchHistory}
+                        className="btn btn-primary"
+                        style={{ padding: '0.75rem', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                        <Search size={18} /> Search History
+                    </button>
+                </div>
+            )}
+
             {/* Main Content Table/List */}
-            <div className="card" style={{ padding: 0, borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border-color)', background: '#fff' }}>
-                <div style={{ padding: '1.5rem 2rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
-                        {tab === 'leads' ? 'Anonymous WhatsApp Leads' : 'Human Support Queue'}
+            <div className="card" style={{ padding: 0, borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-color)', background: '#fff' }}>
+                <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                        {tab === 'leads' ? 'Anonymous WhatsApp Leads' : tab === 'escalations' ? 'Human Support Queue' : 'Global Chat Logs'}
                     </h2>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        {tab === 'leads' ? `${data.leads.length} Unknown sessions active` : `${data.escalations.length} Support requests awaiting resolution`}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        {tab === 'leads' ? `${data.leads.length} Unknown sessions active` : tab === 'escalations' ? `${data.escalations.length} Support requests awaiting resolution` : `${data.history.length === 50 ? 'Last 50' : data.history.length} records found`}
                     </div>
                 </div>
 
@@ -190,27 +277,27 @@ const BotInteractions = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>User / Identity</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Source & State</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Activity Timeline</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Navigation</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>User / Identity</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Source & State</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Activity Timeline</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Navigation</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.leads.map((it) => (
                                         <tr key={it.session_id || it.wa_id || it.wa_number} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>
                                                         WA
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 700, color: '#1e293b' }}>{it.wa_number || it.wa_id || '-'}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{(it.session_id || 'session').toString().substring(0, 12)}...</div>
+                                                        <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>{hasPermission('view_patient_mobile') ? (it.wa_number || it.wa_id || '-') : '**********'}</div>
+                                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{(it.session_id || 'session').toString().substring(0, 10)}...</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
                                                     <span style={{ fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px', background: '#eff6ff', color: '#2563eb' }}>{it.session_data?.source?.toUpperCase() || 'EXTERNAL'}</span>
                                                 </div>
@@ -236,7 +323,7 @@ const BotInteractions = () => {
                                 </tbody>
                             </table>
                         )
-                    ) : (
+                    ) : tab === 'escalations' ? (
                         !loading && data.escalations.length === 0 ? (
                             <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
                                 <div style={{ background: 'rgba(16, 185, 129, 0.05)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#10b981' }}>
@@ -249,39 +336,39 @@ const BotInteractions = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>User / Source</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Reason & Failure</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Waiting Time</th>
-                                        <th style={{ padding: '1.25rem 2rem', color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>Action Center</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>User / Source</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Reason & Failure</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Waiting Time</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Action Center</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.escalations.map((esc) => (
                                         <tr key={esc.id || `${esc.wa_id}-${esc.escalated_at}`} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>
                                                         SOS
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 700, color: '#1e293b' }}>{esc.wa_id || 'Unknown user'}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>URGENT ASSISTANCE</div>
+                                                        <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>{hasPermission('view_patient_mobile') ? (esc.wa_id || 'Unknown user') : '**********'}</div>
+                                                        <div style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700 }}>URGENT ASSISTANCE</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{esc.reason?.toUpperCase() || 'MANUAL ESCALATION'}</div>
-                                                <div style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', color: '#475569', display: 'inline-block' }}>
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
+                                                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem', marginBottom: '0.2rem' }}>{esc.reason?.toUpperCase() || 'MANUAL ESCALATION'}</div>
+                                                <div style={{ fontSize: '0.7rem', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', color: '#475569', display: 'inline-block' }}>
                                                     Bot failed at: <span style={{ fontWeight: 700 }}>{esc.failed_state || 'ROOT'}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 700, fontSize: '0.85rem' }}>
-                                                    <Clock size={16} className="blink" />
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', fontWeight: 700, fontSize: '0.8rem' }}>
+                                                    <Clock size={14} className="blink" />
                                                     Pending {getTimeAgo(esc.escalated_at)}
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                            <td style={{ padding: '0.85rem 1.5rem' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                                     <button
                                                         onClick={() => handleResolve(esc.id)}
@@ -292,7 +379,7 @@ const BotInteractions = () => {
                                                         {resolving === esc.id ? <RefreshCw size={16} className="animate-spin" /> : <><Check size={18} /> Resolve</>}
                                                     </button>
                                                     <a
-                                                        href={esc.wa_id ? `https://wa.me/${esc.wa_id.replace('+', '')}` : '#'}
+                                                        href={(esc.wa_id && hasPermission('view_patient_mobile')) ? `https://wa.me/${esc.wa_id.replace('+', '')}` : '#'}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="btn btn-secondary"
@@ -310,32 +397,62 @@ const BotInteractions = () => {
                                 </tbody>
                             </table>
                         )
+                    ) : (
+                        !loading && data.history.length === 0 ? (
+                            <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
+                                <div style={{ background: 'rgba(15, 23, 42, 0.05)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#94a3b8' }}>
+                                    <Clock size={40} />
+                                </div>
+                                <h3 style={{ color: '#1e293b', fontWeight: 700 }}>No history found</h3>
+                                <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0.5rem auto 0' }}>Try adjusting your filters to find specific chat logs.</p>
+                            </div>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Timestamp</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Identity / Mobile</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Message Content</th>
+                                        <th style={{ padding: '0.75rem 1.5rem', color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Sender</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.history.map((msg) => (
+                                        <tr key={msg._id} className="hover-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '0.75rem 1.5rem', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>
+                                                    {new Date(msg.timestamp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                                    {new Date(msg.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.5rem' }}>
+                                                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem' }}>{msg.patient_details?.child_name || 'Anonymous'}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{hasPermission('view_patient_mobile') ? msg.wa_id : '**********'}</div>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.5rem', maxWidth: '400px' }}>
+                                                <div style={{ fontSize: '0.85rem', color: '#334155', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{msg.message}</div>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1.5rem' }}>
+                                                <span style={{
+                                                    fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
+                                                    background: msg.sender === 'bot' ? '#f1f5f9' : '#e0f2fe',
+                                                    color: msg.sender === 'bot' ? '#475569' : '#0369a1'
+                                                }}>
+                                                    {msg.sender?.toUpperCase()}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )
                     )}
                 </div>
             </div>
 
-            <style>{`
-                .hover-row:hover {
-                    background: #f8fafc !important;
-                }
-                .blink {
-                    animation: blink-animation 1s steps(5, start) infinite;
-                }
-                @keyframes blink-animation {
-                    to { visibility: hidden; }
-                }
-                .animate-spin {
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
+
         </div>
     );
 };

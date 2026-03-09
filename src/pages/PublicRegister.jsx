@@ -6,10 +6,10 @@ import {
     Check, RefreshCw, Activity, Clipboard, Edit2, Plus,
     ArrowRight, Map, ShieldCheck, ArrowLeft, Zap, Shield, ChevronDown
 } from 'lucide-react';
-import { registerFromForm, bookByForm, getAvailableSlots, getDoctors, getPatientByWa, getAppointmentsByWaId, updateAppointment } from '../api/index';
+import { registerFromForm, bookByForm, getAvailableTokens, getDoctors, getReferringDoctors, getPatientByWa, getPatientByEmail, getAppointmentsByWaId, updateAppointment } from '../api/index';
 
-const SALUTATIONS = ['Master', 'Miss', 'Baby', 'Baby of', 'Mr.', 'Ms.'];
-const GENDERS = ['Male', 'Female', 'Other'];
+const SALUTATIONS = ['Baby', 'Baby of', 'Mr.', 'Mrs.', 'Ms.', 'Master', 'Miss', 'Dr.'];
+const GENDERS = ['boy', 'girl'];
 const COMM_PREFERENCES = ['WhatsApp', 'SMS', 'Email'];
 const ENROLLMENT_OPTIONS = [
     { value: 'just_enroll', label: 'Just Enroll' },
@@ -43,89 +43,95 @@ const PublicRegister = () => {
     const [error, setError] = useState(null);
     const [verifyError, setVerifyError] = useState(null);
     const [doctors, setDoctors] = useState([]);
+    const [referringDoctors, setReferringDoctors] = useState([]);
     const [searchWaId, setSearchWaId] = useState('');
     const [rescheduleWaId, setRescheduleWaId] = useState('');
     const [rescheduleError, setRescheduleError] = useState(null);
     const [waIdValidation, setWaIdValidation] = useState({ loading: false, error: null });
+    const [emailValidation, setEmailValidation] = useState({ loading: false, error: null });
     const [patientAppointments, setPatientAppointments] = useState([]);
     const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
     const [regSubmitted, setRegSubmitted] = useState(false);
+    const [regErrors, setRegErrors] = useState({});
 
     const [patientForm, setPatientForm] = useState({
         salutation: 'Master',
         first_name: '',
         middle_name: '',
         last_name: '',
-        gender: 'Male',
+        gender: 'boy',
         dob: '',
         mother_name: '',
         father_name: '',
-        father_mobile: '',
-        mother_mobile: '',
         wa_id: '',
-        email: '',
-        address: '',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pin_code: '411001',
         comm_preference: 'WhatsApp',
         preferred_doctor: '',
         notes: '',
+        referred_by: '',
         enrollment_option: 'just_enroll',
-        registration_source: 'form'
+        registration_source: 'form',
+        email: ''
     });
 
     const [bookingForm, setBookingForm] = useState({
         wa_id: '',
         doctor_name: '',
         appointment_date: new Date().toISOString().split('T')[0],
-        slot_id: '',
+        registration_type: 'online',
         doctor_speciality: 'Pediatrics',
-        visit_type: 'CONSULTATION',
+        visit_category: 'First visit',
+        appointment_mode: 'OFFLINE',
         reason: ''
     });
 
-    const [availableSlots, setAvailableSlots] = useState([]);
-    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [availableTokens, setAvailableTokens] = useState(null);
+    const [tokensLoading, setTokensLoading] = useState(false);
     const [registeredPatient, setRegisteredPatient] = useState(null);
     const todayStr = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
-        const fetchDoctors = async () => {
+        const fetchMetadata = async () => {
             try {
-                const res = await getDoctors();
-                const docs = res.data.data || [];
+                const [docRes, refRes] = await Promise.all([
+                    getDoctors({ all: true }),
+                    getReferringDoctors()
+                ]);
+                const docs = docRes.data.data || [];
                 setDoctors(docs);
+                setReferringDoctors(refRes.data.data || []);
                 if (docs.length > 0) {
                     setPatientForm(prev => ({ ...prev, preferred_doctor: getDoctorDisplayName(docs[0]) }));
                     setBookingForm(prev => ({ ...prev, doctor_name: getRawDoctorName(docs[0]) }));
                 }
             } catch (err) {
-                console.error("Failed to fetch doctors", err);
+                console.error("Failed to fetch metadata", err);
             }
         };
-        fetchDoctors();
+        fetchMetadata();
     }, []);
 
-    const fetchSlots = useCallback(async (doctorName, date) => {
-        if (!doctorName || !date) return;
-        setSlotsLoading(true);
+    const fetchTokens = useCallback(async (doctorRef, date) => {
+        if (!doctorRef || !date) return;
+        setTokensLoading(true);
         try {
-            const res = await getAvailableSlots(doctorName, date);
-            setAvailableSlots(res.data.data || []);
+            // Find doctor id
+            const doc = doctors.find(d => getRawDoctorName(d) === doctorRef || getDoctorDisplayName(d) === doctorRef);
+            if (!doc) return;
+            const res = await getAvailableTokens(doc.doctor_id, date);
+            setAvailableTokens(res.data.data);
         } catch (err) {
-            console.error("Failed to fetch slots", err);
-            setAvailableSlots([]);
+            console.error("Failed to fetch tokens", err);
+            setAvailableTokens(null);
         } finally {
-            setSlotsLoading(false);
+            setTokensLoading(false);
         }
-    }, []);
+    }, [doctors]);
 
     useEffect(() => {
         if (step === 2 && bookingForm.appointment_date) {
-            fetchSlots(bookingForm.doctor_name, bookingForm.appointment_date);
+            fetchTokens(bookingForm.doctor_name, bookingForm.appointment_date);
         }
-    }, [step, bookingForm.appointment_date, bookingForm.doctor_name, fetchSlots]);
+    }, [step, bookingForm.appointment_date, bookingForm.doctor_name, fetchTokens]);
 
     const checkMember = async (e, type = 'lookup') => {
         if (e) e.preventDefault();
@@ -208,29 +214,112 @@ const PublicRegister = () => {
         }
     };
 
+    const handleEmailCheck = async (val) => {
+        if (!val || val.length < 5 || !val.includes('@')) {
+            setEmailValidation({ loading: false, error: null });
+            return;
+        }
+        setEmailValidation({ loading: true, error: null });
+        try {
+            const res = await getPatientByEmail(val.trim().toLowerCase());
+            if (res.data.data) {
+                setEmailValidation({
+                    loading: false,
+                    error: "Email already registered. Use 'Book Appointment' with mobile."
+                });
+            } else {
+                setEmailValidation({ loading: false, error: null });
+            }
+        } catch (err) {
+            setEmailValidation({ loading: false, error: null });
+        }
+    };
+
+    const validateRegistration = () => {
+        const errors = {};
+        const nameRegex = /^[A-Za-z\s]+$/;
+        const phoneRegex = /^\d{10}$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!patientForm.first_name?.trim()) errors.first_name = "First Name is required";
+        else if (!nameRegex.test(patientForm.first_name)) errors.first_name = "Letters only";
+
+        if (!patientForm.last_name?.trim()) errors.last_name = "Last Name is required";
+        else if (!nameRegex.test(patientForm.last_name)) errors.last_name = "Letters only";
+
+        if (!patientForm.gender?.trim()) errors.gender = "Gender is required";
+        if (!patientForm.dob?.trim()) errors.dob = "Date of Birth is required";
+
+        if (!patientForm.father_name?.trim()) errors.father_name = "Father Name is required";
+
+
+        if (!patientForm.mother_name?.trim()) errors.mother_name = "Mother Name is required";
+
+        if (!patientForm.wa_id?.trim()) errors.wa_id = "WhatsApp Number is required";
+        else if (!phoneRegex.test(patientForm.wa_id)) errors.wa_id = "10-digit numeric required";
+
+        if (!patientForm.email?.trim()) {
+            errors.email = "Email Address is required";
+        } else if (!emailRegex.test(patientForm.email)) {
+            errors.email = "Invalid email format";
+        } else if (emailValidation.error) {
+            errors.email = emailValidation.error;
+        }
+
+        if (!patientForm.preferred_doctor?.trim()) errors.preferred_doctor = "Doctor choice required";
+
+        if (Object.keys(errors).length > 0) {
+            setRegErrors(errors);
+            // Scroll to first error
+            const firstErrorKey = Object.keys(errors)[0];
+            const el = document.getElementsByName(firstErrorKey)[0];
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            return false;
+        }
+
+        setRegErrors({});
+        return true;
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        const nameRegex = /^[A-Za-z\s]+$/;
+        const phoneRegex = /^\d{10}$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        let error = null;
+        if (['first_name', 'last_name', 'father_name', 'mother_name', 'wa_id', 'preferred_doctor', 'gender', 'dob', 'email'].includes(name) && !value.trim()) {
+            const labelMap = { dob: 'Date of Birth', wa_id: 'WhatsApp Number', preferred_doctor: 'Preferred Doctor', email: 'Email Address' };
+            const label = labelMap[name] || name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            error = `${label} is required`;
+        } else if (name === 'first_name' || name === 'last_name') {
+            if (!nameRegex.test(value)) error = "Letters only";
+        } else if (name === 'wa_id') {
+            if (value && !phoneRegex.test(value)) error = "10-digit numeric required";
+        } else if (name === 'email') {
+            if (value && !emailRegex.test(value)) error = "Invalid email format";
+            else if (emailValidation.error) error = emailValidation.error;
+        }
+
+        setRegErrors(prev => {
+            const newErrors = { ...prev };
+            if (error) newErrors[name] = error;
+            else delete newErrors[name];
+            return newErrors;
+        });
+    };
+
     const handleRegistration = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setRegSubmitted(true);
         setError(null);
 
-        const requiredFields = [
-            { key: 'first_name', label: 'First Name' },
-            { key: 'last_name', label: 'Last Name' },
-            { key: 'gender', label: 'Gender' },
-            { key: 'dob', label: 'Date of Birth' },
-            { key: 'wa_id', label: 'WhatsApp Number' },
-            { key: 'city', label: 'City' },
-            { key: 'pin_code', label: 'Pin Code' },
-            { key: 'address', label: 'Residential Address' },
-            { key: 'preferred_doctor', label: 'Preferred Doctor' }
-        ];
-
-        const missing = requiredFields.filter(f => !patientForm[f.key]?.trim());
-        if (missing.length > 0) {
-            setError(`Please fill in required fields: ${missing.map(m => m.label).join(', ')}`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
+        if (!validateRegistration()) return;
 
         setLoading(true);
         try {
@@ -246,17 +335,12 @@ const PublicRegister = () => {
                 dob: patientForm.dob,
                 mother_name: patientForm.mother_name || null,
                 father_name: patientForm.father_name || null,
-                father_mobile: patientForm.father_mobile || null,
-                mother_mobile: patientForm.mother_mobile || null,
                 parent_mobile: patientForm.wa_id,
                 wa_id: patientForm.wa_id,
-                address: patientForm.address,
-                city: patientForm.city,
-                state: patientForm.state,
-                pin_code: patientForm.pin_code,
                 communication_preference: patientForm.comm_preference.toLowerCase(),
                 doctor: rawDocName,
                 remarks: patientForm.notes || null,
+                referred_by: patientForm.referred_by || null,
                 registration_source: patientForm.registration_source,
                 enrollment_option: patientForm.enrollment_option,
             };
@@ -290,29 +374,33 @@ const PublicRegister = () => {
 
     const handleBooking = async (e) => {
         e.preventDefault();
-        if (!bookingForm.slot_id) {
-            setError("Please select a time slot");
-            return;
-        }
         setLoading(true);
         setError(null);
         try {
-            console.log("Submitting booking...", { id: bookingForm.reschedule_from, data: bookingForm });
             if (bookingForm.reschedule_from) {
                 const reschedulePayload = {
                     appointment_date: bookingForm.appointment_date,
-                    slot_id: bookingForm.slot_id
+                    appointment_mode: bookingForm.appointment_mode
                 };
                 await updateAppointment(bookingForm.reschedule_from, reschedulePayload);
             } else {
-                await bookByForm(bookingForm);
+                const isToday = bookingForm.appointment_date === todayStr;
+                let res;
+                res = await bookByForm({
+                    ...bookingForm,
+                    visit_category: bookingForm.visit_category,
+                    registration_type: 'online'
+                });
+                if (res?.data?.data) {
+                    setRegisteredPatient(res.data.data);
+                }
             }
             setStep(3);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err) {
             console.error("Booking detailed error:", err.response?.data || err);
             const serverMsg = (err.response?.data?.message || err.response?.data?.error || err.response?.data?.details);
-            setError(serverMsg || "Booking failed. The selected time slot might no longer be available.");
+            setError(serverMsg || "Booking failed. The daily token capacity might have been reached for this date.");
         } finally {
             setLoading(false);
         }
@@ -366,7 +454,7 @@ const PublicRegister = () => {
                                         <p>Have a patient record? Enter mobile number to book instantly.</p>
                                         <div className="inline-verify-v4">
                                             <input
-                                                placeholder="Mobile Number"
+                                                placeholder=""
                                                 value={searchWaId}
                                                 onChange={e => setSearchWaId(e.target.value.replace(/\D/g, ''))}
                                                 onKeyDown={e => e.key === 'Enter' && checkMember(e)}
@@ -388,7 +476,7 @@ const PublicRegister = () => {
                                         <p>Need to change time? Use your mobile to reschedule existing booking.</p>
                                         <div className="inline-verify-v4">
                                             <input
-                                                placeholder="Mobile Number"
+                                                placeholder=""
                                                 value={rescheduleWaId}
                                                 onChange={e => setRescheduleWaId(e.target.value.replace(/\D/g, ''))}
                                                 onKeyDown={e => e.key === 'Enter' && checkMember(e, 'reschedule')}
@@ -439,7 +527,7 @@ const PublicRegister = () => {
                                             <div className="f-group-v4">
                                                 <label>Salutation</label>
                                                 <div className="sel-wrap-v4">
-                                                    <select value={patientForm.salutation} onChange={e => setPatientForm({ ...patientForm, salutation: e.target.value })}>
+                                                    <select value={patientForm.salutation} onBlur={handleBlur} name="salutation" onChange={e => setPatientForm({ ...patientForm, salutation: e.target.value })}>
                                                         {SALUTATIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                                     </select>
                                                     <ChevronDown size={18} className="arrow-v4" />
@@ -447,28 +535,32 @@ const PublicRegister = () => {
                                             </div>
                                             <div className="f-group-v4 col-2">
                                                 <label>First Name *</label>
-                                                <input required placeholder="Arjun" value={patientForm.first_name} onChange={e => setPatientForm({ ...patientForm, first_name: e.target.value })} />
+                                                <input name="first_name" placeholder="" value={patientForm.first_name} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, first_name: e.target.value })} className={regErrors.first_name ? 'error' : ''} />
+                                                {regErrors.first_name && <p className="err-v4">{regErrors.first_name}</p>}
                                             </div>
                                             <div className="f-group-v4">
                                                 <label>Middle Name</label>
-                                                <input placeholder="Rohit" value={patientForm.middle_name} onChange={e => setPatientForm({ ...patientForm, middle_name: e.target.value })} />
+                                                <input name="middle_name" placeholder="" value={patientForm.middle_name} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, middle_name: e.target.value })} />
                                             </div>
                                             <div className="f-group-v4">
                                                 <label>Last Name *</label>
-                                                <input required placeholder="Sharma" value={patientForm.last_name} onChange={e => setPatientForm({ ...patientForm, last_name: e.target.value })} />
+                                                <input name="last_name" placeholder="" value={patientForm.last_name} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, last_name: e.target.value })} className={regErrors.last_name ? 'error' : ''} />
+                                                {regErrors.last_name && <p className="err-v4">{regErrors.last_name}</p>}
                                             </div>
                                             <div className="f-group-v4">
                                                 <label>Gender *</label>
                                                 <div className="sel-wrap-v4">
-                                                    <select required value={patientForm.gender} onChange={e => setPatientForm({ ...patientForm, gender: e.target.value })}>
+                                                    <select name="gender" value={patientForm.gender} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, gender: e.target.value })} className={regErrors.gender ? 'error' : ''}>
                                                         {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
                                                     </select>
                                                     <ChevronDown size={18} className="arrow-v4" />
                                                 </div>
+                                                {regErrors.gender && <p className="err-v4">{regErrors.gender}</p>}
                                             </div>
                                             <div className="f-group-v4 col-2">
                                                 <label>Date of Birth *</label>
-                                                <input type="date" required max={todayStr} value={patientForm.dob} onChange={e => setPatientForm({ ...patientForm, dob: e.target.value })} />
+                                                <input name="dob" type="date" placeholder="" max={todayStr} onBlur={handleBlur} value={patientForm.dob} onChange={e => setPatientForm({ ...patientForm, dob: e.target.value })} className={regErrors.dob ? 'error' : ''} />
+                                                {regErrors.dob && <p className="err-v4">{regErrors.dob}</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -476,24 +568,18 @@ const PublicRegister = () => {
                                     <div className="form-section-v4">
                                         <div className="sec-title-v4 blue">
                                             <div className="sec-icon-circle"><Users size={22} /></div>
-                                            <h2>Parental Details</h2>
+                                            <h2>Parental Hierarchy</h2>
                                         </div>
                                         <div className="grid-v4">
                                             <div className="f-group-v4 col-2">
-                                                <label>Father's Name</label>
-                                                <input placeholder="Name" value={patientForm.father_name} onChange={e => setPatientForm({ ...patientForm, father_name: e.target.value })} />
+                                                <label>Father's Name *</label>
+                                                <input name="father_name" placeholder="" value={patientForm.father_name} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, father_name: e.target.value })} className={regErrors.father_name ? 'error' : ''} />
+                                                {regErrors.father_name && <p className="err-v4">{regErrors.father_name}</p>}
                                             </div>
                                             <div className="f-group-v4 col-2">
-                                                <label>Father's Mobile</label>
-                                                <input placeholder="Mobile" value={patientForm.father_mobile} onChange={e => setPatientForm({ ...patientForm, father_mobile: e.target.value.replace(/\D/g, '') })} />
-                                            </div>
-                                            <div className="f-group-v4 col-2">
-                                                <label>Mother's Name</label>
-                                                <input placeholder="Name" value={patientForm.mother_name} onChange={e => setPatientForm({ ...patientForm, mother_name: e.target.value })} />
-                                            </div>
-                                            <div className="f-group-v4 col-2">
-                                                <label>Mother's Mobile</label>
-                                                <input placeholder="Mobile" value={patientForm.mother_mobile} onChange={e => setPatientForm({ ...patientForm, mother_mobile: e.target.value.replace(/\D/g, '') })} />
+                                                <label>Mother's Name *</label>
+                                                <input name="mother_name" placeholder="" value={patientForm.mother_name} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, mother_name: e.target.value })} className={regErrors.mother_name ? 'error' : ''} />
+                                                {regErrors.mother_name && <p className="err-v4">{regErrors.mother_name}</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -501,71 +587,71 @@ const PublicRegister = () => {
                                     <div className="form-section-v4">
                                         <div className="sec-title-v4 orange">
                                             <div className="sec-icon-circle"><MapPin size={22} /></div>
-                                            <h2>Contact & Location</h2>
+                                            <h2>Communication</h2>
                                         </div>
                                         <div className="grid-v4">
                                             <div className="f-group-v4 col-2">
                                                 <label>WhatsApp ID / Mobile *</label>
                                                 <div className="icon-input-v4">
                                                     <Zap size={18} className="i-v4" />
-                                                    <input required placeholder="9876543210" value={patientForm.wa_id} onChange={e => {
+                                                    <input name="wa_id" placeholder="" value={patientForm.wa_id} onBlur={handleBlur} className={regErrors.wa_id ? 'error' : ''} onChange={e => {
                                                         const v = e.target.value.replace(/\D/g, '');
                                                         setPatientForm({ ...patientForm, wa_id: v });
                                                         handleWaIdCheck(v);
                                                     }} />
                                                 </div>
+                                                {regErrors.wa_id && <p className="err-v4">{regErrors.wa_id}</p>}
                                                 {waIdValidation.error && <p className="err-v4">{waIdValidation.error}</p>}
                                             </div>
                                             <div className="f-group-v4 col-2">
                                                 <label>Communication Pref.</label>
                                                 <div className="sel-wrap-v4">
-                                                    <select value={patientForm.comm_preference} onChange={e => setPatientForm({ ...patientForm, comm_preference: e.target.value })}>
+                                                    <select value={patientForm.comm_preference} onBlur={handleBlur} name="comm_preference" onChange={e => setPatientForm({ ...patientForm, comm_preference: e.target.value })}>
                                                         {COMM_PREFERENCES.map(p => <option key={p} value={p}>{p}</option>)}
                                                     </select>
                                                     <ChevronDown size={18} className="arrow-v4" />
                                                 </div>
                                             </div>
                                             <div className="f-group-v4 col-2">
-                                                <label>Email Address</label>
+                                                <label>Email Address *</label>
                                                 <div className="icon-input-v4">
                                                     <Mail size={18} className="i-v4" />
-                                                    <input type="email" placeholder="parent@example.com" value={patientForm.email} onChange={e => setPatientForm({ ...patientForm, email: e.target.value })} />
+                                                    <input name="email" type="email" placeholder="" value={patientForm.email} onBlur={handleBlur} className={regErrors.email || emailValidation.error ? 'error' : ''} onChange={e => {
+                                                        setPatientForm({ ...patientForm, email: e.target.value });
+                                                        handleEmailCheck(e.target.value);
+                                                    }} />
+                                                    {emailValidation.loading && <RefreshCw size={14} className="i-v4-right animate-spin" />}
                                                 </div>
-                                            </div>
-                                            <div className="f-group-v4 col-2">
-                                                <label>City *</label>
-                                                <input required value={patientForm.city} onChange={e => setPatientForm({ ...patientForm, city: e.target.value })} />
-                                            </div>
-                                            <div className="f-group-v4">
-                                                <label>State</label>
-                                                <input value={patientForm.state} onChange={e => setPatientForm({ ...patientForm, state: e.target.value })} />
-                                            </div>
-                                            <div className="f-group-v4">
-                                                <label>Pin Code *</label>
-                                                <input required placeholder="411xxx" maxLength={6} value={patientForm.pin_code} onChange={e => setPatientForm({ ...patientForm, pin_code: e.target.value.replace(/\D/g, '') })} />
-                                            </div>
-                                            <div className="f-group-v4 col-full">
-                                                <label>Residential Address *</label>
-                                                <textarea required placeholder="Area, Building, Flat No..." value={patientForm.address} onChange={e => setPatientForm({ ...patientForm, address: e.target.value })} />
+                                                {regErrors.email && <p className="err-v4">{regErrors.email}</p>}
+                                                {emailValidation.error && <p className="err-v4">{emailValidation.error}</p>}
                                             </div>
                                             <div className="f-group-v4 col-2">
                                                 <label>Preferred Doctor *</label>
                                                 <div className="sel-wrap-v4">
-                                                    <select required value={patientForm.preferred_doctor} onChange={e => setPatientForm({ ...patientForm, preferred_doctor: e.target.value })}>
+                                                    <select name="preferred_doctor" value={patientForm.preferred_doctor} onBlur={handleBlur} className={regErrors.preferred_doctor ? 'error' : ''} onChange={e => setPatientForm({ ...patientForm, preferred_doctor: e.target.value })}>
                                                         <option value="">— Select Doctor —</option>
-                                                        {doctors.map(d => <option key={getDoctorDisplayName(d)} value={getDoctorDisplayName(d)}>{getDoctorDisplayName(d)}</option>)}
+                                                        {doctors.map((d, idx) => (
+                                                            <option key={d._id || d.doctor_id || `reg-doc-${idx}`} value={getDoctorDisplayName(d)}>
+                                                                {getDoctorDisplayName(d)}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                     <ChevronDown size={18} className="arrow-v4" />
                                                 </div>
+                                                {regErrors.preferred_doctor && <p className="err-v4">{regErrors.preferred_doctor}</p>}
                                             </div>
-                                            <div className="f-group-v4 col-2">
+                                            <div className="f-group-v4">
+                                                <label>Referred by Patient</label>
+                                                <input name="referred_by" placeholder="Friend or family name" value={patientForm.referred_by} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, referred_by: e.target.value })} />
+                                            </div>
+                                            <div className="f-group-v4">
                                                 <label>Remarks / Notes</label>
-                                                <input placeholder="Optional extra info" value={patientForm.notes} onChange={e => setPatientForm({ ...patientForm, notes: e.target.value })} />
+                                                <input name="notes" placeholder="" value={patientForm.notes} onBlur={handleBlur} onChange={e => setPatientForm({ ...patientForm, notes: e.target.value })} />
                                             </div>
                                             <div className="f-group-v4 col-2">
                                                 <label>Enrollment Option</label>
                                                 <div className="sel-wrap-v4">
-                                                    <select value={patientForm.enrollment_option} onChange={e => setPatientForm({ ...patientForm, enrollment_option: e.target.value })}>
+                                                    <select value={patientForm.enrollment_option} onBlur={handleBlur} name="enrollment_option" onChange={e => setPatientForm({ ...patientForm, enrollment_option: e.target.value })}>
                                                         {ENROLLMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                                     </select>
                                                     <ChevronDown size={18} className="arrow-v4" />
@@ -575,8 +661,8 @@ const PublicRegister = () => {
                                     </div>
 
                                     <div className="form-footer-v4">
-                                        <button type="submit" disabled={loading || !!waIdValidation.error} className="btn-main-v4">
-                                            {loading ? <RefreshCw className="animate-spin" /> : <><span>Next: Slot Booking</span> <ArrowRight size={20} /></>}
+                                        <button type="submit" disabled={loading} className="btn-main-v4">
+                                            {loading ? <RefreshCw className="animate-spin" /> : <><span>Next: Token Booking</span> <ArrowRight size={20} /></>}
                                         </button>
                                     </div>
                                 </form>
@@ -602,7 +688,11 @@ const PublicRegister = () => {
                                                     value={bookingForm.doctor_name}
                                                     onChange={e => setBookingForm({ ...bookingForm, doctor_name: e.target.value })}
                                                 >
-                                                    {doctors.map(d => <option key={getRawDoctorName(d)} value={getRawDoctorName(d)}>{getDoctorDisplayName(d)}</option>)}
+                                                    {doctors.map((d, idx) => (
+                                                        <option key={d._id || d.doctor_id || `book-doc-${idx}`} value={getRawDoctorName(d)}>
+                                                            {getDoctorDisplayName(d)}
+                                                        </option>
+                                                    ))}
                                                 </select>
                                                 <ChevronDown size={18} className="arrow-v4" />
                                             </div>
@@ -613,54 +703,97 @@ const PublicRegister = () => {
                                         </div>
 
                                         <div className="f-group-v4 col-full">
-                                            <label>Available Slots</label>
-                                            <div className="slots-container-v4">
-                                                {slotsLoading ? (
-                                                    <div className="slots-skeleton-v4">
-                                                        <RefreshCw className="animate-spin" /> Fetching slots...
-                                                    </div>
-                                                ) : availableSlots.length > 0 ? (
-                                                    <div className="slots-reel-v4">
-                                                        {availableSlots.map(slot => (
-                                                            <div
-                                                                key={slot.slot_id}
-                                                                className={`slot-box-v4 ${bookingForm.slot_id === slot.slot_id ? 'active' : ''}`}
-                                                                onClick={() => setBookingForm({ ...bookingForm, slot_id: slot.slot_id })}
-                                                            >
-                                                                <span className="s-time">{formatTime12h(slot.start_time)}</span>
-                                                                <span className="s-session">{slot.session}</span>
+                                            <div className="token-info-v4 card-premium-v3">
+                                                <div className="token-header-v4">
+                                                    <h3>Clinic Queue Status</h3>
+                                                    {tokensLoading && <RefreshCw size={18} className="animate-spin text-primary" />}
+                                                </div>
+
+                                                {availableTokens ? (
+                                                    <div className="token-display-v4">
+                                                        <div className="token-card-v4 large">
+                                                            <div className="token-count-v4">#{availableTokens.online_next_token ?? '--'}</div>
+                                                            <div className="token-label-v4">Next Available Token</div>
+                                                            <div className="token-sub-v4">For {new Date(bookingForm.appointment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
+                                                            <div className="token-sub-v4">Tokens Available Online: {availableTokens.online_tokens_remaining}</div>
+                                                        </div>
+
+                                                        {availableTokens.online_tokens_remaining > 0 ? (
+                                                            <div className="token-instruction-v4">
+                                                                <CheckCircle className="text-success" size={20} />
+                                                                <span>
+                                                                    Confirmed: {availableTokens.online_tokens_remaining} tokens available for today/selected date.
+                                                                    Your next token is {availableTokens.online_next_token ?? '--'} and the exact token will be assigned upon confirmation.
+                                                                </span>
                                                             </div>
-                                                        ))}
+                                                        ) : (
+                                                            <div className="token-instruction-v4 error">
+                                                                <AlertCircle className="text-danger" size={20} />
+                                                                <span>Online tokens are not available for this date. Please <strong>try for another doctor</strong> or <strong>try for next days</strong>.</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="token-info-mini-v4" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                            <Clock size={16} />
+                                                            <span>Start Time: {availableTokens.start_time || '--:--'}</span>
+                                                        </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="no-slots-v4">
-                                                        <Clock size={20} />
-                                                        <span>No slots found for this date. Try another clinician or date.</span>
+                                                    <div className="token-placeholder-v4">
+                                                        <Activity size={24} />
+                                                        <p>Checking live clinic availability...</p>
                                                     </div>
                                                 )}
+
+                                                <div className="emergency-alert-v4">
+                                                    <div className="alert-content">
+                                                        <strong>Emergency?</strong>
+                                                        <p>If this is an emergency, please call the hospital directly at <b>+91-XXXXXXXXXX</b> to get the urgent appointment immediately.</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div className="f-group-v4 col-2">
                                             <label>Visit Category</label>
                                             <div className="sel-wrap-v4">
-                                                <select value={bookingForm.visit_type} onChange={e => setBookingForm({ ...bookingForm, visit_type: e.target.value })}>
-                                                    <option value="CONSULTATION">Consultation</option>
-                                                    <option value="FOLLOW_UP">Follow-up</option>
-                                                    <option value="VACCINATION">Vaccination</option>
+                                                <select value={bookingForm.visit_category} onChange={e => setBookingForm({ ...bookingForm, visit_category: e.target.value })}>
+                                                    <option value="First visit">First visit</option>
+                                                    <option value="Follow-up">Follow-up</option>
+                                                    <option value="Vaccination">Vaccination</option>
+                                                    <option value="Other">Other</option>
                                                 </select>
                                                 <ChevronDown size={18} className="arrow-v4" />
                                             </div>
                                         </div>
                                         <div className="f-group-v4 col-2">
+                                            <label>Appointment Mode</label>
+                                            <div className="sel-wrap-v4">
+                                                <select value={bookingForm.appointment_mode} onChange={e => setBookingForm({ ...bookingForm, appointment_mode: e.target.value })}>
+                                                    <option value="OFFLINE">Clinic Visit (Offline)</option>
+                                                    <option value="ONLINE">Online Consultation</option>
+                                                </select>
+                                                <ChevronDown size={18} className="arrow-v4" />
+                                            </div>
+                                        </div>
+                                        <div className="f-group-v4 col-full">
                                             <label>Reason (Optional)</label>
-                                            <input placeholder="e.g. Fever" value={bookingForm.reason} onChange={e => setBookingForm({ ...bookingForm, reason: e.target.value })} />
+                                            <input placeholder="" value={bookingForm.reason} onChange={e => setBookingForm({ ...bookingForm, reason: e.target.value })} />
                                         </div>
                                     </div>
 
                                     <div className="form-footer-v4">
-                                        <button type="submit" disabled={loading || !bookingForm.slot_id} className="btn-main-v4">
-                                            {loading ? <RefreshCw className="animate-spin" /> : <><span>Complete Booking</span> <CheckCircle size={20} /></>}
+                                        <button
+                                            type="submit"
+                                            disabled={loading || (availableTokens && availableTokens.online_tokens_remaining <= 0)}
+                                            className="btn-main-v4"
+                                        >
+                                            {loading ? <RefreshCw className="animate-spin" /> : (
+                                                availableTokens && availableTokens.online_tokens_remaining <= 0 ? (
+                                                    <><span>Fully Booked</span> <AlertCircle size={20} /></>
+                                                ) : (
+                                                    <><span>Complete Booking</span> <CheckCircle size={20} /></>
+                                                )
+                                            )}
                                         </button>
                                     </div>
                                 </form>
@@ -720,11 +853,22 @@ const PublicRegister = () => {
                                     ) : (patientForm.enrollment_option === 'just_enroll' && isNewPatient) ? (
                                         <>
                                             <h1>Registration Complete!</h1>
+                                            <div className="patient-id-card-v4">
+                                                <span className="id-label">Patient ID</span>
+                                                <span className="id-value">{registeredPatient?.patient_id}</span>
+                                            </div>
                                             <p>Your registration has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
                                         </>
                                     ) : (
                                         <>
                                             <h1>Appointment Confirmed!</h1>
+                                            <div className="patient-id-card-v4">
+                                                <div className="id-row"><span>Patient ID</span> <strong>{registeredPatient?.patient_id}</strong></div>
+                                                <div className="id-row"><span>Doctor Name</span> <strong>{registeredPatient?.doctor_name || 'N/A'}</strong></div>
+                                                <div className="id-row"><span>Appointment Date</span> <strong>{registeredPatient?.appointment_date ? new Date(registeredPatient.appointment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}</strong></div>
+                                                <div className="id-row"><span>Shift Start Time</span> <strong>{registeredPatient?.appointment_time || '14:00'}</strong></div>
+                                                <div className="id-row"><span>Token Number</span> <strong>{registeredPatient?.token_display || registeredPatient?.token_number || 'T-XX'}</strong></div>
+                                            </div>
                                             <p>Your appointment booking has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
                                         </>
                                     )}
@@ -736,284 +880,12 @@ const PublicRegister = () => {
                 </div>
             </div>
 
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-                
-                .landing-premium {
-                    min-height: 100vh;
-                    font-family: 'Outfit', sans-serif;
-                    position: relative;
-                    overflow: hidden;
-                    background: #fdfdff;
-                    color: #0f172a;
-                    display: flex;
-                    flex-direction: column;
-                }
 
-                .landing-background {
-                    position: fixed;
-                    inset: 0;
-                    z-index: 0;
-                    overflow: hidden;
-                }
-
-                .blob {
-                    position: absolute;
-                    border-radius: 50%;
-                    filter: blur(80px);
-                    opacity: 0.4;
-                    z-index: -1;
-                }
-
-                .blob-1 { width: 600px; height: 600px; background: #6366f1; top: -200px; right: -200px; }
-                .blob-2 { width: 500px; height: 500px; background: #3b82f6; bottom: -150px; left: -150px; }
-                .blob-3 { width: 400px; height: 400px; background: #f59e0b; top: 40%; left: 30%; opacity: 0.15; }
-
-                .landing-content {
-                    position: relative;
-                    z-index: 10;
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    padding: 2rem;
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    width: 100%;
-                }
-
-                .landing-header { margin-bottom: 3rem; }
-                .logo-box { display: flex; align-items: center; gap: 1rem; }
-                .logo-box img { width: 56px; height: 56px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-                .logo-text { display: flex; flex-direction: column; }
-                .brand { font-size: 1.5rem; font-weight: 900; color: #6366f1; letter-spacing: -1px; line-height: 1; }
-                .sub { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 0.25rem; }
-
-                .main-stage-v4 { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
-
-                .hero-text-center { text-align: center; margin-bottom: 4rem; }
-                .hero-text-center h1 { font-size: 3.5rem; font-weight: 900; color: #0f172a; letter-spacing: -2px; margin: 0 0 1rem; }
-                .hero-text-center p { font-size: 1.25rem; color: #64748b; font-weight: 600; }
-
-                .action-cards-v4 {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 2rem;
-                    max-width: 1100px;
-                    width: 100%;
-                }
-
-                .card-v4 {
-                    background: rgba(255, 255, 255, 0.8);
-                    backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255,255,255,0.4);
-                    border-radius: 32px;
-                    padding: 2.5rem;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.5rem;
-                    cursor: pointer;
-                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
-                    position: relative;
-                }
-
-                .card-v4:hover { transform: translateY(-12px); box-shadow: 0 30px 60px rgba(99, 102, 241, 0.15); border-color: #6366f1; }
-
-                .card-icon-box {
-                    width: 64px; height: 64px; border-radius: 20px;
-                    display: flex; align-items: center; justify-content: center;
-                    background: #6366f1; color: #fff;
-                    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-                }
-                .card-icon-box.purple { background: #8b5cf6; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3); }
-                .card-icon-box.orange { background: #f59e0b; box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3); }
-
-                .card-details-v4 h3 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem; }
-                .card-details-v4 p { font-size: 0.95rem; color: #64748b; font-weight: 500; line-height: 1.6; margin: 0; }
-
-                .card-arrow { position: absolute; top: 2.5rem; right: 2rem; color: #cbd5e1; transition: 0.3s; }
-                .card-v4:hover .card-arrow { color: #6366f1; transform: translateX(5px); }
-
-                .inline-verify-v4 { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
-                .inline-verify-v4 input { 
-                    flex: 1; height: 48px; border-radius: 12px; border: 2px solid #eef2f6; 
-                    background: #fff; padding: 0 1rem; font-weight: 700; outline: none; transition: 0.2s;
-                }
-                .inline-verify-v4 input:focus { border-color: #6366f1; }
-                .inline-verify-v4 button {
-                    height: 48px; padding: 0 1.25rem; border-radius: 12px;
-                    background: #0f172a; color: #fff; border: none; font-weight: 700; cursor: pointer; transition: 0.2s;
-                }
-                .inline-verify-v4 button:hover { background: #334155; }
-                .error-text-mini { color: #ef4444; font-size: 0.75rem; font-weight: 700; margin-top: 0.5rem; }
-
-                /* Step Views */
-                .step-container-v4 {
-                    width: 100%;
-                    max-width: 900px;
-                    background: #fff;
-                    border-radius: 40px;
-                    padding: 3.5rem;
-                    box-shadow: 0 30px 100px rgba(15, 23, 42, 0.1);
-                    animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-                }
-
-                @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-
-                .step-nav-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; }
-                .btn-back-v4 { 
-                    display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9; 
-                    border: none; padding: 0.75rem 1.25rem; border-radius: 14px; 
-                    font-weight: 800; cursor: pointer; transition: 0.2s;
-                }
-                .btn-back-v4:hover { background: #e2e8f0; transform: translateX(-4px); }
-
-                .step-indicator-v4 { display: flex; align-items: center; gap: 0.75rem; }
-                .ind-dot { 
-                    width: 32px; height: 32px; border-radius: 10px; border: 2.5px solid #e2e8f0; 
-                    display: flex; align-items: center; justify-content: center; 
-                    font-weight: 900; color: #cbd5e1; font-size: 0.85rem;
-                }
-                .ind-dot.active { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
-                .ind-dot.done { border-color: #10b981; color: #10b981; background: #ecfdf5; }
-                .ind-line { width: 40px; height: 3px; background: #f1f5f9; border-radius: 2px; }
-
-                .form-section-v4 { margin-bottom: 4rem; }
-                .sec-title-v4 { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
-                .sec-icon-circle { width: 40px; height: 40px; border-radius: 12px; background: #eef2ff; color: #6366f1; display: flex; align-items: center; justify-content: center; }
-                .sec-title-v4 h2 { font-size: 1.5rem; font-weight: 900; color: #0f172a; margin: 0; }
-                .sec-title-v4.blue .sec-icon-circle { background: #eff6ff; color: #3b82f6; }
-                .sec-title-v4.orange .sec-icon-circle { background: #fff7ed; color: #f59e0b; }
-
-                .grid-v4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem 1rem; }
-                .f-group-v4 { display: flex; flex-direction: column; gap: 0.6rem; }
-                .col-2 { grid-column: span 2; }
-                .col-full { grid-column: span 4; }
-
-                .f-group-v4 label { font-size: 0.85rem; font-weight: 800; color: #64748b; margin-left: 0.25rem; }
-                .f-group-v4 input, .f-group-v4 select, .f-group-v4 textarea {
-                    height: 52px; background: #f8fafc; border: 2px solid #f1f5f9; border-radius: 14px;
-                    padding: 0 1rem; font-size: 0.95rem; font-weight: 700; color: #1e293b; outline: none; transition: 0.2s;
-                }
-                .f-group-v4 input:focus, .f-group-v4 select:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 4px rgba(99,102,241,0.06); }
-                .f-group-v4 textarea { height: 100px; padding: 1rem; resize: none; }
-
-                .sel-wrap-v4 { position: relative; }
-                .sel-wrap-v4 select { width: 100%; appearance: none; }
-                .arrow-v4 { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
-
-                .icon-input-v4 { position: relative; }
-                .icon-input-v4 .i-v4 { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #6366f1; }
-                .icon-input-v4 input { padding-left: 3rem !important; }
-
-                .form-footer-v4 { margin-top: 3rem; display: flex; justify-content: flex-end; }
-
-                .btn-main-v4 {
-                    height: 60px; padding: 0 3rem; border-radius: 18px;
-                    background: linear-gradient(135deg, #6366f1, #4338ca); color: #fff;
-                    border: none; font-size: 1.1rem; font-weight: 800; cursor: pointer;
-                    display: flex; align-items: center; gap: 1rem; box-shadow: 0 10px 25px rgba(99,102,241,0.3);
-                    transition: all 0.3s;
-                }
-                .btn-main-v4:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4); }
-                .btn-main-v4:disabled { opacity: 0.6; transform: none; box-shadow: none; }
-
-                /* Slots UI */
-                .slots-container-v4 { background: #fdfdff; border: 2px solid #f1f5f9; border-radius: 20px; padding: 1.5rem; }
-                .slots-reel-v4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
-                .slot-box-v4 {
-                    background: #fff; border: 2px solid #eef2f6; border-radius: 16px; padding: 1rem 0.5rem;
-                    text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 0.25rem;
-                }
-                .slot-box-v4:hover { border-color: #6366f1; transform: translateY(-2px); }
-                .slot-box-v4.active { background: #eef2ff; border-color: #6366f1; box-shadow: 0 8px 20px rgba(99,102,241,0.1); }
-                .s-time { font-size: 1.1rem; font-weight: 900; color: #1e293b; }
-                .s-session { font-size: 0.75rem; font-weight: 800; color: #6366f1; text-transform: uppercase; }
-
-                .p-badge-v4 {
-                    background: #f8fafc; border: 2px solid #f1f5f9; padding: 1.5rem; 
-                    border-radius: 24px; display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2.5rem;
-                }
-                .p-avatar-v4 { width: 56px; height: 56px; border-radius: 18px; background: #fff; color: #6366f1; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 15px rgba(0,0,0,0.05); }
-                .p-meta-v4 { display: flex; flex-direction: column; }
-                .p-meta-v4 strong { font-size: 1.35rem; font-weight: 900; color: #0f172a; }
-                .p-meta-v4 span { font-size: 0.9rem; font-weight: 700; color: #64748b; }
-
-                /* Success UI */
-                .success-screen-v4 { text-align: center; padding: 2rem 0; }
-                .success-blob { 
-                    width: 100px; height: 100px; background: #ecfdf5; color: #10b981; 
-                    border-radius: 35px; display: flex; align-items: center; justify-content: center;
-                    margin: 0 auto 2.5rem; box-shadow: 0 20px 40px rgba(16,185,129,0.2);
-                    animation: bounce 1s infinite alternate;
-                }
-                @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
-                .success-screen-v4 h1 { font-size: 2.5rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; }
-                .success-screen-v4 p { font-size: 1.1rem; color: #64748b; font-weight: 600; line-height: 1.6; max-width: 500px; margin: 0 auto 3rem; }
-
-                /* Reschedule UI */
-                .reschedule-panel-v4 { padding: 1rem 0; width: 100%; }
-                .pan-header { margin-bottom: 2.5rem; }
-                .pan-header h2 { font-size: 2rem; font-weight: 900; color: #0f172a; margin: 0 0 0.5rem; letter-spacing: -1px; }
-                .pan-header p { font-size: 1.1rem; color: #64748b; font-weight: 600; }
-                .appt-list-v4 { display: flex; flex-direction: column; gap: 1.25rem; }
-                .appt-card-v4 { 
-                    background: #fff; border: 2px solid #f1f5f9; border-radius: 24px; 
-                    padding: 1.75rem; display: flex; align-items: center; justify-content: space-between;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-                .appt-card-v4:hover { border-color: #6366f1; transform: translateY(-4px); box-shadow: 0 15px 35px rgba(99,102,241,0.1); }
-                .appt-info-v4 { display: flex; flex-direction: column; gap: 0.5rem; }
-                .a-date-wrap { display: flex; align-items: center; gap: 0.75rem; }
-                .a-icon { color: #6366f1; }
-                .a-date-wrap strong { font-size: 1.25rem; font-weight: 900; color: #1e293b; }
-                .a-meta-wrap span { font-size: 1rem; font-weight: 700; color: #64748b; }
-                .btn-reschedule-v4 {
-                    height: 52px; padding: 0 1.75rem; border-radius: 14px;
-                    background: #eef2ff; color: #6366f1; border: none;
-                    font-size: 1rem; font-weight: 800; cursor: pointer;
-                    display: flex; align-items: center; gap: 0.75rem; transition: 0.2s;
-                }
-                .btn-reschedule-v4:hover { background: #6366f1; color: #fff; }
-                .no-appts-v4 { 
-                    text-align: center; padding: 4rem 2rem; background: #f8fafc; 
-                    border-radius: 24px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 1rem;
-                }
-                .no-appts-v4 p { font-size: 1.1rem; font-weight: 700; margin: 0; }
-
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-                /* Mobile */
-                @media (max-width: 1024px) {
-                    .action-cards-v4 { grid-template-columns: 1fr; gap: 1.5rem; }
-                    .hero-text-center h1 { font-size: 2.5rem; }
-                    .step-container-v4 { padding: 2rem; margin: 1rem; }
-                    .grid-v4 { grid-template-columns: repeat(2, 1fr); }
-                    .col-2, .col-full { grid-column: span 2; }
-                }
-
-                @media (max-width: 640px) {
-                    .grid-v4 { grid-template-columns: 1fr; }
-                    .col-2, .col-full { grid-column: span 1; }
-                    .step-indicator-v4 { display: none; }
-                    .hero-text-center h1 { font-size: 2.25rem; }
-                    .card-v4 { padding: 1.75rem; border-radius: 24px; }
-                    .btn-main-v4 { width: 100%; justify-content: center; padding: 0 1.5rem; }
-                    .logo-box img { width: 44px; height: 44px; }
-                    .landing-header { margin-bottom: 2rem; }
-                }
-
-                @media (max-width: 480px) {
-                    .hero-text-center h1 { font-size: 2rem; letter-spacing: -1px; }
-                    .hero-text-center p { font-size: 1rem; }
-                    .step-container-v4 { padding: 1.5rem; border-radius: 28px; }
-                    .sec-title-v4 h2 { font-size: 1.35rem; }
-                    .btn-main-v4 { font-size: 1rem; height: 56px; }
-                }
-            `}</style>
         </div>
     );
 };
 
 export default PublicRegister;
+
+
+

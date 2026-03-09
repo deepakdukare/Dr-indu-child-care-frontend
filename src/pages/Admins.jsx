@@ -22,7 +22,9 @@ const ROLE_PRESETS = [
     { id: 'admin', label: 'Admin', description: 'Clinic management access' },
     { id: 'staff', label: 'Staff', description: 'Appointment and patient access' },
     { id: 'secretary', label: 'Secretary', description: 'Reception and scheduling' },
-    { id: 'doctor', label: 'Doctor', description: 'Clinical and Medical Documentation access' }
+    { id: 'doctor', label: 'Doctor', description: 'Clinical and Medical Documentation access' },
+    { id: 'nurse', label: 'Nurse', description: 'Vitals and clinical assistance' },
+    { id: 'receptionist', label: 'Receptionist', description: 'Tokens, billing and registration' }
 ];
 
 const PERMISSION_LABELS = {
@@ -38,7 +40,9 @@ const PERMISSION_LABELS = {
     view_admins: 'Admin Control',
     view_reports: 'Reports',
     view_notifications: 'Notifications',
-    view_settings: 'Settings'
+    view_settings: 'Settings',
+    view_patient_mobile: 'Show Patient Mobile',
+    view_patient_email: 'Show Patient Email',
 };
 
 const normalizeRole = (role) => {
@@ -105,7 +109,7 @@ const Admins = () => {
         new_password: ''
     });
     const [profileLookupLoading, setProfileLookupLoading] = useState(false);
-    const [activeSection, setActiveSection] = useState('');
+    const [activeSection, setActiveSection] = useState('roles');
     const [editingProfile, setEditingProfile] = useState(false);
 
     const localUser = useMemo(() => JSON.parse(localStorage.getItem('user') || '{}'), []);
@@ -463,8 +467,85 @@ const Admins = () => {
                     >
                         Admin User Directory
                     </button>
+                    <button
+                        onClick={() => setActiveSection('clinic')}
+                        style={{
+                            flex: 1,
+                            padding: '1.5rem 2rem',
+                            border: 'none',
+                            background: activeSection === 'clinic' ? '#fff' : '#fcfdfe',
+                            borderBottom: activeSection === 'clinic' ? '3px solid #6366f1' : 'none',
+                            color: activeSection === 'clinic' ? '#6366f1' : '#64748b',
+                            fontWeight: activeSection === 'clinic' ? 800 : 600,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            textAlign: 'left',
+                            borderLeft: '1px solid #f1f5f9'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeSection !== 'clinic') {
+                                e.target.style.background = '#f8fafc';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeSection !== 'clinic') {
+                                e.target.style.background = '#fcfdfe';
+                            }
+                        }}
+                    >
+                        Clinic Config
+                    </button>
                 </div>
             </div>
+
+            {/* Tab Content - Clinic Config */}
+            {activeSection === 'clinic' && (
+                <div className="card shadow-premium" style={{ marginBottom: '1.5rem', padding: '2rem' }}>
+                    <div className="card-header" style={{ padding: '0 0 1.5rem 0', borderBottom: '1px solid #f1f5f9', marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Clinical Configuration</h3>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                        <div className="clinic-info-group">
+                            <h4 style={{ color: '#6366f1', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Shield size={18} /> General Identity
+                            </h4>
+                            <div className="input-group-v3" style={{ marginBottom: '1rem' }}>
+                                <label>Clinic Name</label>
+                                <input type="text" className="input-premium" value="Dr. Indu Child Care Clinic" readOnly />
+                            </div>
+                            <div className="input-group-v3">
+                                <label>Provider ID / License</label>
+                                <input type="text" className="input-premium" value="DICC-HR-001" readOnly />
+                            </div>
+                        </div>
+
+                        <div className="clinic-info-group">
+                            <h4 style={{ color: '#0ea5e9', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Mail size={18} /> Communication
+                            </h4>
+                            <div className="input-group-v3" style={{ marginBottom: '1rem' }}>
+                                <label>Primary Email</label>
+                                <input type="text" className="input-premium" value="support@drinduchildcare.com" readOnly />
+                            </div>
+                            <div className="input-group-v3">
+                                <label>Contact Number</label>
+                                <input type="text" className="input-premium" value="+91 99999 99999" readOnly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#64748b' }}>
+                            <AlertCircle size={20} />
+                            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
+                                Clinic-wide configurations are managed by the System Super-Admin. Contact IT support for changes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Tab Content - Role Distribution */}
             {activeSection === 'roles' && (
@@ -804,166 +885,7 @@ const Admins = () => {
                 </div>
             )}
 
-            <style>{`
-                .admins-page { animation: fadeIn 0.35s ease-out; padding: 2.5rem; max-width: 1400px; margin: 0 auto; }
-                .admins-head {
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 1rem;
-                    align-items: flex-start;
-                    flex-wrap: wrap;
-                }
-                .admins-message-wrap {
-                    display: grid;
-                    gap: 0.5rem;
-                    margin-bottom: 2rem;
-                }
-                .admins-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-                    gap: 2rem;
-                    align-items: start;
-                }
-                .roles-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 0.75rem;
-                }
-                .role-chip {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    border: 1px solid #f1f5f9;
-                    border-radius: 16px;
-                    padding: 1.25rem;
-                    background: linear-gradient(135deg, #ffffff, #f8fbff);
-                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-                }
-                .role-chip-title { font-weight: 700; color: #0f172a; font-size: 0.95rem; }
-                .role-chip-desc { color: #64748b; font-size: 0.8rem; margin-top: 0.2rem; }
-                
-                .profile-summary {
-                    border: 1px solid #f1f5f9;
-                    border-radius: 18px;
-                    padding: 1.5rem;
-                    display: flex;
-                    gap: 1.25rem;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
-                    background: linear-gradient(135deg, #ffffff, #f8fbff);
-                }
-                .profile-avatar {
-                    width: 56px;
-                    height: 56px;
-                    border-radius: 16px;
-                    background: linear-gradient(135deg, #4338ca, #6366f1);
-                    color: #fff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 800;
-                    font-size: 1.4rem;
-                }
-                .profile-name { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
-                .profile-meta { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
-                .profile-kv-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.85rem;
-                    margin-bottom: 1.5rem;
-                }
-                .profile-kv {
-                    border: 1px solid #f1f5f9;
-                    border-radius: 14px;
-                    padding: 1rem;
-                    display: grid;
-                    gap: 0.25rem;
-                    background: #fff;
-                }
-                .profile-kv span { font-size: 0.725rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; }
-                .profile-kv strong { font-size: 0.9rem; color: #1e293b; word-break: break-all; }
-                .admin-filters {
-                    padding: 1.25rem;
-                    display: flex;
-                    gap: 1rem;
-                    flex-wrap: wrap;
-                    align-items: center;
-                    background: #fcfdfe;
-                }
-                .admin-filters select {
-                    border: 1px solid #e2e8f0;
-                    border-radius: 12px;
-                    padding: 0.75rem 1rem;
-                    min-width: 180px;
-                    background: #fff;
-                    font-weight: 600;
-                    color: #475569;
-                    font-family: inherit;
-                    outline: none;
-                }
-                .admin-filters select:focus { border-color: #6366f1; }
-                .admin-table-wrap { width: 100%; overflow-x: auto; }
-                .admin-empty-cell {
-                    text-align: center;
-                    color: #94a3b8;
-                    font-weight: 700;
-                    font-size: 0.82rem;
-                    padding: 2.2rem 1rem !important;
-                }
-                .user-avatar {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 15px;
-                    background: linear-gradient(135deg, #4338ca, #6366f1);
-                    color: #fff;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.25rem;
-                }
-                .permission-list {
-                    display: flex;
-                    gap: 0.4rem;
-                    flex-wrap: wrap;
-                }
-                .btn-action {
-                    border: 1px solid #e2e8f0;
-                    background: #fff;
-                    width: 38px;
-                    height: 38px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 12px;
-                    color: #64748b;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .btn-action:hover { background: #f8fafc; border-color: #6366f1; color: #6366f1; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-                .btn-action.btn-danger:hover { background: #fee2e2; border-color: #ef4444; color: #ef4444; }
-                
-                .animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                
-                @media (max-width: 768px) {
-                    .admins-page { padding: 1rem; }
-                    .admin-filters select { min-width: 100%; }
-                    .admins-grid { grid-template-columns: 1fr; }
-                }
 
-                .alert-premium {
-                    padding: 1.25rem 2rem;
-                    border-radius: 20px;
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    font-weight: 700;
-                    border: 1px solid transparent;
-                }
-                .alert-premium.success { background: #f0fdf4; border-color: #dcfce7; color: #166534; }
-                .alert-premium.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-            `}</style>
 
         </div>
     );

@@ -1,0 +1,49 @@
+[2m7:14:53 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/appointments?date=2026-03-07[39m
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+[2m7:14:53 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/bot/interactions/unregistered[39m
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+[2m7:14:53 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/messages/messages/pending[39m
+Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:216:20)
+[2m7:14:53 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/notifications[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:25:30 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctor/late-checkins/DOC-00009[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:25:30 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctor/availability/DOC-00009?date=2026-03-07[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:25:30 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctor/availability-dashboard/DOC-00009[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:17 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:17 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:27 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:27 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:59 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors?all=true[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m7:27:59 pm[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/doctors?all=true[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)

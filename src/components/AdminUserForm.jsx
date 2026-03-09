@@ -36,7 +36,7 @@ const AdminUserForm = ({
                                 required
                                 value={userForm.full_name}
                                 onChange={(e) => setUserForm((p) => ({ ...p, full_name: e.target.value }))}
-                                placeholder="Amit Kumar"
+                                placeholder=""
                             />
                         </div>
                     </div>
@@ -50,7 +50,7 @@ const AdminUserForm = ({
                                 disabled={!!editingId}
                                 value={userForm.username}
                                 onChange={(e) => setUserForm((p) => ({ ...p, username: e.target.value }))}
-                                placeholder="staff_profile"
+                                placeholder=""
                             />
                         </div>
                     </div>
@@ -65,7 +65,7 @@ const AdminUserForm = ({
                                 disabled={!!editingId}
                                 value={userForm.email}
                                 onChange={(e) => setUserForm((p) => ({ ...p, email: e.target.value }))}
-                                placeholder="staff@hospital.com"
+                                placeholder=""
                             />
                         </div>
                     </div>
@@ -79,7 +79,7 @@ const AdminUserForm = ({
                                 type="password"
                                 value={userForm.password}
                                 onChange={(e) => setUserForm((p) => ({ ...p, password: e.target.value }))}
-                                placeholder={editingId ? "Leave blank to keep current" : "Secure password"}
+                                placeholder=""
                             />
                         </div>
                     </div>
@@ -141,7 +141,9 @@ const AdminUserForm = ({
                             { id: 'view_admins', label: 'Admin Control' },
                             { id: 'view_reports', label: 'Reports' },
                             { id: 'view_notifications', label: 'Notifications' },
-                            { id: 'view_settings', label: 'Settings' }
+                            { id: 'view_settings', label: 'Settings' },
+                            { id: 'view_patient_mobile', label: 'Show Patient Mobile' },
+                            { id: 'view_patient_email', label: 'Show Patient Email' }
                         ].map((perm) => (
                             <label key={perm.id} className="permission-item-v3">
                                 <input

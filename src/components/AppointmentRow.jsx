@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Clock3, Edit2, Phone, Trash2, XCircle } from 'lucide-react';
 import { removeSalutation } from '../utils/formatters';
+import { hasPermission } from '../utils/auth';
 
 const STATUS_CONFIG = {
     CONFIRMED: { label: 'CONFIRMED', color: '#6366f1', bg: '#eef2ff', icon: CheckCircle2 },
@@ -38,13 +39,20 @@ const getDateTime = (appt) => {
         return `${formatTime12h(appt.start_time)} - ${formatTime12h(appt.end_time)}`;
     }
     if (appt?.appointment_time) return String(appt.appointment_time);
-    if (appt?.slot_label) return String(appt.slot_label).toUpperCase();
     return 'TIME TBD';
 };
 
 const getVisitType = (appt) => {
-    if (!appt?.visit_type) return 'CONSULTATION';
-    return String(appt.visit_type).replace(/_/g, ' ').toUpperCase();
+    const type = appt?.visit_category || appt?.visit_type;
+    if (!type) return 'First visit';
+
+    // Convert e.g., "FOLLOW_UP" to "Follow-up" or "first_visit" to "First visit"
+    return String(type)
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+        .replace('Follow Up', 'Follow-up');
 };
 
 const AppointmentRow = ({ appt, onEdit, onCancel }) => {
@@ -57,12 +65,23 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
         <tr className="appointment-row-premium">
             <td className="patient-cell-premium">
                 <div className="patient-info-stack">
-                    <div className="patient-name-bold">{removeSalutation(appt?.child_name) || 'Walk-in Patient'}</div>
+                    <div className="patient-name-bold">
+                        {removeSalutation(appt?.child_name) || 'Walk-in Patient'}
+                        {appt?.token_display && (
+                            <span className={`token-badge-inline ${appt.token_pool === 'WALK_IN' ? 'walkin' : 'online'}`}>
+                                {appt.token_display}
+                            </span>
+                        )}
+                    </div>
                     <div className="patient-meta-pill">
                         <span className="p-id">{appt?.patient_id || '--'}</span>
                         <span className="p-separator"></span>
-                        <Phone size={11} className="p-icon" />
-                        <span className="p-phone">{appt?.parent_mobile || '--'}</span>
+                        {hasPermission('view_patient_mobile') && (
+                            <>
+                                <Phone size={11} className="p-icon" />
+                                <span className="p-phone">{appt?.parent_mobile || '--'}</span>
+                            </>
+                        )}
                     </div>
                 </div>
             </td>
@@ -115,131 +134,6 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
                     </button>
                 </div>
             </td>
-
-            <style>{`
-                .appointment-row-premium td {
-                    padding: 1.25rem 1.5rem;
-                    background: #fff;
-                    border-bottom: 1px solid #f1f5f9;
-                    transition: all 0.2s ease;
-                }
-
-                .appointment-row-premium:hover td {
-                    background: #f8faff;
-                }
-
-                .patient-name-bold {
-                    font-weight: 800;
-                    color: #0f172a;
-                    font-size: 1rem;
-                    margin-bottom: 0.25rem;
-                }
-
-                .patient-meta-pill {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    color: #94a3b8;
-                }
-
-                .p-icon { color: #6366f1; opacity: 0.5; }
-                .p-separator { width: 4px; height: 4px; background: #cbd5e1; border-radius: 50%; }
-
-                .date-main {
-                    font-weight: 800;
-                    color: #334155;
-                    font-size: 0.95rem;
-                }
-
-                .time-sub {
-                    font-weight: 700;
-                    color: #6366f1;
-                    font-size: 0.75rem;
-                    margin-top: 0.15rem;
-                }
-
-                .doc-name {
-                    font-weight: 800;
-                    color: #4f46e5;
-                    font-size: 0.9rem;
-                }
-
-                .visit-badge {
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    color: #94a3b8;
-                    letter-spacing: 0.05em;
-                    margin-top: 0.15rem;
-                }
-
-                .reason-text {
-                    color: #64748b;
-                    font-size: 0.9rem;
-                    font-weight: 600;
-                }
-
-                .status-pill-premium {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    padding: 0.5rem 1rem;
-                    border-radius: 20px;
-                    font-size: 0.7rem;
-                    font-weight: 900;
-                    background: var(--status-bg);
-                    color: var(--status-color);
-                    border: 1px solid rgba(0,0,0,0.02);
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .actions-wrapper {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 0.75rem;
-                }
-
-                .action-btn {
-                    width: 38px;
-                    height: 38px;
-                    border-radius: 12px;
-                    border: 1.5px solid #f1f5f9;
-                    background: #fff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    color: #64748b;
-                    padding: 0;
-                }
-
-                .action-btn:hover:not(:disabled) {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                }
-
-                .edit-btn:hover:not(:disabled) {
-                    border-color: #6366f1;
-                    color: #6366f1;
-                    background: #eef2ff;
-                }
-
-                .cancel-btn:hover:not(:disabled) {
-                    border-color: #ef4444;
-                    color: #ef4444;
-                    background: #fef2f2;
-                }
-
-                .action-btn:disabled {
-                    opacity: 0.4;
-                    cursor: not-allowed;
-                    background: #f8fafc;
-                }
-            `}</style>
         </tr>
     );
 };

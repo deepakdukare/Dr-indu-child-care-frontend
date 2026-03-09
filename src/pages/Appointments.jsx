@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Calendar as CalendarIcon,
     Users,
@@ -28,10 +28,10 @@ import {
     bookAppointment,
     updateAppointment,
     cancelAppointment,
-    getAvailableSlots,
     searchPatients,
     registerPatient,
     bookAppointmentWithToken,
+    getAvailableTokens,
     toIsoDate
 } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
@@ -49,8 +49,8 @@ const formatTime12h = (t) => {
 const getApiErrorMessage = (err, fallback = 'Operation failed.') => {
     const message = err?.response?.data?.message;
     if (!message) return fallback;
-    if (message.toLowerCase().includes('slot not found')) {
-        return 'Selected slot is no longer available. Refresh slots and choose an active slot.';
+    if (message.toLowerCase().includes('token not available') || message.toLowerCase().includes('capacity reached')) {
+        return 'The daily token capacity for this clinician has been reached. Please select another date or practitioner.';
     }
     return message;
 };
@@ -72,7 +72,8 @@ const Appointments = () => {
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [queueSearch, setQueueSearch] = useState('');
+    const [enrollErrors, setEnrollErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
 
     // Queue Filters
     const [filters, setFilters] = useState({
@@ -83,40 +84,36 @@ const Appointments = () => {
 
     // View State
     const [activeView, setActiveView] = useState('queue'); // 'queue' | 'authorizer'
-    const [activeTab, setActiveTab] = useState('patient'); // 'patient' | 'new-patient' | 'visit'
-
-    // Booking Wizard State
+    const [activeTab, setActiveTab] = useState('patient');
+    const [availableTokens, setAvailableTokens] = useState(null);
+    const [tokensLoading, setTokensLoading] = useState(false);
     const [searching, setSearching] = useState(false);
     const [patientSearch, setPatientSearch] = useState('');
+    const [queueSearch, setQueueSearch] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [selectedPatient, setSelectedPatient] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [editMode, setEditMode] = useState(false);
+    const [newPatient, setNewPatient] = useState({
+        first_name: '',
+        last_name: '',
+        gender: 'boy',
+        dob: '',
+        wa_id: ''
+    });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
+    const [editMode, setEditMode] = useState(false);
 
     const [form, setForm] = useState({
         patient_id: '',
         doctor_name: 'Dr. Indu',
         appointment_date: filters.date,
-        slot_id: '',
+        doctor_id: '',
         doctor_speciality: 'Pediatrics',
-        visit_type: 'CONSULTATION',
+        visit_category: 'First visit',
+        registration_type: 'walkin', // Default for admin
         appointment_mode: 'OFFLINE',
         reason: ''
     });
 
-    const [newPatient, setNewPatient] = useState({
-        salutation: 'Master',
-        first_name: '',
-        last_name: '',
-        gender: 'Male',
-        dob: '',
-        wa_id: '',
-        registration_source: 'dashboard'
-    });
-
-    const [availableSlots, setAvailableSlots] = useState([]);
-    const [slotsLoading, setSlotsLoading] = useState(false);
     const [cancelModal, setCancelModal] = useState({ show: false, id: null, reason: '' });
     const dateInputRef = useRef(null);
 
@@ -139,7 +136,7 @@ const Appointments = () => {
             const [apptRes, statsRes, doctorRes] = await Promise.all([
                 getAppointments(filters),
                 getAppointmentStats(filters.date),
-                getDoctors()
+                getDoctors({ all: true })
             ]);
             setAppointments(apptRes.data.data || []);
             setStats(statsRes.data.data || {});
@@ -155,18 +152,18 @@ const Appointments = () => {
         fetchData();
     }, [fetchData]);
 
-    const fetchSlots = useCallback(async () => {
-        if (!form.appointment_date) return;
-        setSlotsLoading(true);
+    const fetchTokens = useCallback(async () => {
+        if (!form.appointment_date || !form.doctor_id) return;
+        setTokensLoading(true);
         try {
-            const res = await getAvailableSlots(form.doctor_name, form.appointment_date);
-            setAvailableSlots(res.data.data || []);
+            const res = await getAvailableTokens(form.doctor_id, form.appointment_date);
+            setAvailableTokens(res.data.data);
         } catch (err) {
-            setError(getApiErrorMessage(err, "Unable to load slots for the selected date."));
+            setError(getApiErrorMessage(err, "Unable to load token availability."));
         } finally {
-            setSlotsLoading(false);
+            setTokensLoading(false);
         }
-    }, [form.appointment_date, form.doctor_name]);
+    }, [form.appointment_date, form.doctor_id]);
 
     const handlePatientSearch = useCallback(async (val) => {
         setPatientSearch(val);
@@ -184,12 +181,12 @@ const Appointments = () => {
     useEffect(() => {
         if (activeView === 'authorizer') {
             if (activeTab === 'visit') {
-                fetchSlots();
+                fetchTokens();
             } else if (activeTab === 'patient') {
                 handlePatientSearch(patientSearch);
             }
         }
-    }, [activeView, activeTab, fetchSlots, handlePatientSearch]);
+    }, [activeView, activeTab, fetchTokens, handlePatientSearch, patientSearch]);
 
     const selectPatient = (patient) => {
         setSelectedPatient(patient);
@@ -198,13 +195,40 @@ const Appointments = () => {
     };
 
     const handleQuickRegister = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        setEnrollErrors({});
+        setError(null);
+
+        const errors = {};
+        if (!newPatient.first_name?.trim()) errors.first_name = "First name required";
+        if (!newPatient.last_name?.trim()) errors.last_name = "Last name required";
+        if (!newPatient.gender?.trim()) errors.gender = "Gender required";
+        if (!newPatient.dob?.trim()) errors.dob = "Birth date required";
+        if (!newPatient.wa_id?.trim()) errors.wa_id = "Mobile required";
+        else if (newPatient.wa_id.length < 10) errors.wa_id = "10-digit required";
+
+        if (Object.keys(errors).length > 0) {
+            setEnrollErrors(errors);
+            const first = Object.keys(errors)[0];
+            const el = document.getElementsByName(first)[0];
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         setSubmitting(true);
         try {
-            const res = await registerPatient(newPatient);
+            const res = await registerPatient({
+                first_name: newPatient.first_name,
+                last_name: newPatient.last_name,
+                gender: newPatient.gender,
+                dob: newPatient.dob,
+                wa_id: newPatient.wa_id,
+                doctor: form.doctor_name
+            });
             selectPatient(res.data.data);
+            setActiveTab('visit');
         } catch (err) {
-            setError(err.response?.data?.message || "Registration failed.");
+            setError(err.response?.data?.message || "Enrollment failed");
         } finally {
             setSubmitting(false);
         }
@@ -212,22 +236,27 @@ const Appointments = () => {
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        if (!form.slot_id) {
-            setError("Validation Error: Please select an available time slot.");
+        if (!form.doctor_id) {
+            setError('Please select a clinician before booking.');
+            return;
+        }
+        if (!form.patient_id) {
+            setError('Please select a patient before booking.');
             return;
         }
         setSubmitting(true);
         try {
+            const visitCat = form.visit_category || 'First visit';
+            const payload = {
+                ...form,
+                visit_category: visitCat,
+                registration_type: editMode ? form.registration_type : 'walkin',
+                booking_source: 'dashboard'
+            };
             if (editMode) {
-                await updateAppointment(selectedAppointment.appointment_id, form);
+                await updateAppointment(selectedAppointment.appointment_id, payload);
             } else {
-                const isTodayStr = toIsoDate();
-                const isToday = form.appointment_date === isTodayStr;
-                if (isToday) {
-                    await bookAppointmentWithToken(form);
-                } else {
-                    await bookAppointment(form);
-                }
+                await bookAppointment(payload);
             }
             setError(null);
             setActiveView('queue');
@@ -251,6 +280,16 @@ const Appointments = () => {
         }
     };
 
+    const formatCategory = (type) => {
+        if (!type) return 'First visit';
+        return String(type)
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+            .replace('Follow Up', 'Follow-up');
+    };
+
     const openBookingModal = (appt = null) => {
         if (appt) {
             setEditMode(true);
@@ -259,9 +298,9 @@ const Appointments = () => {
                 patient_id: appt.patient_id,
                 doctor_name: appt.assigned_doctor_name || appt.doctor_name || 'Dr. Indu',
                 appointment_date: appt.appointment_date.split('T')[0],
-                slot_id: appt.slot_id,
                 doctor_speciality: appt.doctor_speciality || 'Pediatrics',
-                visit_type: appt.visit_type,
+                visit_category: formatCategory(appt.visit_category),
+                registration_type: appt.registration_type || 'walkin',
                 appointment_mode: appt.appointment_mode,
                 reason: appt.reason || ''
             });
@@ -273,14 +312,16 @@ const Appointments = () => {
             setActiveTab('visit');
         } else {
             setEditMode(false);
+            const defaultDoc = doctors.find(d => getDoctorDisplayName(d).toLowerCase().includes('indu')) || doctors[0];
             setForm({
                 patient_id: '',
-                doctor_name: 'Dr. Indu',
+                doctor_name: defaultDoc ? getDoctorDisplayName(defaultDoc) : '',
                 appointment_date: filters.date || toIsoDate(),
-                slot_id: '',
-                doctor_id: doctors.find(d => getDoctorDisplayName(d) === 'Dr. Indu')?.doctor_id || '',
-                doctor_speciality: 'Pediatrics',
-                visit_type: 'CONSULTATION',
+                doctor_id: defaultDoc?.doctor_id || '',
+                doctor_speciality: defaultDoc?.speciality || 'Pediatrics',
+                visit_category: 'First visit',
+                visit_category: 'First visit',
+                registration_type: 'walkin',
                 appointment_mode: 'OFFLINE',
                 reason: ''
             });
@@ -288,7 +329,7 @@ const Appointments = () => {
                 salutation: 'Master',
                 first_name: '',
                 last_name: '',
-                gender: 'Male',
+                gender: 'boy',
                 dob: '',
                 wa_id: '',
                 registration_source: 'dashboard'
@@ -314,7 +355,7 @@ const Appointments = () => {
         <div className="appointments-page-v3">
             <div className="header-section-premium">
                 <div className="header-content-premium">
-                    <h1 className="header-title-premium">Appointments Registry</h1>
+                    <h1 className="header-title-premium">Appointments</h1>
                     <div className="live-pill-premium">
                         <span className="live-dot"></span>
                         <span className="live-text">{stats?.total_today || 0} Total Today</span>
@@ -338,13 +379,13 @@ const Appointments = () => {
                         <span>Book Visit</span>
                     </button>
 
-                    <button className="sync-btn-premium" onClick={fetchData} title="Sync Clinic Registry">
+                    <button className="sync-btn-premium" onClick={fetchData} title="Sync Clinic Data">
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
             </div>
 
-            <div className="view-content-v3" style={{ width: '100%', maxWidth: '100%' }}>
+            <div className="view-content-v3">
                 {activeView === 'queue' ? (
                     <>
                         <div className="filter-shelf-premium">
@@ -352,7 +393,7 @@ const Appointments = () => {
                                 <Search size={22} className="s-icon" />
                                 <input
                                     type="text"
-                                    placeholder="Search clinical registry..."
+                                    placeholder=""
                                     value={queueSearch}
                                     onChange={(e) => setQueueSearch(e.target.value)}
                                 />
@@ -418,7 +459,7 @@ const Appointments = () => {
                                             <th>Assigned Provider</th>
                                             <th>Condition / Reason</th>
                                             <th>Registration Status</th>
-                                            <th style={{ textAlign: 'center' }}>Management</th>
+                                            <th className="management-header">Management</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -435,7 +476,7 @@ const Appointments = () => {
                                                         </div>
                                                         <h3>No Appointments Found</h3>
                                                         <p>We couldn't find any visits matching your current filters.</p>
-                                                        <button className="btn-save" onClick={() => openBookingModal()} style={{ marginTop: '1.5rem' }}>
+                                                        <button className="btn-save btn-new-booking" onClick={() => openBookingModal()}>
                                                             <Plus size={20} />
                                                             <span>New Booking</span>
                                                         </button>
@@ -485,7 +526,7 @@ const Appointments = () => {
                                 <div className="alert-v3-premium error">
                                     <AlertTriangle size={20} />
                                     <span>{error}</span>
-                                    <button onClick={() => setError(null)}>×</button>
+                                    <button onClick={() => setError(null)}>x</button>
                                 </div>
                             )}
 
@@ -495,14 +536,14 @@ const Appointments = () => {
                                         <Search size={22} className="s-icon" />
                                         <input
                                             type="text"
-                                            placeholder="Search clinical registry by name, ID or mobile..."
+                                            placeholder=""
                                             value={patientSearch}
                                             onChange={(e) => handlePatientSearch(e.target.value)}
                                             className="search-input-premium"
                                         />
                                     </div>
 
-                                    {searching && <div className="scanner-line">Scanning Identity Registry...</div>}
+                                    {searching && <div className="scanner-line">Scanning Patient Records...</div>}
 
                                     <div className="search-results-premium">
                                         {searchResults.map(p => (
@@ -510,7 +551,7 @@ const Appointments = () => {
                                                 <div className="p-avatar-v2">{p.child_name?.charAt(0)}</div>
                                                 <div className="p-info-v2">
                                                     <div className="p-name">{removeSalutation(p.child_name)}</div>
-                                                    <div className="p-meta">{p.patient_id} • {p.parent_mobile}</div>
+                                                    <div className="p-meta">{p.patient_id} | {p.parent_mobile}</div>
                                                 </div>
                                                 <div className="p-action"><ArrowRight size={20} /></div>
                                             </div>
@@ -524,19 +565,36 @@ const Appointments = () => {
                                     </div>
                                 </div>
                             ) : activeTab === 'new-patient' ? (
-                                <form onSubmit={handleQuickRegister} className="wizard-form-v3">
+                                <form onSubmit={handleQuickRegister} className="wizard-form-v3" noValidate>
                                     <div className="form-grid-v2">
-                                        <div className="f-group"><label>First Name</label><input required placeholder="First name" value={newPatient.first_name} onChange={e => setNewPatient({ ...newPatient, first_name: e.target.value })} className="input-v3" /></div>
-                                        <div className="f-group"><label>Last Name</label><input required placeholder="Last name" value={newPatient.last_name} onChange={e => setNewPatient({ ...newPatient, last_name: e.target.value })} className="input-v3" /></div>
                                         <div className="f-group">
-                                            <label>Gender</label>
-                                            <select value={newPatient.gender} onChange={e => setNewPatient({ ...newPatient, gender: e.target.value })} className="select-v3">
-                                                <option value="Male">Male</option>
-                                                <option value="Female">Female</option>
-                                            </select>
+                                            <label>First Name *</label>
+                                            <input name="first_name" placeholder="" value={newPatient.first_name} onChange={e => setNewPatient({ ...newPatient, first_name: e.target.value })} className={`input-v3 ${enrollErrors.first_name ? 'error' : ''}`} />
+                                            {enrollErrors.first_name && <p className="err-msg-v3">{enrollErrors.first_name}</p>}
                                         </div>
-                                        <div className="f-group"><label>Date of Birth</label><input type="date" required value={newPatient.dob} onChange={e => setNewPatient({ ...newPatient, dob: e.target.value })} className="input-v3" /></div>
-                                        <div className="f-group"><label>WhatsApp Mobile</label><input required placeholder="10-digit mobile" value={newPatient.wa_id} onChange={e => setNewPatient({ ...newPatient, wa_id: e.target.value.replace(/\D/g, '') })} className="input-v3" /></div>
+                                        <div className="f-group">
+                                            <label>Last Name *</label>
+                                            <input name="last_name" placeholder="" value={newPatient.last_name} onChange={e => setNewPatient({ ...newPatient, last_name: e.target.value })} className={`input-v3 ${enrollErrors.last_name ? 'error' : ''}`} />
+                                            {enrollErrors.last_name && <p className="err-msg-v3">{enrollErrors.last_name}</p>}
+                                        </div>
+                                        <div className="f-group">
+                                            <label>Gender *</label>
+                                            <select name="gender" value={newPatient.gender} onChange={e => setNewPatient({ ...newPatient, gender: e.target.value })} className={`select-v3 ${enrollErrors.gender ? 'error' : ''}`}>
+                                                <option value="boy">Boy</option>
+                                                <option value="girl">Girl</option>
+                                            </select>
+                                            {enrollErrors.gender && <p className="err-msg-v3">{enrollErrors.gender}</p>}
+                                        </div>
+                                        <div className="f-group">
+                                            <label>Date of Birth *</label>
+                                            <input name="dob" type="date" value={newPatient.dob} onChange={e => setNewPatient({ ...newPatient, dob: e.target.value })} className={`input-v3 ${enrollErrors.dob ? 'error' : ''}`} />
+                                            {enrollErrors.dob && <p className="err-msg-v3">{enrollErrors.dob}</p>}
+                                        </div>
+                                        <div className="f-group">
+                                            <label>WhatsApp Mobile *</label>
+                                            <input name="wa_id" placeholder="" value={newPatient.wa_id} onChange={e => setNewPatient({ ...newPatient, wa_id: e.target.value.replace(/\D/g, '') })} className={`input-v3 ${enrollErrors.wa_id ? 'error' : ''}`} />
+                                            {enrollErrors.wa_id && <p className="err-msg-v3">{enrollErrors.wa_id}</p>}
+                                        </div>
                                     </div>
                                     <div className="wizard-footer-v3">
                                         <button type="button" className="btn-cancel" onClick={() => setActiveTab('patient')}>Back to Search</button>
@@ -571,11 +629,15 @@ const Appointments = () => {
                                             <div className="input-with-icon">
                                                 <Stethoscope size={18} className="i-icon" />
                                                 <select
-                                                    value={form.doctor_name}
-                                                    onChange={e => setForm({ ...form, doctor_name: e.target.value })}
+                                                    value={form.doctor_id}
+                                                    onChange={e => {
+                                                        const doc = doctors.find(d => d.doctor_id === e.target.value);
+                                                        setForm({ ...form, doctor_id: e.target.value, doctor_name: getDoctorDisplayName(doc) });
+                                                    }}
                                                     className="select-v3-iconic"
                                                 >
-                                                    {doctors.map(doc => <option key={doc._id} value={getDoctorDisplayName(doc)}>{getDoctorDisplayName(doc)}</option>)}
+                                                    <option value="" disabled>Select Provider</option>
+                                                    {doctors.map(doc => <option key={doc.doctor_id} value={doc.doctor_id}>{getDoctorDisplayName(doc)}</option>)}
                                                 </select>
                                             </div>
                                         </div>
@@ -594,31 +656,42 @@ const Appointments = () => {
                                         </div>
 
                                         <div className="f-group full-span">
-                                            <div className="slot-header">
-                                                <label>Available Time Slots</label>
-                                                {slotsLoading && <RefreshCw size={14} className="animate-spin text-primary" />}
-                                            </div>
+                                            <div className="token-availability-v3 card-premium-v3">
+                                                <div className="token-header">
+                                                    <h3>Token Inventory Status</h3>
+                                                    {tokensLoading && <RefreshCw size={16} className="animate-spin text-primary" />}
+                                                </div>
 
-                                            <div className="slot-grid-v3">
-                                                {[...availableSlots]
-                                                    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
-                                                    .map(slot => (
-                                                        <div
-                                                            key={slot.slot_id}
-                                                            className={`slot-pill-v3 ${form.slot_id === slot.slot_id ? 'active' : ''}`}
-                                                            onClick={() => setForm({ ...form, slot_id: slot.slot_id })}
-                                                        >
-                                                            <div className="slot-time">{formatTime12h(slot.start_time)}</div>
-                                                            <div className="slot-range">{formatTime12h(slot.end_time)}</div>
-                                                            <div className="slot-session">{slot.session}</div>
+                                                {availableTokens ? (
+                                                    <div className="token-stats-grid">
+                                                        <div className={`token-stat-card walkin active-pool`}
+                                                            style={{ cursor: 'default', gridColumn: '1 / -1' }}>
+                                                            <div className="stat-label">Walk-in Pool (Next Available Token)</div>
+                                                            <div className="stat-value">#{availableTokens.walkin_next_token || '--'}</div>
                                                         </div>
-                                                    ))}
-                                                {availableSlots.length === 0 && !slotsLoading && (
-                                                    <div className="no-slots-alert">
-                                                        <Clock size={18} />
-                                                        <span>No active slots found for selected date.</span>
+                                                        <div className="token-info-mini" style={{ gridColumn: '1 / -1', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                            <Clock size={14} />
+                                                            <span>Shift Start Time: {availableTokens.start_time || '--:--'}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="token-placeholder">
+                                                        <Activity size={24} />
+                                                        <p>Select provider and date to check token availability</p>
                                                     </div>
                                                 )}
+
+                                                {availableTokens && (availableTokens.online_tokens_remaining <= 0 && availableTokens.walkin_tokens_remaining <= 0) && (
+                                                    <div className="token-vacancy-alert">
+                                                        <AlertTriangle size={16} />
+                                                        <span>No tokens available for this date. Please try for another doctor or try for next days.</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="staff-emergency-note">
+                                                    <strong>Emergency Protocol:</strong>
+                                                    <p>For emergencies, please call the hospital directly at <b>+91-XXXXXXXXXX</b> to get the urgent appointment immediately.</p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -627,13 +700,14 @@ const Appointments = () => {
                                             <div className="input-with-icon">
                                                 <Activity size={18} className="i-icon" />
                                                 <select
-                                                    value={form.visit_type}
-                                                    onChange={e => setForm({ ...form, visit_type: e.target.value })}
+                                                    value={form.visit_category}
+                                                    onChange={e => setForm({ ...form, visit_category: e.target.value })}
                                                     className="select-v3-iconic"
                                                 >
-                                                    <option value="CONSULTATION">Regular Consultation</option>
-                                                    <option value="FOLLOW_UP">Follow-up Visit</option>
-                                                    <option value="VACCINATION">Vaccination / Immunization</option>
+                                                    <option value="First visit">First visit</option>
+                                                    <option value="Follow-up">Follow-up</option>
+                                                    <option value="Vaccination">Vaccination</option>
+                                                    <option value="Other">Other</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -643,7 +717,7 @@ const Appointments = () => {
                                             <div className="input-with-icon">
                                                 <Clipboard size={18} className="i-icon" />
                                                 <input
-                                                    placeholder="e.g. Fever, routine checkup..."
+                                                    placeholder=""
                                                     value={form.reason}
                                                     onChange={e => setForm({ ...form, reason: e.target.value })}
                                                     className="input-v3-iconic"
@@ -673,12 +747,12 @@ const Appointments = () => {
                     <div className="modal-alert-card">
                         <div className="alert-icon-wrap"><Trash2 size={32} /></div>
                         <h2>Purge Reservation</h2>
-                        <p>Are you sure you want to cancel appointment <strong>{cancelModal.id}</strong>? This action will immediately release the time slot back to the clinic inventory.</p>
+                        <p>Are you sure you want to cancel appointment <strong>{cancelModal.id}</strong>? This action will immediately release the token back to the clinic capacity.</p>
 
                         <div className="cancel-reason-input">
                             <label>Cancellation Reason</label>
                             <input
-                                placeholder="Patient request, emergency, etc."
+                                placeholder=""
                                 value={cancelModal.reason}
                                 onChange={e => setCancelModal({ ...cancelModal, reason: e.target.value })}
                                 className="input-v3"
@@ -693,168 +767,10 @@ const Appointments = () => {
                 </div>
             )}
 
-            <style>{`
-                .btn-action-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.85rem 1.75rem;
-                    background: #fff;
-                    border: 1.5px solid #e2e8f0;
-                    border-radius: 20px;
-                    color: #64748b;
-                    font-weight: 800;
-                    font-size: 0.95rem;
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-                }
 
-                .btn-action-premium:hover {
-                    border-color: #6366f1;
-                    color: #6366f1;
-                    background: #f5f3ff;
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.15);
-                }
-
-                .btn-action-premium.active {
-                    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-                    color: #fff;
-                    border-color: transparent;
-                    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-                }
-
-                .view-content-v3 {
-                    animation: fadeIn 0.4s ease-out;
-                }
-
-                .filter-shelf-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.5rem;
-                    margin-bottom: 2.5rem;
-                    flex-wrap: wrap;
-                }
-
-                .search-pill-v3 {
-                    flex: 1;
-                    min-width: 400px;
-                    height: 64px;
-                    background: #fff;
-                    border-radius: 24px;
-                    padding: 0 1.75rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                    border: 1px solid #e2e8f0;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-                    transition: 0.3s;
-                }
-
-                .search-pill-v3:focus-within {
-                    border-color: #6366f1;
-                    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.08);
-                }
-
-                .search-pill-v3 input {
-                    flex: 1;
-                    border: none;
-                    background: transparent;
-                    outline: none;
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    color: #0f172a;
-                }
-
-                .filter-group-v3 {
-                    display: flex;
-                    gap: 1rem;
-                }
-
-                .filter-item-v3 {
-                    height: 64px;
-                    background: #fff;
-                    border-radius: 20px;
-                    padding: 0 1.5rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.85rem;
-                    border: 1px solid #e2e8f0;
-                    cursor: pointer;
-                    transition: 0.3s;
-                    position: relative;
-                }
-
-                .filter-item-v3:hover {
-                    border-color: #cbd5e1;
-                    background: #fcfdfe;
-                }
-
-                .date-input-v3 {
-                    position: absolute;
-                    inset: 0;
-                    opacity: 0;
-                    cursor: pointer;
-                }
-
-                .f-label {
-                    font-weight: 800;
-                    color: #334155;
-                    font-size: 1rem;
-                }
-
-                .f-select {
-                    border: none;
-                    background: transparent;
-                    outline: none;
-                    font-weight: 800;
-                    color: #334155;
-                    font-size: 1rem;
-                    cursor: pointer;
-                    appearance: none;
-                    padding-right: 1.5rem;
-                }
-
-                .skeleton-line-v3 {
-                    height: 80px;
-                    margin: 1rem;
-                    background: linear-gradient(90deg, #f8fafc 25%, #f1f5f9 50%, #f8fafc 75%);
-                    background-size: 200% 100%;
-                    animation: shim 2s infinite;
-                    border-radius: 20px;
-                }
-
-                @keyframes shim {
-                    0% { background-position: 200% 0; }
-                    100% { background-position: -200% 0; }
-                }
-
-                .empty-state-card {
-                    padding: 8rem 2rem;
-                    text-align: center;
-                }
-
-                .empty-content {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 1.5rem;
-                }
-
-                .empty-icon-wrap {
-                    width: 100px;
-                    height: 100px;
-                    background: #f8fafc;
-                    border-radius: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #cbd5e1;
-                }
-            `}</style>
         </div>
     );
 };
 
 export default Appointments;
+

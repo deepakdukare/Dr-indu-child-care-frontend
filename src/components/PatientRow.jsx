@@ -18,7 +18,7 @@ const PatientRow = ({
             <tr className={`patient-row-v2 ${isSelected ? 'is-active' : ''}`}>
                 <td>
                     <div className="patient-meta-box">
-                        <div className={`avatar-premium ${p.gender === 'Female' ? 'pink' : 'blue'}`}>
+                        <div className={`avatar-premium ${String(p.gender || '').toLowerCase() === 'female' || String(p.gender || '').toLowerCase() === 'girl' ? 'pink' : 'blue'}`}>
                             {p.first_name?.charAt(0) || 'P'}
                         </div>
                         <div className="patient-name-stack">
@@ -41,7 +41,7 @@ const PatientRow = ({
                     <div className="contact-inline">
                         <div className="wa-box-mini">
                             <Zap size={14} className="wa-icon-glow" />
-                            {p.wa_id || p.father_mobile || p.parent_mobile}
+                            {p.wa_id}
                         </div>
                         <div className="loc-box-mini">
                             <MapPin size={12} />
@@ -81,3 +81,4 @@ const PatientRow = ({
 };
 
 export default PatientRow;
+

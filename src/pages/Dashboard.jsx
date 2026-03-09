@@ -42,7 +42,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, loading, trend })
             </div>
             <div className="stat-content">
                 <div className="stat-value-premium">
-                    {loading ? <div className="skeleton-pulse" style={{ width: '60px', height: '32px', borderRadius: '8px' }}></div> : value}
+                    {loading ? <div className="skeleton-pulse skeleton-pulse-value"></div> : value}
                 </div>
                 <div className="stat-label-premium">{title}</div>
             </div>
@@ -160,6 +160,16 @@ const Dashboard = () => {
         fetchData();
     }, []);
 
+    const formatVisitType = (type) => {
+        if (!type) return 'First visit';
+        return String(type)
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+            .replace('Follow Up', 'Follow-up');
+    };
+
     return (
         <div className="dashboard-page-v2">
             <div className="header-section-premium">
@@ -235,7 +245,7 @@ const Dashboard = () => {
                                 <table className="table-premium-v2">
                                     <thead>
                                         <tr>
-                                            <th>Time Slot</th>
+                                            <th>Scheduled Time</th>
                                             <th>Patient Name</th>
                                             <th>Doctor</th>
                                             <th>Category</th>
@@ -247,17 +257,23 @@ const Dashboard = () => {
                                         {data.appointments.map(appt => (
                                             <tr key={appt.appointment_id} className="row-hover-premium">
                                                 <td className="slot-cell-premium">
-                                                    <div className="time-pill">{appt.slot_label || 'TBD'}</div>
+                                                    <div className="time-pill">
+                                                        {appt.token_display && <span className="token-ref">{appt.token_display} • </span>}
+                                                        {appt.appointment_time || 'TBD'}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div className="patient-name-premium">{removeSalutation(appt.child_name) || 'Walk-in'}</div>
-                                                    <div className="patient-id-premium">{appt.patient_id || 'TEMP-ID'}</div>
+                                                    <div className="patient-id-premium">
+                                                        {appt.patient_id || 'TEMP-ID'}
+                                                        {hasPermission('view_patient_mobile') && appt.parent_mobile && <span className="patient-phone-premium"> • {appt.parent_mobile}</span>}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div className="doctor-name-premium">{appt.doctor_name || 'Not Assigned'}</div>
                                                 </td>
                                                 <td>
-                                                    <span className="category-pill-premium">{appt.visit_type}</span>
+                                                    <span className="category-pill-premium">{formatVisitType(appt.visit_category)}</span>
                                                 </td>
                                                 <td className="source-cell-premium">
                                                     <span className="source-tag">{appt.booking_source}</span>
@@ -281,7 +297,7 @@ const Dashboard = () => {
                         <h4 className="sidebar-title-premium">Quick Actions</h4>
                         <div className="actions-stack-premium">
                             {hasPermission('view_patients') && <QuickAction label="Enroll Patient" description="Add new medical profile" icon="👶" to="/patients" color="#6366f1" />}
-                            {hasPermission('view_appointments') && <QuickAction label="Book Appointment" description="Schedule a visit slot" icon="📅" to="/appointments" color="#0ea5e9" />}
+                            {hasPermission('view_appointments') && <QuickAction label="Book Appointment" description="Schedule a new session" icon="📅" to="/appointments" color="#0ea5e9" />}
                             {hasPermission('view_mrd') && <QuickAction label="Medical Records" description="Access patient history" icon="🗂️" to="/mrd" color="#10b981" />}
                         </div>
                     </div>
@@ -341,538 +357,7 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <style>{`
-                .dashboard-page-v2 {
-                    padding: 1.5rem;
-                    max-width: 1600px;
-                    margin: 0 auto;
-                    animation: pageFadeIn 0.6s ease-out;
-                }
 
-                @keyframes pageFadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                .filter-group-premium {
-                    background: #fff;
-                    padding: 0.4rem;
-                    border-radius: 16px;
-                    display: flex;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-                    border: 1px solid #f1f5f9;
-                }
-
-                .filter-tab-premium {
-                    padding: 0.5rem 1.25rem;
-                    border-radius: 12px;
-                    border: none;
-                    background: transparent;
-                    font-size: 0.9rem;
-                    font-weight: 700;
-                    color: #94a3b8;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .filter-tab-premium.active {
-                    background: #6366f1;
-                    color: #fff;
-                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
-                }
-
-                .dashboard-grid-v2 {
-                    display: grid;
-                    grid-template-columns: 1fr 380px;
-                    gap: 1.5rem;
-                }
-
-                .stats-grid-v2 {
-                    display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-
-                .stat-card-premium {
-                    background: #fff;
-                    padding: 1.25rem;
-                    border-radius: 28px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    overflow: hidden;
-                }
-
-                .stat-card-premium:hover {
-                    transform: translateY(-8px);
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.06);
-                    border-color: #e0e7ff;
-                }
-
-                .stat-card-inner {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                    margin-bottom: 1rem;
-                }
-
-                .stat-icon-premium {
-                    width: 52px;
-                    height: 52px;
-                    border-radius: 18px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .stat-value-premium {
-                    font-size: 1.6rem;
-                    font-weight: 800;
-                    color: #0f172a;
-                    margin-bottom: 0.15rem;
-                    font-family: 'Outfit', sans-serif;
-                }
-
-                .stat-label-premium {
-                    font-size: 0.82rem;
-                    font-weight: 700;
-                    color: #64748b;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .stat-trend {
-                    position: absolute;
-                    top: 1.5rem;
-                    right: 1.5rem;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.2rem;
-                    background: #f0fdf4;
-                    padding: 0.25rem 0.6rem;
-                    border-radius: 50px;
-                }
-
-                .stat-subtitle-premium {
-                    font-size: 0.8rem;
-                    color: #64748b;
-                    font-weight: 500;
-                }
-
-                .card-premium-v2 {
-                    background: #fff;
-                    border-radius: 32px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 25px rgba(0,0,0,0.02);
-                    overflow: hidden;
-                }
-
-                .card-header-premium {
-                    padding: 2rem 2.5rem;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-end;
-                    background: linear-gradient(to bottom, #fcfdff, #fff);
-                    border-bottom: 1px solid #f8fafc;
-                }
-
-                .card-title-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    font-size: 1.4rem;
-                    font-weight: 800;
-                    color: #0f172a;
-                    margin: 0;
-                }
-
-                .add-btn-premium {
-                    background: #6366f1;
-                    color: #fff;
-                    text-decoration: none;
-                    padding: 0.75rem 1.75rem;
-                    border-radius: 16px;
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.6rem;
-                    transition: all 0.2s;
-                    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.2);
-                }
-
-                .add-btn-premium:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 12px 20px rgba(99, 102, 241, 0.3);
-                    filter: brightness(1.1);
-                }
-
-                .table-wrapper-premium {
-                    padding: 0 1.5rem 1.5rem;
-                }
-
-                .table-premium-v2 {
-                    width: 100%;
-                    border-collapse: separate;
-                    border-spacing: 0 0.75rem;
-                }
-
-                .table-premium-v2 th {
-                    padding: 1rem 1.5rem;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    text-align: left;
-                }
-
-                .row-hover-premium {
-                    transition: all 0.2s;
-                }
-
-                .row-hover-premium td {
-                    padding: 1.25rem 1.5rem;
-                    background: #fff;
-                    transition: all 0.2s;
-                }
-
-                .row-hover-premium:hover td {
-                    background: #f8faff;
-                }
-
-                .row-hover-premium td:first-child { border-radius: 18px 0 0 18px; border-left: 1px solid #f1f5f9; }
-                .row-hover-premium td:last-child { border-radius: 0 18px 18px 0; border-right: 1px solid #f1f5f9; }
-                .row-hover-premium td { border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
-
-                .time-pill {
-                    background: #eff6ff;
-                    color: #2563eb;
-                    padding: 0.4rem 0.8rem;
-                    border-radius: 10px;
-                    font-weight: 800;
-                    font-size: 0.85rem;
-                    width: fit-content;
-                }
-
-                .patient-name-premium {
-                    font-weight: 700;
-                    color: #1e293b;
-                    font-size: 1rem;
-                }
-
-                .patient-id-premium {
-                    font-size: 0.75rem;
-                    color: #94a3b8;
-                    font-weight: 600;
-                    margin-top: 0.15rem;
-                }
-
-                .doctor-name-premium {
-                    font-weight: 700;
-                    color: #7c3aed;
-                    font-size: 0.9rem;
-                }
-
-                .category-pill-premium {
-                    background: #f8fafc;
-                    padding: 0.35rem 0.75rem;
-                    border-radius: 8px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    color: #64748b;
-                    border: 1px solid #f1f5f9;
-                }
-
-                .source-tag {
-                    font-size: 0.75rem;
-                    text-transform: capitalize;
-                    font-weight: 600;
-                    color: #64748b;
-                }
-
-                .status-pill-v2 {
-                    padding: 0.4rem 1rem;
-                    border-radius: 50px;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    letter-spacing: 0.02em;
-                }
-
-                .status-pill-v2.confirmed { background: #eff6ff; color: #2563eb; }
-                .status-pill-v2.completed { background: #f0fdf4; color: #16a34a; }
-                .status-pill-v2.cancelled { background: #fef2f2; color: #ef4444; }
-
-                /* Sidebar Styles */
-                .sidebar-section-premium {
-                    background: #fff;
-                    border-radius: 28px;
-                    padding: 2rem;
-                    margin-bottom: 2rem;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-                }
-
-                .sidebar-title-premium {
-                    font-size: 1.1rem;
-                    font-weight: 800;
-                    color: #0f172a;
-                    margin-bottom: 1.5rem;
-                    letter-spacing: -0.01em;
-                }
-
-                .actions-stack-premium {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-
-                .action-card-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 1.25rem;
-                    padding: 1.25rem;
-                    border-radius: 20px;
-                    background: #fcfdff;
-                    text-decoration: none;
-                    border: 1.5px solid #f8fafc;
-                    transition: all 0.2s;
-                }
-
-                .action-card-premium:hover {
-                    border-color: #6366f1;
-                    background: #fff;
-                    transform: translateX(5px);
-                    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.08);
-                }
-
-                .action-icon-premium {
-                    font-size: 1.5rem;
-                    width: 48px;
-                    height: 48px;
-                    background: #fff;
-                    border-radius: 14px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-                }
-
-                .action-info-premium {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .action-label-premium {
-                    font-weight: 700;
-                    color: #1e293b;
-                    font-size: 0.95rem;
-                }
-
-                .action-desc-premium {
-                    font-size: 0.75rem;
-                    color: #94a3b8;
-                    margin-top: 0.1rem;
-                }
-
-                .action-arrow {
-                    color: #cbd5e1;
-                    transition: all 0.2s;
-                }
-
-                .action-card-premium:hover .action-arrow {
-                    color: #6366f1;
-                    transform: translateX(3px);
-                }
-
-                .alerts-stack-premium {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.75rem;
-                }
-
-                .alert-item-premium {
-                    display: flex;
-                    gap: 1rem;
-                    padding: 1.25rem;
-                    border-radius: 20px;
-                    background: #fff;
-                    border: 1px solid #f8fafc;
-                    transition: all 0.2s;
-                }
-
-                .alert-icon-wrap-premium {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                }
-
-                .alert-title-premium {
-                    font-weight: 700;
-                    color: #1e293b;
-                    font-size: 0.9rem;
-                }
-
-                .alert-badge-premium {
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    padding: 0.2rem 0.5rem;
-                    border-radius: 6px;
-                    text-transform: uppercase;
-                }
-
-                .alert-desc-premium {
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                    margin-top: 0.25rem;
-                    line-height: 1.4;
-                }
-
-                .system-health-premium {
-                    background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);
-                    border-radius: 28px;
-                    padding: 1.75rem;
-                    color: #fff;
-                }
-
-                .health-stats-premium {
-                    display: flex;
-                    justify-content: space-around;
-                    align-items: center;
-                }
-
-                .health-stat-premium {
-                    text-align: center;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.25rem;
-                }
-
-                .health-stat-premium span {
-                    font-size: 0.75rem;
-                    color: rgba(255,255,255,0.6);
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .health-stat-premium strong {
-                    font-size: 1.1rem;
-                    font-weight: 800;
-                }
-
-                .health-divider {
-                    width: 1px;
-                    height: 30px;
-                    background: rgba(255,255,255,0.1);
-                }
-
-                .skeleton-pulse {
-                    background: #f1f5f9;
-                    animation: skeleton-pulse 1.5s infinite ease-in-out;
-                }
-
-                @keyframes skeleton-pulse {
-                    0% { opacity: 1; }
-                    50% { opacity: 0.4; }
-                    100% { opacity: 1; }
-                }
-
-                @media (max-width: 1400px) {
-                    .dashboard-grid-v2 {
-                        grid-template-columns: 1fr;
-                    }
-                    .sidebar-content-v2 {
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 1.5rem;
-                    }
-                    .system-health-premium {
-                        grid-column: span 2;
-                    }
-                }
-
-                @media (max-width: 1024px) {
-                    .stats-grid-v2 {
-                        grid-template-columns: repeat(2, 1fr);
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .header-section-premium { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
-                    .sidebar-content-v2 { grid-template-columns: 1fr; }
-                    .system-health-premium { grid-column: span 1; }
-                    .stats-grid-v2 { grid-template-columns: 1fr; }
-                }
-
-                .empty-state-premium-v2 {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 5rem 2rem;
-                    text-align: center;
-                    background: #fff;
-                    border-radius: 24px;
-                }
-
-                .empty-icon-motion {
-                    position: relative;
-                    width: 100px;
-                    height: 100px;
-                    background: #f5f3ff;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #6366f1;
-                    margin-bottom: 2rem;
-                }
-
-                .ring-pulse {
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    border: 2px solid #6366f1;
-                    animation: ring-ripple 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
-                    opacity: 0;
-                }
-
-                @keyframes ring-ripple {
-                    0% { transform: scale(1); opacity: 0.5; }
-                    100% { transform: scale(1.6); opacity: 0; }
-                }
-
-                .book-first-btn-premium {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
-                    color: #fff;
-                    padding: 0.85rem 2rem;
-                    border-radius: 16px;
-                    font-weight: 800;
-                    text-decoration: none;
-                    transition: all 0.3s;
-                    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
-                }
-
-                .book-first-btn-premium:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3);
-                    filter: brightness(1.1);
-                }
-            `}</style>
         </div>
     );
 };

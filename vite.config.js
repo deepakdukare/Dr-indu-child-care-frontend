@@ -6,20 +6,14 @@ export default defineConfig({
     plugins: [react()],
     server: {
         host: '0.0.0.0',
-        strictPort: true,
         port: 3000,
-        hmr: {
-            host: 'localhost',
-            port: 3000,
-            protocol: 'ws',
-        },
         fs: {
             strict: false,
             allow: ['..']
         },
         proxy: {
             '/api': {
-                target: 'https://api-dr-indu-child-care.brahmaastra.ai/',
+                target: 'https://api-dr-indu-child-care.brahmaastra.ai',
                 changeOrigin: true,
                 secure: false,
             },

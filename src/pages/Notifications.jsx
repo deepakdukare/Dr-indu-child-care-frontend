@@ -51,7 +51,7 @@ const Notifications = () => {
     const showError = (msg) => { setError(msg); setTimeout(() => setError(null), 5000); };
 
     useEffect(() => {
-        getDoctors().then(r => setDoctors(r.data?.data || [])).catch(() => { });
+        getDoctors({ all: true }).then(r => setDoctors(r.data?.data || [])).catch(() => { });
     }, []);
 
     const fetchNotifications = useCallback(async () => {
@@ -160,7 +160,7 @@ const Notifications = () => {
                         <form onSubmit={handleScheduleReminder} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem' }}>Patient ID</label>
-                                <input value={reminder.patient_id} onChange={e => setReminder(p => ({ ...p, patient_id: e.target.value }))} required placeholder="DICC-XXXX" style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.7rem 0.9rem', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                                <input value={reminder.patient_id} onChange={e => setReminder(p => ({ ...p, patient_id: e.target.value }))} required placeholder="26-AA1" style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.7rem 0.9rem', fontSize: '0.875rem', boxSizing: 'border-box' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem' }}>Doctor</label>

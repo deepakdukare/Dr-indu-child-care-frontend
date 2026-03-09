@@ -2,19 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     Monitor, RefreshCw, CheckCircle2, AlertCircle, ChevronRight,
     Clock, User, Hash, SkipForward, RotateCcw, ExternalLink,
-    Search, Filter, Zap, ArrowRight, Check, X
+    Search, Filter, Zap, ArrowRight, Check, X, Bell
 } from 'lucide-react';
 import {
     getDoctors, getDailyTokens, getClinicDisplayData,
     nextToken, checkInToken, updateTokenStatus, autoReschedule, bookAppointmentWithToken,
-    getTokenStatus,
+    getTokenStatus, notifyDelay,
     toIsoDate
 } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
 
 const STATUS_CONFIG = {
-    WAITING: { color: '#f59e0b', bg: '#fef3c7', label: 'Waiting' },
-    CHECKED_IN: { color: '#6366f1', bg: '#eef2ff', label: 'Checked In' },
+    WAITING: { color: '#f59e0b', bg: '#fef3c7', label: 'Pending' },
+    CHECKED_IN: { color: '#6366f1', bg: '#eef2ff', label: 'Called' },
     IN_PROGRESS: { color: '#0ea5e9', bg: '#e0f2fe', label: 'In Progress' },
     COMPLETED: { color: '#10b981', bg: '#d1fae5', label: 'Completed' },
     SKIPPED: { color: '#94a3b8', bg: '#f1f5f9', label: 'Skipped' },
@@ -24,31 +24,14 @@ const STATUS_CONFIG = {
 const StatBadge = ({ label, value, color, isActive, onClick }) => (
     <div
         onClick={onClick}
-        onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = `0 6px 16px ${color}15`;
-        }}
-        onMouseLeave={(e) => {
-            e.currentTarget.style.transform = isActive ? 'translateY(-2px)' : 'none';
-            e.currentTarget.style.boxShadow = isActive ? `0 4px 12px ${color}20` : 'none';
-        }}
+        className="stat-badge-custom"
         style={{
-            background: isActive ? '#fff' : '#fff',
             border: isActive ? `2px solid ${color}` : '1.5px solid #e2e8f0',
-            borderRadius: '14px',
-            padding: '0.75rem 1rem',
-            textAlign: 'center',
-            minWidth: '100px',
-            flex: 1,
-            cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isActive ? 'translateY(-2px)' : 'none',
             boxShadow: isActive ? `0 4px 12px ${color}20` : 'none',
-            position: 'relative',
-            overflow: 'hidden'
         }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: '0.65rem', color: isActive ? color : '#94a3b8', fontWeight: 800, marginTop: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div className="stat-badge-value" style={{ color }}>{value}</div>
+        <div className="stat-badge-label" style={{ color: isActive ? color : '#94a3b8' }}>{label}</div>
         {isActive && (
             <div style={{ position: 'absolute', bottom: 0, left: '25%', right: '25%', height: '3px', background: color, borderRadius: '3px 3px 0 0' }} />
         )}
@@ -58,82 +41,75 @@ const StatBadge = ({ label, value, color, isActive, onClick }) => (
 const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
     const cfg = STATUS_CONFIG[token.status] || STATUS_CONFIG.WAITING;
     return (
-        <tr style={{ transition: 'all 0.2s' }}>
-            <td style={{ padding: '0.6rem 1rem' }}>
-                <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                    background: isNext ? 'linear-gradient(135deg, #6366f1, #4338ca)' : '#f8fafc',
-                    color: isNext ? '#fff' : '#1e293b',
-                    padding: '0.3rem 0.6rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem'
-                }}>
-                    <Hash size={12} /> {token.token}
+        <tr>
+            <td>
+                <div className={`token-id-pill ${isNext ? 'active' : ''}`}>
+                    <Hash size={12} /> {token.token_display || token.token}
                 </div>
             </td>
-            <td style={{ padding: '0.6rem 1rem' }}>
-                <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.85rem' }}>{removeSalutation(token.child_name || token.patient_name) || '—'}</div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{token.patient_id || ''}</div>
+            <td>
+                <div className="patient-name">{removeSalutation(token.child_name || token.patient_name) || '—'}</div>
+                <div className="patient-id">{token.patient_id || ''}</div>
                 {!token.is_single_doctor && token.doctor_name && (
-                    <div style={{ fontSize: '0.65rem', color: '#6366f1', fontWeight: 700, marginTop: '0.1rem', textTransform: 'uppercase' }}>
+                    <div className="doctor-name-pill">
                         {token.doctor_name}
                     </div>
                 )}
             </td>
-            <td style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: '#64748b' }}>{token.slot_label || token.slot_id || '—'}</td>
-            <td style={{ padding: '0.6rem 1rem' }}>
-                <span style={{ background: cfg.bg, color: cfg.color, padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.7rem', fontWeight: 700 }}>
+            <td><div className="slot-label">{token.appointment_time || token.token_display || '—'}</div></td>
+            <td>
+                <span className="status-pill" style={{ background: cfg.bg, color: cfg.color }}>
                     {cfg.label}
                 </span>
             </td>
-            <td style={{ padding: '0.6rem 1rem' }}>
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                    {/* 1. INITIAL STATE: Waiting to arrive */}
+            <td>
+                <div className="actions-cell">
                     {token.status === 'WAITING' && (
                         <>
                             <button
                                 onClick={() => token.token && onCheckin(token.token, token.doctor_id)}
                                 disabled={!token.token}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #6366f1', background: '#fff', color: '#6366f1', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem', opacity: !token.token ? 0.5 : 1 }}>
+                                className="btn-token-check"
+                                style={{ opacity: !token.token ? 0.5 : 1 }}>
                                 <Check size={11} /> Check In
                             </button>
                             <button
                                 onClick={() => token.token && onStatusChange(token.token, 'NO_SHOW', token.doctor_id)}
                                 disabled={!token.token}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #ef4444', background: '#fff', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem', opacity: !token.token ? 0.5 : 1 }}>
+                                className="btn-token-no-show"
+                                style={{ opacity: !token.token ? 0.5 : 1 }}>
                                 <X size={11} /> No Show
                             </button>
                         </>
                     )}
 
-                    {/* 2. ARRIVED: Waiting for doctor */}
                     {token.status === 'CHECKED_IN' && (
                         <>
                             <button
                                 onClick={() => onStatusChange(token.token, 'IN_PROGRESS', token.doctor_id)}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                                className="btn-token-start">
                                 <ChevronRight size={11} /> Start Session
                             </button>
                             <button
                                 onClick={() => onStatusChange(token.token, 'SKIPPED', token.doctor_id)}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #94a3b8', background: '#fff', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                                className="btn-token-skip">
                                 <SkipForward size={11} /> Skip
                             </button>
                         </>
                     )}
 
-                    {/* 3. IN SESSION: Patient is with doctor */}
                     {token.status === 'IN_PROGRESS' && (
                         <button
                             onClick={() => onStatusChange(token.token, 'COMPLETED', token.doctor_id)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                            className="btn-token-finish">
                             <CheckCircle2 size={11} /> Finish & Complete
                         </button>
                     )}
 
-                    {/* 4. TERMINAL STATES: Completed/Missed */}
                     {(token.status === 'COMPLETED' || token.status === 'SKIPPED' || token.status === 'NO_SHOW') && (
                         <button
                             onClick={() => onStatusChange(token.token, 'WAITING', token.doctor_id)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1.5px solid #94a3b8', background: '#fff', color: '#94a3b8', cursor: 'pointer', fontWeight: 600, fontSize: '0.7rem' }}>
+                            className="btn-token-reset">
                             <RotateCcw size={11} /> Reset to Waiting
                         </button>
                     )}
@@ -164,7 +140,7 @@ const QueueDisplay = () => {
     const showError = (msg) => { setError(msg); setTimeout(() => setError(null), 5000); };
 
     useEffect(() => {
-        getDoctors().then(r => {
+        getDoctors({ all: true }).then(r => {
             const list = r.data?.data || r.data?.doctors || [];
             setDoctors(list);
             // Default to empty (All Combined Doctors) instead of forcing first doctor
@@ -252,6 +228,25 @@ const QueueDisplay = () => {
         } catch (e) { showError(e.response?.data?.message || 'Auto-reschedule failed'); }
     };
 
+    const handleNotifyDelay = async () => {
+        if (!selectedDoctor) {
+            showError('Please select a doctor first to notify their waiting patients.');
+            return;
+        }
+        const mins = window.prompt('Enter delay in minutes (e.g. 30):', '30');
+        if (!mins) return;
+
+        try {
+            setLoading(true);
+            await notifyDelay({ doctor_id: selectedDoctor, date, delay_minutes: mins });
+            showSuccess(`Delay notification queued for doctor's patients`);
+        } catch (e) {
+            showError(e.response?.data?.message || 'Failed to notify delay');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleCheckTokenStatus = async () => {
         if (!statusSearch) return;
         setCheckingStatus(true);
@@ -284,46 +279,50 @@ const QueueDisplay = () => {
     const nextPendingToken = filtered.find(t => t.status === 'WAITING' || t.status === 'CHECKED_IN');
 
     return (
-        <div style={{ padding: '1rem', maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div className="queue-container">
+            <div className="queue-header">
                 <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Queue Tokens</h1>
+                    <h1>Queue Tokens</h1>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="queue-header-actions">
                     <a href="/clinic-display" target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', textDecoration: 'none', fontWeight: 600, fontSize: '0.75rem' }}>
+                        className="btn-queue-action">
                         <Monitor size={14} /> Display Board <ExternalLink size={10} />
                     </a>
                     <button onClick={handleAutoReschedule}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#fff', border: '1.5px solid #f59e0b', color: '#f59e0b', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
+                        className="btn-queue-action btn-reschedule">
                         <RotateCcw size={14} /> Auto-Reschedule
                     </button>
+                    <button onClick={handleNotifyDelay}
+                        className="btn-queue-action btn-notify">
+                        <Bell size={14} /> Notify Delay
+                    </button>
                     <button onClick={fetchQueue}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #4338ca)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}>
+                        className="btn-queue-action btn-refresh">
                         <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
                     </button>
                 </div>
             </div>
 
             {/* Filters */}
-            <div style={{ background: '#fff', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', marginBottom: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: '160px' }}>
+            <div className="queue-filters">
+                <div className="filter-group">
                     <Filter size={14} color="#94a3b8" />
                     <select value={selectedDoctor} onChange={e => setSelectedDoctor(e.target.value)}
-                        style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b', background: '#fff', flex: 1 }}>
+                        className="filter-select">
                         <option value="" key="all-doc-combined">All Combined Doctors</option>
                         {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name || d.full_name}</option>)}
                     </select>
                 </div>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: '160px', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0 0.6rem' }}>
+                    className="filter-date" />
+                <div className="filter-search-wrap">
                     <Search size={14} color="#94a3b8" />
                     <input value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search token, patient..."
-                        style={{ border: 'none', background: 'transparent', padding: '0.4rem 0', fontSize: '0.8rem', outline: 'none', width: '100%' }} />
+                        className="filter-search-input" />
                 </div>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: '8px', padding: '0.4rem 0.6rem', fontSize: '0.8rem', color: '#1e293b', background: '#fff' }}>
+                    className="filter-select">
                     <option value="ALL">All Statuses</option>
                     {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
@@ -346,22 +345,22 @@ const QueueDisplay = () => {
 
             {/* Token Status Result */}
             {tokenStatusData && (
-                <div style={{ background: '#eff6ff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #bfdbfe', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800 }}>
+                <div className="token-status-banner">
+                    <div className="token-status-info">
+                        <div className="token-status-badge">
                             {tokenStatusData.token}
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase' }}>Token Status</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e40af' }}>{tokenStatusData.status}</div>
+                            <div className="token-status-label">Token Status</div>
+                            <div className="token-status-value">{tokenStatusData.status}</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase' }}>Position</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e40af' }}>#{tokenStatusData.position_in_queue || '—'}</div>
+                            <div className="token-status-label">Position</div>
+                            <div className="token-status-value">#{tokenStatusData.position_in_queue || '—'}</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase' }}>Estimated Wait</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e40af' }}>{tokenStatusData.estimated_wait || '0'}m</div>
+                            <div className="token-status-label">Estimated Wait</div>
+                            <div className="token-status-value">{tokenStatusData.estimated_wait || '0'}m</div>
                         </div>
                     </div>
                     <button onClick={() => setTokenStatusData(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={20} /></button>
@@ -383,11 +382,11 @@ const QueueDisplay = () => {
 
             {/* Display board data */}
             {displayData && (
-                <div style={{ background: 'linear-gradient(135deg, #6366f1, #4338ca)', borderRadius: '20px', padding: '1.25rem 1.75rem', marginBottom: '1.5rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div className="display-hero">
                     <Monitor size={28} style={{ opacity: 0.8 }} />
                     <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Now Serving</div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900 }}>
+                        <div className="display-serving-label">Now Serving</div>
+                        <div className="display-serving-value">
                             {displayData.current_token || displayData.now_serving || '—'}
                         </div>
                     </div>
@@ -395,22 +394,22 @@ const QueueDisplay = () => {
                         <>
                             <ArrowRight size={20} style={{ opacity: 0.5 }} />
                             <div>
-                                <div style={{ fontSize: '0.75rem', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Up Next</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{displayData.next_token}</div>
+                                <div className="display-next-label">Up Next</div>
+                                <div className="display-next-value">{displayData.next_token}</div>
                             </div>
                         </>
                     )}
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '1.5rem' }}>
+                    <div className="display-stats-wrap">
                         {displayData.queue_length !== undefined && (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{displayData.queue_length}</div>
-                                <div style={{ fontSize: '0.7rem', opacity: 0.75, fontWeight: 600 }}>In Queue</div>
+                            <div className="display-stat-item">
+                                <div className="display-stat-num">{displayData.queue_length}</div>
+                                <div className="display-stat-label">In Queue</div>
                             </div>
                         )}
                         {displayData.estimated_wait !== undefined && (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{displayData.estimated_wait}m</div>
-                                <div style={{ fontSize: '0.7rem', opacity: 0.75, fontWeight: 600 }}>Est. Wait</div>
+                            <div className="display-stat-item">
+                                <div className="display-stat-num">{displayData.estimated_wait}m</div>
+                                <div className="display-stat-label">Est. Wait</div>
                             </div>
                         )}
                     </div>
@@ -418,16 +417,16 @@ const QueueDisplay = () => {
             )}
 
             {/* Table */}
-            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+            <div className="queue-table-card">
+                <div className="queue-table-header">
+                    <h3>
                         <Hash size={16} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle', color: '#6366f1' }} />
                         Token List — {filtered.length} records
                     </h3>
                 </div>
                 {loading ? (
                     <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
-                        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.5rem' }} />
+                        <RefreshCw size={24} className="animate-spin" style={{ marginBottom: '0.5rem' }} />
                         <p style={{ fontSize: '0.8rem' }}>Loading queue...</p>
                     </div>
                 ) : filtered.length === 0 ? (
@@ -437,14 +436,14 @@ const QueueDisplay = () => {
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <table className="queue-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ background: '#f8fafc' }}>
-                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Token</th>
-                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Patient</th>
-                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Slot</th>
-                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Patient</th>
+                                    <th>Scheduled Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -463,12 +462,6 @@ const QueueDisplay = () => {
                     </div>
                 )}
             </div>
-
-            <style>{`
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .animate-spin { animation: spin 1s linear infinite; }
-                tr:hover td { background: #f8faff !important; }
-            `}</style>
         </div>
     );
 };
