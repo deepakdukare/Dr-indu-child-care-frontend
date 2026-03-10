@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import './compact-theme.css';
 import {
     LayoutDashboard,
     Calendar,
@@ -79,33 +80,17 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
 
     const allNavSections = [
         {
-            title: 'Overview',
             items: [
                 { name: 'Dashboard', path: '/', icon: LayoutDashboard, permission: 'view_dashboard' },
-                { name: 'Appointment', path: '/appointments', icon: Calendar, permission: 'view_appointments' },
-            ]
-        },
-        {
-            title: 'Clinical Operations',
-            items: [
+                { name: 'Appointments', path: '/appointments', icon: Calendar, permission: 'view_appointments' },
                 { name: 'Queue Tokens', path: '/queue', icon: Hash, permission: 'view_queue' },
                 { name: 'Patients', path: '/patients', icon: Users, permission: 'view_patients' },
-            ]
-        },
-        {
-            title: 'Management',
-            items: [
                 { name: 'Bot Hub', path: '/bot-interactions', icon: MessageSquare, permission: 'view_bot_hub' },
                 { name: 'Doctors', path: '/doctors', icon: Stethoscope, permission: 'view_doctors' },
-                { name: 'Medical Documentation', path: '/mrd', icon: FileText, permission: 'view_mrd' },
+                { name: 'Medical Records', path: '/mrd', icon: FileText, permission: 'view_mrd' },
                 { name: 'Analytics', path: '/analytics', icon: TrendingUp, permission: 'view_reports' },
-                { name: 'Operational Reports', path: '/reports', icon: BarChart2, permission: 'view_reports' },
+                { name: 'Reports', path: '/reports', icon: BarChart2, permission: 'view_reports' },
                 { name: 'Feedback Hub', path: '/feedback', icon: MessageSquare, permission: 'view_feedback' },
-            ]
-        },
-        {
-            title: 'System',
-            items: [
                 { name: 'Notifications', path: '/notifications', icon: BellIcon, permission: 'view_notifications' },
                 { name: 'Settings', path: '/settings', icon: SettingsIcon, permission: 'view_settings' },
             ]
@@ -128,13 +113,8 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                     </div>
                 </Link>
             </div>
-            {filteredSections.map((section) => (
-                <div key={section.title} className="nav-section">
-                    {!isCollapsed && (
-                        <div className="nav-section-title">
-                            {section.title}
-                        </div>
-                    )}
+            {filteredSections.map((section, idx) => (
+                <div key={idx} className="nav-section" style={{ marginTop: '1rem' }}>
                     <ul className="nav-links">
                         {section.items.map((item) => (
                             <li key={item.name}>
@@ -193,11 +173,15 @@ const Header = () => {
 
     return (
         <>
-            <header className="header">
+            <header className="header" style={{ height: '64px', padding: '0 2rem' }}>
                 <div className="header-left">
+                    <div className="header-search">
+                        <Search size={16} color="#9CA3AF" />
+                        <input type="text" placeholder="Search" className="header-search-input" />
+                    </div>
                 </div>
 
-                <div className="header-right">
+                <div className="header-right" style={{ gap: '1rem' }}>
                     {/* Public Form Button */}
                     <button
                         onClick={() => setShowFormModal(true)}

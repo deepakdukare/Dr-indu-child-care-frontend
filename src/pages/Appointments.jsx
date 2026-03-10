@@ -18,7 +18,10 @@ import {
     Edit2,
     Calendar,
     UserPlus,
-    Trash2
+    Trash2,
+    Info,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import AppointmentRow from '../components/AppointmentRow';
 import {
@@ -63,6 +66,126 @@ const formatCompactDate = (dateStr) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
+};
+
+const StatCard = ({ title, value, icon: Icon, color, loading, trend }) => (
+    <div className="stat-card-v3" style={{ '--card-accent-color': color, boxShadow: 'none', borderRight: '1px solid #e2e8f0', borderRadius: '0' }}>
+        <div className="stat-card-bg-shape"></div>
+        <div className="stat-top">
+            <div className="stat-icon-circle" style={{ backgroundColor: color }}>
+                <Icon size={18} color="white" />
+            </div>
+            {trend && (
+                <div className="stat-trend-container">
+                    <div className={`stat-trend-pill ${trend > 0 ? 'positive' : 'negative'}`}>
+                        {trend > 0 ? '+' : ''}{trend}%
+                    </div>
+                    <div className="stat-trend-subtext">in last 7 Days</div>
+                </div>
+            )}
+        </div>
+        <div className="stat-body-v3">
+            <div className="stat-label-v3">{title}</div>
+            <div className="stat-value-v3">
+                {loading ? <div className="skeleton-pulse skeleton-pulse-value"></div> : value}
+            </div>
+        </div>
+    </div>
+);
+
+const InlineCalendar = ({ value, onChange }) => {
+    const selectedDate = value ? new Date(value + 'T00:00:00') : new Date();
+    const [viewDate, setViewDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthYearStr = `${monthNames[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+
+    const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
+    const daysInMonth = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth());
+    const firstDay = getFirstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
+
+    const prevMonthDays = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth() - 1);
+
+    const handlePrev = (e) => {
+        e.preventDefault();
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+    };
+
+    const handleNext = (e) => {
+        e.preventDefault();
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+    };
+
+    const handleDayClick = (e, day) => {
+        e.preventDefault();
+        const newD = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+        const yyyy = newD.getFullYear();
+        const mm = String(newD.getMonth() + 1).padStart(2, '0');
+        const dd = String(newD.getDate()).padStart(2, '0');
+        onChange(`${yyyy}-${mm}-${dd}`);
+    };
+
+    const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+    return (
+        <div>
+            <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <button onClick={handlePrev} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronLeft size={20} color="#0f172a" /></button>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{monthYearStr}</div>
+                    <button onClick={handleNext} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20} color="#0f172a" /></button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', textAlign: 'center', marginBottom: '16px' }}>
+                    {daysOfWeek.map(d => (
+                        <div key={d} style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>{d}</div>
+                    ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', rowGap: '16px', textAlign: 'center' }}>
+                    {Array.from({ length: firstDay }).map((_, i) => (
+                        <div key={`prev-${i}`} style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: 600, padding: '4px 0' }}>{prevMonthDays - firstDay + i + 1}</div>
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const d = i + 1;
+                        const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === viewDate.getMonth() && selectedDate.getFullYear() === viewDate.getFullYear();
+                        return (
+                            <button
+                                key={`d-${d}`}
+                                onClick={(e) => handleDayClick(e, d)}
+                                style={{
+                                    background: isSelected ? '#6366f1' : 'none',
+                                    border: 'none',
+                                    color: isSelected ? '#fff' : '#1e293b',
+                                    fontSize: '14px',
+                                    fontWeight: isSelected ? 800 : 600,
+                                    width: '32px',
+                                    height: '32px',
+                                    margin: '0 auto',
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                    padding: 0
+                                }}
+                            >
+                                {d}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', padding: '0 8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8' }}>Selected Date:</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#6366f1' }}>{selectedDate.toLocaleString('default', { month: 'long', day: '2-digit', year: 'numeric' })}</span>
+            </div>
+        </div>
+    );
 };
 
 const Appointments = () => {
@@ -320,7 +443,6 @@ const Appointments = () => {
                 doctor_id: defaultDoc?.doctor_id || '',
                 doctor_speciality: defaultDoc?.speciality || 'Pediatrics',
                 visit_category: 'First visit',
-                visit_category: 'First visit',
                 registration_type: 'walkin',
                 appointment_mode: 'OFFLINE',
                 reason: ''
@@ -353,89 +475,110 @@ const Appointments = () => {
 
     return (
         <div className="appointments-page-v3">
-            <div className="header-section-premium">
+            <div className="header-section-premium" style={{ borderBottom: '1px dashed #e2e8f0', paddingBottom: '1rem', marginBottom: '0' }}>
                 <div className="header-content-premium">
-                    <h1 className="header-title-premium">Appointments</h1>
-                    <div className="live-pill-premium">
-                        <span className="live-dot"></span>
-                        <span className="live-text">{stats?.total_today || 0} Total Today</span>
+                    <h1 className="header-title-premium" style={{ fontSize: '1.25rem' }}>Appointment</h1>
+                </div>
+
+                <div className="header-actions-premium" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div className="view-toggle-premium" style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px' }}>
+                        <button
+                            style={{
+                                height: '32px',
+                                padding: '0 16px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: activeView === 'queue' ? '#fff' : 'transparent',
+                                color: activeView === 'queue' ? '#1e293b' : '#64748b',
+                                boxShadow: activeView === 'queue' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onClick={() => setActiveView('queue')}
+                        >
+                            <CalendarIcon size={14} />
+                            <span>View Appointments</span>
+                        </button>
+                        <button
+                            style={{
+                                height: '32px',
+                                padding: '0 16px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: activeView === 'authorizer' ? '#6366f1' : 'transparent',
+                                color: activeView === 'authorizer' ? '#fff' : '#64748b',
+                                boxShadow: activeView === 'authorizer' ? '0 2px 4px rgba(99,102,241,0.2)' : 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onClick={() => {
+                                setEditMode(false);
+                                openBookingModal();
+                            }}
+                        >
+                            <Plus size={14} />
+                            <span>New Appointment</span>
+                        </button>
                     </div>
                 </div>
-
-                <div className="header-actions-premium">
-                    <button
-                        className={`btn-action-premium ${activeView === 'queue' ? 'active' : ''}`}
-                        onClick={() => setActiveView('queue')}
-                    >
-                        <CalendarIcon size={18} />
-                        <span>Schedule Queue</span>
-                    </button>
-
-                    <button
-                        className={`btn-action-premium ${activeView === 'authorizer' ? 'active' : ''}`}
-                        onClick={() => openBookingModal()}
-                    >
-                        <UserPlus size={18} />
-                        <span>Book Visit</span>
-                    </button>
-
-                    <button className="sync-btn-premium" onClick={fetchData} title="Sync Clinic Data">
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    </button>
-                </div>
             </div>
+
+            {activeView === 'queue' && (
+                <div className="stat-grid-v3" style={{ borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem', display: 'flex', gap: 0, paddingBottom: '1rem', paddingTop: '1rem' }}>
+                    <div style={{ flex: 1 }}><StatCard title="Today's Load" value={appointments.length} icon={User} color="#3b3b98" loading={loading} trend={25} /></div>
+                    <div style={{ flex: 1 }}><StatCard title="Confirmed" value={appointments.filter(a => ['CONFIRMED', 'SCHEDULED', 'WAITING', 'IN_PROGRESS'].includes((a.status || '').toUpperCase())).length} icon={Calendar} color="#10ac84" loading={loading} trend={25} /></div>
+                    <div style={{ flex: 1, borderRight: 'none' }}><StatCard title="Cancelled" value={appointments.filter(a => (a.status || '').toUpperCase() === 'CANCELLED').length} icon={CalendarIcon} color="#ee5253" loading={loading} trend={-15} /></div>
+                </div>
+            )}
 
             <div className="view-content-v3">
                 {activeView === 'queue' ? (
                     <>
-                        <div className="filter-shelf-premium">
-                            <div className="search-pill-v3">
-                                <Search size={22} className="s-icon" />
+                        <div className="filter-shelf-premium" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center', backgroundColor: '#f9fafb', padding: '12px 0' }}>
+                            <div className="search-pill-v3" style={{ flex: 1, height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '10px', minWidth: '220px', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                <Search size={18} color="#64748b" className="s-icon" />
                                 <input
                                     type="text"
-                                    placeholder=""
+                                    placeholder="Search clinical registry..."
                                     value={queueSearch}
                                     onChange={(e) => setQueueSearch(e.target.value)}
+                                    style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', width: '100%', fontWeight: 500, color: '#334155' }}
                                 />
                             </div>
 
-                            <div className="filter-group-v3">
-                                <div className="filter-item-v3 date-pill-v3" onClick={openDatePicker}>
-                                    <CalendarIcon size={18} className="f-icon" />
+                            <div className="filter-group-v3" style={{ display: 'flex', gap: '1rem', flex: 2, justifyContent: 'flex-start' }}>
+                                <div className="filter-item-v3 date-pill-v3" onClick={openDatePicker} style={{ height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                    <CalendarIcon size={16} className="f-icon" color="#64748b" />
                                     <input
                                         ref={dateInputRef}
                                         type="date"
                                         value={filters.date}
                                         onChange={e => setFilters({ ...filters, date: e.target.value })}
                                         className="date-input-v3"
+                                        style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }}
                                     />
-                                    <span className="f-label">{formatCompactDate(filters.date)}</span>
-                                    <ChevronDown size={14} className="drop-icon" />
+                                    <span className="f-label" style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>
+                                        {formatCompactDate(filters.date)}
+                                    </span>
+                                    <ChevronDown size={14} className="drop-icon" style={{ marginLeft: '4px', color: '#64748b' }} />
                                 </div>
-
-                                <div className="filter-item-v3 select-pill-v3">
-                                    <Stethoscope size={18} className="f-icon" />
-                                    <select
-                                        className="f-select"
-                                        value={filters.doctor_id}
-                                        onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
-                                    >
-                                        <option value="">All Combined Doctors</option>
-                                        {doctors.map((doc, idx) => (
-                                            <option key={doc.doctor_id || idx} value={doc.doctor_id}>
-                                                {getDoctorDisplayName(doc)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={14} className="drop-icon" />
-                                </div>
-
-                                <div className="filter-item-v3 select-pill-v3">
-                                    <Activity size={18} className="f-icon" />
+                                <div className="filter-item-v3 select-pill-v3" style={{ height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '8px', position: 'relative', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                    <Activity size={16} className="f-icon" color="#64748b" />
                                     <select
                                         className="f-select"
                                         value={filters.status}
                                         onChange={e => setFilters({ ...filters, status: e.target.value })}
+                                        style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', appearance: 'none', paddingRight: '20px', color: '#334155' }}
                                     >
                                         <option value="">All Status</option>
                                         <option value="CONFIRMED">Confirmed</option>
@@ -444,22 +587,43 @@ const Appointments = () => {
                                         <option value="PENDING">Pending</option>
                                         <option value="NO_SHOW">No Show</option>
                                     </select>
-                                    <ChevronDown size={14} className="drop-icon" />
+                                    <ChevronDown size={14} className="drop-icon" style={{ position: 'absolute', right: '12px', color: '#64748b', pointerEvents: 'none' }} />
+                                </div>
+                                <div className="filter-item-v3 select-pill-v3" style={{ height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '8px', position: 'relative', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                    <Stethoscope size={16} className="f-icon" color="#64748b" />
+                                    <select
+                                        className="f-select"
+                                        value={filters.doctor_id}
+                                        onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
+                                        style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', appearance: 'none', paddingRight: '20px', color: '#334155' }}
+                                    >
+                                        <option value="">All Combined Doctors</option>
+                                        {doctors.map((doc, idx) => (
+                                            <option key={doc.doctor_id || idx} value={doc.doctor_id}>
+                                                {getDoctorDisplayName(doc)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={14} className="drop-icon" style={{ position: 'absolute', right: '12px', color: '#64748b', pointerEvents: 'none' }} />
                                 </div>
                             </div>
+
+
                         </div>
+
+
 
                         <div className="repository-card-v3">
                             <div className="table-flow-v3">
-                                <table className="main-table-v3">
+                                <table className="main-table-v3" style={{ width: '100%', borderCollapse: 'collapse', borderSpacing: 0, textAlign: 'left', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
                                     <thead>
-                                        <tr>
-                                            <th>Patient / Mobile</th>
-                                            <th>Schedule / Date</th>
-                                            <th>Assigned Provider</th>
-                                            <th>Condition / Reason</th>
-                                            <th>Registration Status</th>
-                                            <th className="management-header">Management</th>
+                                        <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+                                            <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>Patient</th>
+                                            <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>Date & Time</th>
+                                            <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>Doctor</th>
+                                            <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>Reason</th>
+                                            <th style={{ padding: '16px 20px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>Status</th>
+                                            <th style={{ padding: '16px 20px', width: '50px' }}></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -499,24 +663,26 @@ const Appointments = () => {
                 ) : (
                     <div className="authorizer-panel-premium">
                         <div className="authorizer-header-v3">
-                            <div className="header-flex">
-                                <div className="modal-icon-wrap"><Plus size={24} /></div>
+                            <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div className="header-text">
-                                    <h2>{editMode ? 'Modify Reservation' : 'Schedule New Visit'}</h2>
-                                    <p>Configure parameters for clinical patient encounter</p>
+                                    <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>{editMode ? 'Modify Reservation' : 'Schedule New Visit'}</h2>
                                 </div>
                                 <button className="close-btn-v3" onClick={() => setActiveView('queue')}><XCircle size={24} /></button>
                             </div>
                         </div>
 
-                        <div className="modal-stepper-v3">
-                            <button className={`step-btn ${activeTab === 'patient' || activeTab === 'new-patient' ? 'active' : ''}`} onClick={() => !editMode && setActiveTab('patient')}>
-                                <span className="step-num">1</span>
+                        <div className="modal-stepper-v3" style={{ padding: '0 2.5rem 1.5rem', background: '#fff', borderBottom: '1px solid #f1f5f9', gap: '1.5rem' }}>
+                            <button className={`step-btn ${activeTab === 'patient' || activeTab === 'new-patient' ? 'active' : ''}`} onClick={() => !editMode && setActiveTab('patient')} style={{ color: activeTab === 'patient' || activeTab === 'new-patient' ? '#6366f1' : '#94a3b8', fontSize: '14px', fontWeight: 700, pointerEvents: editMode ? 'none' : 'auto' }}>
+                                <span className="step-num" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: (activeTab === 'patient' || activeTab === 'new-patient') ? '#eef2ff' : 'transparent', border: (activeTab === 'patient' || activeTab === 'new-patient') ? 'none' : '2px solid #cbd5e1', width: (activeTab === 'patient' || activeTab === 'new-patient') ? 'auto' : '26px', padding: (activeTab === 'patient' || activeTab === 'new-patient') ? '0 10px' : '0', height: '26px', borderRadius: '13px', color: (activeTab === 'patient' || activeTab === 'new-patient') ? '#6366f1' : '#94a3b8', fontSize: '11px', fontWeight: 800 }}>
+                                    {(activeTab === 'patient' || activeTab === 'new-patient') ? 'Step 1' : '1'}
+                                </span>
                                 <span>Identity Verification</span>
                             </button>
-                            <div className="step-line"></div>
-                            <button className={`step-btn ${activeTab === 'visit' ? 'active' : ''}`} onClick={() => selectedPatient && setActiveTab('visit')}>
-                                <span className="step-num">2</span>
+                            <div className="step-line" style={{ height: '2px', background: '#e2e8f0', width: '50px', flex: 'none' }}></div>
+                            <button className={`step-btn ${activeTab === 'visit' ? 'active' : ''}`} onClick={() => selectedPatient && setActiveTab('visit')} style={{ color: activeTab === 'visit' ? '#6366f1' : '#94a3b8', fontSize: '14px', fontWeight: 700, pointerEvents: !selectedPatient ? 'none' : 'auto' }}>
+                                <span className="step-num" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: activeTab === 'visit' ? '#eef2ff' : 'transparent', border: activeTab === 'visit' ? 'none' : '2px solid #cbd5e1', width: activeTab === 'visit' ? 'auto' : '26px', padding: activeTab === 'visit' ? '0 10px' : '0', height: '26px', borderRadius: '13px', color: activeTab === 'visit' ? '#6366f1' : '#94a3b8', fontSize: '11px', fontWeight: 800 }}>
+                                    {activeTab === 'visit' ? 'Step 2' : '2'}
+                                </span>
                                 <span>Visit Parameters</span>
                             </button>
                         </div>
@@ -531,91 +697,167 @@ const Appointments = () => {
                             )}
 
                             {activeTab === 'patient' ? (
-                                <div className="patient-selector-premium">
-                                    <div className="search-wrap-premium">
-                                        <Search size={22} className="s-icon" />
+                                <div className="patient-selector-premium" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%' }}>
+                                    <div className="search-wrap-premium" style={{
+                                        position: 'relative',
+                                        backgroundColor: '#f8fafc',
+                                        borderRadius: '8px',
+                                        padding: '4px 12px',
+                                        border: '1.5px solid #e2e8f0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        height: '40px',
+                                        flexShrink: 0
+                                    }}>
+                                        <Search size={16} color="#64748b" style={{ marginRight: '8px' }} />
                                         <input
                                             type="text"
-                                            placeholder=""
+                                            placeholder="Search by name, ID or mobile..."
                                             value={patientSearch}
                                             onChange={(e) => handlePatientSearch(e.target.value)}
-                                            className="search-input-premium"
+                                            style={{
+                                                border: 'none',
+                                                background: 'transparent',
+                                                outline: 'none',
+                                                fontSize: '13px',
+                                                fontWeight: 500,
+                                                color: '#1e293b',
+                                                width: '100%',
+                                                height: '100%'
+                                            }}
                                         />
                                     </div>
 
-                                    {searching && <div className="scanner-line">Scanning Patient Records...</div>}
+                                    {searching && <div className="scanner-line" style={{ fontSize: '12px', color: '#6366f1', fontWeight: 600, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 0', flexShrink: 0 }}>Scanning records...</div>}
 
-                                    <div className="search-results-premium">
-                                        {searchResults.map(p => (
-                                            <div key={p.patient_id} className="patient-result-item" onClick={() => selectPatient(p)}>
-                                                <div className="p-avatar-v2">{p.child_name?.charAt(0)}</div>
-                                                <div className="p-info-v2">
-                                                    <div className="p-name">{removeSalutation(p.child_name)}</div>
-                                                    <div className="p-meta">{p.patient_id} | {p.parent_mobile}</div>
+                                    <div className="search-results-premium" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
+                                        {searchResults.map(p => {
+                                            const name = removeSalutation(p.child_name) || 'Unnamed Patient';
+                                            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=EEF2FF&color=4F46E5&bold=true`;
+
+                                            return (
+                                                <div
+                                                    key={p.patient_id}
+                                                    className="patient-result-item"
+                                                    onClick={() => selectPatient(p)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        padding: '10px 14px',
+                                                        backgroundColor: '#fff',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        gap: '10px'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.borderColor = '#6366f1';
+                                                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.borderColor = '#e5e7eb';
+                                                        e.currentTarget.style.backgroundColor = '#fff';
+                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                    }}
+                                                >
+                                                    <img src={avatarUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '1px' }}>{name}</span>
+                                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
+                                                            {p.patient_id} <span style={{ color: '#cbd5e1', margin: '0 4px' }}>|</span> {p.parent_mobile || 'No Mobile'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ color: '#94a3b8' }}>
+                                                        <ArrowRight size={14} />
+                                                    </div>
                                                 </div>
-                                                <div className="p-action"><ArrowRight size={20} /></div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
+
                                         {!searching && searchResults.length === 0 && (
-                                            <div className="no-identity-state">
-                                                <p>Identity not found in repository.</p>
-                                                <button onClick={() => setActiveTab('new-patient')} className="btn-save">+ Create New Profile</button>
+                                            <div className="no-identity-state" style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{ color: '#94a3b8' }}><User size={32} /></div>
+                                                <div>
+                                                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Patient not found</h3>
+                                                    <p style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, margin: 0 }}>The identity could not be located.</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setActiveTab('new-patient')}
+                                                    className="btn-save"
+                                                    style={{
+                                                        backgroundColor: '#6366f1',
+                                                        color: '#fff',
+                                                        padding: '6px 14px',
+                                                        borderRadius: '6px',
+                                                        fontWeight: 700,
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.2)',
+                                                        fontSize: '12px',
+                                                        marginTop: '8px'
+                                                    }}
+                                                >
+                                                    + Create New Profile
+                                                </button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             ) : activeTab === 'new-patient' ? (
-                                <form onSubmit={handleQuickRegister} className="wizard-form-v3" noValidate>
-                                    <div className="form-grid-v2">
-                                        <div className="f-group">
-                                            <label>First Name *</label>
-                                            <input name="first_name" placeholder="" value={newPatient.first_name} onChange={e => setNewPatient({ ...newPatient, first_name: e.target.value })} className={`input-v3 ${enrollErrors.first_name ? 'error' : ''}`} />
-                                            {enrollErrors.first_name && <p className="err-msg-v3">{enrollErrors.first_name}</p>}
+                                <form onSubmit={handleQuickRegister} className="wizard-form-v3" noValidate style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                    <div className="form-grid-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem' }}>
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>First Name *</label>
+                                            <input name="first_name" placeholder="Enter first name" value={newPatient.first_name} onChange={e => setNewPatient({ ...newPatient, first_name: e.target.value })} style={{ height: '48px', padding: '0 16px', borderRadius: '10px', border: enrollErrors.first_name ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none', transition: 'all 0.2s' }} />
+                                            {enrollErrors.first_name && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.first_name}</p>}
                                         </div>
-                                        <div className="f-group">
-                                            <label>Last Name *</label>
-                                            <input name="last_name" placeholder="" value={newPatient.last_name} onChange={e => setNewPatient({ ...newPatient, last_name: e.target.value })} className={`input-v3 ${enrollErrors.last_name ? 'error' : ''}`} />
-                                            {enrollErrors.last_name && <p className="err-msg-v3">{enrollErrors.last_name}</p>}
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Last Name *</label>
+                                            <input name="last_name" placeholder="Enter last name" value={newPatient.last_name} onChange={e => setNewPatient({ ...newPatient, last_name: e.target.value })} style={{ height: '48px', padding: '0 16px', borderRadius: '10px', border: enrollErrors.last_name ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none', transition: 'all 0.2s' }} />
+                                            {enrollErrors.last_name && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.last_name}</p>}
                                         </div>
-                                        <div className="f-group">
-                                            <label>Gender *</label>
-                                            <select name="gender" value={newPatient.gender} onChange={e => setNewPatient({ ...newPatient, gender: e.target.value })} className={`select-v3 ${enrollErrors.gender ? 'error' : ''}`}>
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Gender *</label>
+                                            <select name="gender" value={newPatient.gender} onChange={e => setNewPatient({ ...newPatient, gender: e.target.value })} style={{ height: '48px', padding: '0 16px', borderRadius: '10px', border: enrollErrors.gender ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none', cursor: 'pointer' }}>
                                                 <option value="boy">Boy</option>
                                                 <option value="girl">Girl</option>
                                             </select>
-                                            {enrollErrors.gender && <p className="err-msg-v3">{enrollErrors.gender}</p>}
+                                            {enrollErrors.gender && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.gender}</p>}
                                         </div>
-                                        <div className="f-group">
-                                            <label>Date of Birth *</label>
-                                            <input name="dob" type="date" value={newPatient.dob} onChange={e => setNewPatient({ ...newPatient, dob: e.target.value })} className={`input-v3 ${enrollErrors.dob ? 'error' : ''}`} />
-                                            {enrollErrors.dob && <p className="err-msg-v3">{enrollErrors.dob}</p>}
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Date of Birth *</label>
+                                            <input name="dob" type="date" value={newPatient.dob} onChange={e => setNewPatient({ ...newPatient, dob: e.target.value })} style={{ height: '48px', padding: '0 16px', borderRadius: '10px', border: enrollErrors.dob ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none' }} />
+                                            {enrollErrors.dob && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.dob}</p>}
                                         </div>
-                                        <div className="f-group">
-                                            <label>WhatsApp Mobile *</label>
-                                            <input name="wa_id" placeholder="" value={newPatient.wa_id} onChange={e => setNewPatient({ ...newPatient, wa_id: e.target.value.replace(/\D/g, '') })} className={`input-v3 ${enrollErrors.wa_id ? 'error' : ''}`} />
-                                            {enrollErrors.wa_id && <p className="err-msg-v3">{enrollErrors.wa_id}</p>}
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>WhatsApp Mobile *</label>
+                                            <input name="wa_id" placeholder="10-digit mobile number" value={newPatient.wa_id} onChange={e => setNewPatient({ ...newPatient, wa_id: e.target.value.replace(/\D/g, '') })} style={{ height: '48px', padding: '0 16px', borderRadius: '10px', border: enrollErrors.wa_id ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none' }} />
+                                            {enrollErrors.wa_id && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.wa_id}</p>}
                                         </div>
                                     </div>
-                                    <div className="wizard-footer-v3">
-                                        <button type="button" className="btn-cancel" onClick={() => setActiveTab('patient')}>Back to Search</button>
-                                        <button type="submit" className="btn-save" disabled={submitting}>Enroll & Proceed</button>
+                                    <div className="wizard-footer-v3" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                                        <button type="button" onClick={() => setActiveTab('patient')} style={{ height: '44px', padding: '0 24px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#fff', fontSize: '14px', fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Back to Search</button>
+                                        <button type="submit" disabled={submitting} style={{ height: '44px', padding: '0 24px', borderRadius: '10px', border: 'none', backgroundColor: '#6366f1', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)' }}>{submitting ? 'Enrolling...' : 'Enroll & Proceed'}</button>
                                     </div>
                                 </form>
                             ) : (
-                                <form onSubmit={handleFormSubmit} className="wizard-form-v3">
-                                    <div className="selected-patient-v3">
-                                        <div className="p-banner">
-                                            <div className="p-info">
-                                                <div className="p-avatar-circle">
+                                <form onSubmit={handleFormSubmit} className="wizard-form-v3" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <div className="selected-patient-v3" style={{ backgroundColor: '#EEF2FF', padding: '16px', borderRadius: '16px', border: '1.5px solid #E0E7FF' }}>
+                                        <div className="p-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div className="p-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div className="p-avatar-circle" style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.1)' }}>
                                                     <User size={24} />
                                                 </div>
                                                 <div className="p-text">
-                                                    <div className="p-name-premium">{removeSalutation(selectedPatient?.child_name)}</div>
-                                                    <div className="p-id-premium">Patient ID: {selectedPatient?.patient_id}</div>
+                                                    <div className="p-name-premium" style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>{removeSalutation(selectedPatient?.child_name)}</div>
+                                                    <div className="p-id-premium" style={{ fontSize: '12px', color: '#6366f1', fontWeight: 600 }}>Patient ID: {selectedPatient?.patient_id}</div>
                                                 </div>
                                             </div>
                                             {!editMode && (
-                                                <button type="button" className="btn-modify" onClick={() => setActiveTab('patient')}>
+                                                <button type="button" onClick={() => setActiveTab('patient')} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fff', border: '1px solid #E0E7FF', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, color: '#4F46E5', cursor: 'pointer' }}>
                                                     <Edit2 size={14} />
                                                     <span>Change</span>
                                                 </button>
@@ -623,115 +865,104 @@ const Appointments = () => {
                                         </div>
                                     </div>
 
-                                    <div className="form-grid-v2">
-                                        <div className="f-group">
-                                            <label>Assign Clinician</label>
-                                            <div className="input-with-icon">
-                                                <Stethoscope size={18} className="i-icon" />
+                                    <div className="form-grid-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assign Clinician</label>
+                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <Stethoscope size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
                                                 <select
                                                     value={form.doctor_id}
                                                     onChange={e => {
                                                         const doc = doctors.find(d => d.doctor_id === e.target.value);
                                                         setForm({ ...form, doctor_id: e.target.value, doctor_name: getDoctorDisplayName(doc) });
                                                     }}
-                                                    className="select-v3-iconic"
+                                                    style={{ width: '100%', height: '52px', paddingLeft: '48px', paddingRight: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 600, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
                                                     <option value="" disabled>Select Provider</option>
                                                     {doctors.map(doc => <option key={doc.doctor_id} value={doc.doctor_id}>{getDoctorDisplayName(doc)}</option>)}
                                                 </select>
+                                                <ChevronDown size={14} style={{ position: 'absolute', right: '16px', color: '#94a3b8', pointerEvents: 'none' }} />
                                             </div>
                                         </div>
 
-                                        <div className="f-group">
-                                            <label>Visit Date</label>
-                                            <div className="input-with-icon">
-                                                <CalendarIcon size={18} className="i-icon" />
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Visit Date</label>
+                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <CalendarIcon size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
                                                 <input
                                                     type="date"
                                                     value={form.appointment_date}
                                                     onChange={e => setForm({ ...form, appointment_date: e.target.value })}
-                                                    className="input-v3-iconic"
+                                                    style={{ width: '100%', height: '52px', paddingLeft: '48px', paddingRight: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 600, color: '#1e293b', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="f-group full-span">
-                                            <div className="token-availability-v3 card-premium-v3">
-                                                <div className="token-header">
-                                                    <h3>Token Inventory Status</h3>
-                                                    {tokensLoading && <RefreshCw size={16} className="animate-spin text-primary" />}
+                                        <div className="f-group full-span" style={{ gridColumn: 'span 2' }}>
+                                            <div className="token-availability-v3 card-premium-v3" style={{ backgroundColor: '#fff', border: '1.5px solid #eef2ff', borderRadius: '16px', padding: '20px' }}>
+                                                <div className="token-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token Inventory Status</h3>
+                                                    {tokensLoading && <RefreshCw size={16} style={{ color: '#6366f1' }} className="animate-spin" />}
                                                 </div>
 
                                                 {availableTokens ? (
-                                                    <div className="token-stats-grid">
-                                                        <div className={`token-stat-card walkin active-pool`}
-                                                            style={{ cursor: 'default', gridColumn: '1 / -1' }}>
-                                                            <div className="stat-label">Walk-in Pool (Next Available Token)</div>
-                                                            <div className="stat-value">#{availableTokens.walkin_next_token || '--'}</div>
+                                                    <div className="token-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                                                        <div className="token-stat-card walkin active-pool" style={{ gridColumn: 'span 2', padding: '16px', backgroundColor: '#f0fdf9', border: '1.5px solid #ccfbf1', borderRadius: '12px', textAlign: 'center' }}>
+                                                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', marginBottom: '4px' }}>Walk-in Pool (Next Available Token)</div>
+                                                            <div style={{ fontSize: '32px', fontWeight: 900, color: '#134e4a' }}>#{availableTokens.walkin_next_token || '--'}</div>
                                                         </div>
-                                                        <div className="token-info-mini" style={{ gridColumn: '1 / -1', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', color: '#64748b', fontWeight: 600, marginTop: '8px' }}>
                                                             <Clock size={14} />
                                                             <span>Shift Start Time: {availableTokens.start_time || '--:--'}</span>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="token-placeholder">
-                                                        <Activity size={24} />
-                                                        <p>Select provider and date to check token availability</p>
+                                                    <div className="token-placeholder" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
+                                                        <Activity size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                                                        <p style={{ fontSize: '13px', fontWeight: 500 }}>Select provider and date to check token availability</p>
                                                     </div>
                                                 )}
-
-                                                {availableTokens && (availableTokens.online_tokens_remaining <= 0 && availableTokens.walkin_tokens_remaining <= 0) && (
-                                                    <div className="token-vacancy-alert">
-                                                        <AlertTriangle size={16} />
-                                                        <span>No tokens available for this date. Please try for another doctor or try for next days.</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="staff-emergency-note">
-                                                    <strong>Emergency Protocol:</strong>
-                                                    <p>For emergencies, please call the hospital directly at <b>+91-XXXXXXXXXX</b> to get the urgent appointment immediately.</p>
-                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="f-group">
-                                            <label>Visit Category</label>
-                                            <div className="input-with-icon">
-                                                <Activity size={18} className="i-icon" />
+                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Visit Category</label>
+                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <Activity size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
                                                 <select
                                                     value={form.visit_category}
                                                     onChange={e => setForm({ ...form, visit_category: e.target.value })}
-                                                    className="select-v3-iconic"
+                                                    style={{ width: '100%', height: '52px', paddingLeft: '48px', paddingRight: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 600, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
                                                     <option value="First visit">First visit</option>
                                                     <option value="Follow-up">Follow-up</option>
                                                     <option value="Vaccination">Vaccination</option>
                                                     <option value="Other">Other</option>
                                                 </select>
+                                                <ChevronDown size={14} style={{ position: 'absolute', right: '16px', color: '#94a3b8', pointerEvents: 'none' }} />
                                             </div>
                                         </div>
 
                                         <div className="f-group">
-                                            <label>Clinical Reason</label>
-                                            <div className="input-with-icon">
-                                                <Clipboard size={18} className="i-icon" />
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Clinical Reason</label>
+                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                <Clipboard size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
                                                 <input
-                                                    placeholder=""
+                                                    placeholder="Reason for visit"
                                                     value={form.reason}
                                                     onChange={e => setForm({ ...form, reason: e.target.value })}
-                                                    className="input-v3-iconic"
+                                                    style={{ width: '100%', height: '52px', paddingLeft: '48px', paddingRight: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 600, color: '#1e293b', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="wizard-footer-large">
-                                        <button type="button" className="btn-cancel-large" onClick={() => setActiveView('queue')}>
+                                    <div className="wizard-footer-large" style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                        <button type="button" onClick={() => setActiveView('queue')} style={{ flex: 1, height: '52px', borderRadius: '12px', border: '1.5px solid #e2e8f0', backgroundColor: '#fff', fontSize: '15px', fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
                                             Discard Changes
                                         </button>
-                                        <button type="submit" className="btn-save-large" disabled={submitting}>
-                                            {submitting ? <RefreshCw size={22} className="animate-spin" /> : <CheckCircle2 size={22} />}
+                                        <button type="submit" disabled={submitting} style={{ flex: 2, height: '52px', borderRadius: '12px', border: 'none', backgroundColor: '#6366f1', fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 8px 16px rgba(99, 102, 241, 0.25)' }}>
+                                            {submitting ? <RefreshCw size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
                                             <span>{editMode ? 'Update Record' : 'Confirm Authorization'}</span>
                                         </button>
                                     </div>
@@ -742,33 +973,35 @@ const Appointments = () => {
                 )}
             </div>
 
-            {cancelModal.show && (
-                <div className="modal-overlay-premium">
-                    <div className="modal-alert-card">
-                        <div className="alert-icon-wrap"><Trash2 size={32} /></div>
-                        <h2>Purge Reservation</h2>
-                        <p>Are you sure you want to cancel appointment <strong>{cancelModal.id}</strong>? This action will immediately release the token back to the clinic capacity.</p>
+            {
+                cancelModal.show && (
+                    <div className="modal-overlay-premium">
+                        <div className="modal-alert-card">
+                            <div className="alert-icon-wrap"><Trash2 size={32} /></div>
+                            <h2>Purge Reservation</h2>
+                            <p>Are you sure you want to cancel appointment <strong>{cancelModal.id}</strong>? This action will immediately release the token back to the clinic capacity.</p>
 
-                        <div className="cancel-reason-input">
-                            <label>Cancellation Reason</label>
-                            <input
-                                placeholder=""
-                                value={cancelModal.reason}
-                                onChange={e => setCancelModal({ ...cancelModal, reason: e.target.value })}
-                                className="input-v3"
-                            />
-                        </div>
+                            <div className="cancel-reason-input">
+                                <label>Cancellation Reason</label>
+                                <input
+                                    placeholder=""
+                                    value={cancelModal.reason}
+                                    onChange={e => setCancelModal({ ...cancelModal, reason: e.target.value })}
+                                    className="input-v3"
+                                />
+                            </div>
 
-                        <div className="alert-actions">
-                            <button className="btn-cancel" onClick={() => setCancelModal({ show: false, id: null, reason: '' })}>Keep Booking</button>
-                            <button className="btn-danger-v3" onClick={handleCancel}>Confirm Cancellation</button>
+                            <div className="alert-actions">
+                                <button className="btn-cancel" onClick={() => setCancelModal({ show: false, id: null, reason: '' })}>Keep Booking</button>
+                                <button className="btn-danger-v3" onClick={handleCancel}>Confirm Cancellation</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
 
-        </div>
+        </div >
     );
 };
 

@@ -103,7 +103,7 @@ export const toIsoDate = (date = new Date()) => {
 export const getAppointments = (params) => api.get('/appointments', { params });
 export const getAppointmentById = (id) => api.get(`/appointments/${id}`);
 export const getAppointmentsByDate = (date) => api.get('/appointments', { params: { date } });
-export const getAppointmentStats = () => api.get('/appointments/stats');
+export const getAppointmentStats = (date) => api.get('/appointments/stats', { params: { date } });
 export const getTodayAppointments = () => getAppointmentsByDate(toIsoDate());
 export const createAppointment = (data) => api.post('/appointments', data);
 export const bookAppointment = (data) => createAppointment(data); // Alias
