@@ -410,6 +410,7 @@ const App = () => {
                     {/* Standalone Public Routes (No Sidebar/Header) */}
                     <Route path="/register-form" element={<PublicRegister />} />
                     <Route path="/feedback-form" element={<Feedback />} />
+                    <Route path="/clinic-display" element={<ClinicDisplay />} />
 
                     {/* Admin Layout Routes */}
                     <Route path="/*" element={
@@ -431,7 +432,6 @@ const App = () => {
                                     <Route path="/analytics" element={<ProtectedRoute permission="view_reports"><Analytics /></ProtectedRoute>} />
                                     <Route path="/notifications" element={<ProtectedRoute permission="view_notifications"><Notifications /></ProtectedRoute>} />
                                     <Route path="/feedback" element={<ProtectedRoute permission="view_feedback"><FeedbackReports /></ProtectedRoute>} />
-                                    <Route path="/clinic-display" element={<ClinicDisplay />} />
                                     <Route path="/settings" element={<ProtectedRoute permission="view_settings"><Settings /></ProtectedRoute>} />
                                     <Route path="/login" element={<Navigate to="/" replace />} />
                                 </Routes>

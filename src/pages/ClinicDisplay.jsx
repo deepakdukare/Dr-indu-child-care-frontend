@@ -34,24 +34,8 @@ const ClinicDisplay = () => {
     const getTimeStr = () => lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
-        <div className="clinic-display-v2">
-            <div className="display-header-v2">
-                <div className="header-brand-v2">
-                    <img src={clinicLogo} alt="Logo" className="brand-logo-v2" />
-                    <div className="brand-text-v2">
-                        <h1>Dr. Indu Child Care</h1>
-                    </div>
-                </div>
-                <div className="header-meta-v2">
-                    <div className="time-box-v2">{getTimeStr()}</div>
-                    <div className="sync-pill-v2">
-                        <div className="sync-dot-v2 animate-pulse"></div>
-                        <span>Live Sync</span>
-                    </div>
-                </div>
-            </div>
-
-            <div className="display-grid-v2">
+        <div className="clinic-display-v2" style={{ padding: '2rem', minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="display-grid-v2" style={{ width: '100%' }}>
                 {displayData.map((doctor) => (
                     <div key={doctor.doctor_id} className="doctor-card-v2">
                         <div className="card-top-v2">
@@ -103,22 +87,12 @@ const ClinicDisplay = () => {
                 ))}
 
                 {displayData.length === 0 && !loading && (
-                    <div className="empty-display-v2">
-                        <Monitor size={64} style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
-                        <h3>No Active O.P.D Handlers</h3>
-                        <p>Waiting for doctors to start their sessions.</p>
+                    <div className="empty-display-v2" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#64748b', opacity: 0.5, marginTop: '20vh' }}>
+                        <Monitor size={64} style={{ marginBottom: '1.5rem' }} />
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>No Active O.P.D Handlers</h3>
+                        <p style={{ marginTop: '0.5rem', fontSize: '1.1rem' }}>Waiting for doctors to start their sessions.</p>
                     </div>
                 )}
-            </div>
-
-            <div className="display-footer-v2">
-                <div className="ticker-v2">
-                    <span className="ticker-label-v2">ANNOUNCEMENT:</span>
-                    <marquee behavior="scroll" direction="left" className="ticker-marquee">
-                        Welcome to Dr. Indu Child Care. Please wait for your token number to appear on the screen.
-                        Carry your registry ID for faster check-in. Total today visits: {displayData.reduce((acc, d) => acc + (d.queue_length || 0) + (d.now_serving_token ? 1 : 0), 0)}
-                    </marquee>
-                </div>
             </div>
         </div>
     );
