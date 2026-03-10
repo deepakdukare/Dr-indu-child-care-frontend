@@ -42,6 +42,7 @@ const ClinicDisplay = lazy(() => import('./pages/ClinicDisplay'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const FeedbackReports = lazy(() => import('./pages/FeedbackReports'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+import clinicLogo from './assets/clinic_logo.png';
 import { hasPermission } from './utils/auth';
 import { removeSalutation } from './utils/formatters';
 
@@ -102,41 +103,52 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
 
     return (
         <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-            <div className="sidebar-logo-container">
-                <Link to="/" className="logo-compact">
-                    <img src="/logo.jpg" alt="Logo" className="logo-img" />
-                    <div className="logo-text-container">
-                        <span className="logo-text-main">DICC</span>
-                        <span className="logo-text-sub">Dr. Indu Child Care</span>
+            <div className="sidebar-header-premium">
+                <Link to="/" className="brand-link-modern">
+                    <img src={clinicLogo} alt="Logo" className="brand-logo-sidebar" />
+                    <div className="brand-info-modern">
+                        <span className="brand-name-mini">DICC</span>
+                        <span className="brand-desc-mini">Clinic Management</span>
                     </div>
                 </Link>
             </div>
-            {filteredSections.map((section, idx) => (
-                <div key={idx} className="nav-section" style={{ marginTop: '1rem' }}>
-                    <ul className="nav-links">
-                        {section.items.map((item) => (
-                            <li key={item.name}>
-                                <Link
-                                    to={item.path}
-                                    className={`nav-item ${location.pathname === item.path || (item.path === '/' && location.pathname === '') ? 'active' : ''}`}
-                                    title={item.name}
-                                >
-                                    <item.icon size={15} />
-                                    <span>{item.name}</span>
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
+
+            <div className="sidebar-scroll-area">
+                {filteredSections.map((section, idx) => (
+                    <div key={idx} className="nav-section-modern">
+                        <ul className="nav-links-modern">
+                            {section.items.map((item) => {
+                                const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '');
+                                return (
+                                    <li key={item.name}>
+                                        <Link
+                                            to={item.path}
+                                            className={`nav-item-modern ${isActive ? 'active' : ''}`}
+                                            title={item.name}
+                                        >
+                                            <item.icon size={18} className="nav-icon-v4" />
+                                            <span>{item.name}</span>
+                                            {isActive && <div className="active-indicator-v4" />}
+                                        </Link>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                ))}
+            </div>
+
+            <div className="sidebar-footer-premium">
+                <div className="user-profile-compact">
+                    <div className="user-avatar-mini">{initial}</div>
+                    <div className="user-info-mini">
+                        <span className="u-name">{displayName}</span>
+                        <span className="u-role">{user.role || 'Staff'}</span>
+                    </div>
+                    <button onClick={onLogout} className="btn-logout-minimal" title="Logout">
+                        <LogOut size={16} />
+                    </button>
                 </div>
-            ))}
-            <div style={{ marginTop: '0.5rem', padding: '0.5rem' }}>
-                <button
-                    onClick={onLogout}
-                    className="nav-item nav-logout-btn"
-                >
-                    <LogOut size={20} />
-                    <span>Logout</span>
-                </button>
             </div>
         </div>
     );

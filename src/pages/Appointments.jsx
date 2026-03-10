@@ -832,11 +832,11 @@ const Appointments = () => {
                                 </form>
                             ) : (
                                 <form onSubmit={handleFormSubmit} className="wizard-form-v3" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    <div className="selected-patient-v3" style={{ backgroundColor: '#EEF2FF', padding: '12px', borderRadius: '14px', border: '1.5px solid #E0E7FF' }}>
-                                        <div className="p-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <div className="p-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div className="p-avatar-circle" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5', boxShadow: '0 2px 4px rgba(79, 70, 229, 0.1)' }}>
-                                                    <User size={20} />
+                                    <div className="selected-patient-v3" style={{ marginBottom: '1rem', border: '1.5px solid #f1f5f9', borderRadius: '14px', background: '#f8fafc', padding: '0.6rem 1rem' }}>
+                                        <div className="p-info-compact" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div className="p-avatar-circle" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)' }}>
+                                                    <User size={16} />
                                                 </div>
                                                 <div className="p-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <span className="p-name-premium" style={{ fontSize: '13px', fontWeight: 850, color: '#1e293b' }}>{removeSalutation(selectedPatient?.child_name)}</span>
@@ -844,8 +844,8 @@ const Appointments = () => {
                                                 </div>
                                             </div>
                                             {!editMode && (
-                                                <button type="button" onClick={() => setActiveTab('patient')} style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fff', border: '1px solid #E0E7FF', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, color: '#4F46E5', cursor: 'pointer' }}>
-                                                    <Edit2 size={12} />
+                                                <button type="button" onClick={() => setActiveTab('patient')} style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fff', border: '1px solid #E0E7FF', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, color: '#4F46E5', cursor: 'pointer' }}>
+                                                    <Edit2 size={10} />
                                                     <span>Change</span>
                                                 </button>
                                             )}
@@ -863,7 +863,7 @@ const Appointments = () => {
                                                         const doc = doctors.find(d => d.doctor_id === e.target.value);
                                                         setForm({ ...form, doctor_id: e.target.value, doctor_name: getDoctorDisplayName(doc) });
                                                     }}
-                                                    style={{ width: '100%', height: '42px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '13px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
+                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
                                                     <option value="" disabled>Select Provider</option>
                                                     {doctors.map(doc => <option key={doc.doctor_id} value={doc.doctor_id}>{getDoctorDisplayName(doc)}</option>)}
@@ -880,33 +880,32 @@ const Appointments = () => {
                                                     type="date"
                                                     value={form.appointment_date}
                                                     onChange={e => setForm({ ...form, appointment_date: e.target.value })}
-                                                    style={{ width: '100%', height: '42px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '13px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
+                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="f-group full-span" style={{ gridColumn: 'span 2' }}>
-                                            <div className="token-availability-v3 card-premium-v3" style={{ backgroundColor: '#fff', border: '1.5px solid #eef2ff', borderTop: '4px solid #6366f1', borderRadius: '14px', padding: '14px' }}>
-                                                <div className="token-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                    <h3 style={{ fontSize: '11px', fontWeight: 950, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token Status</h3>
-                                                    {tokensLoading && <RefreshCw size={14} style={{ color: '#6366f1' }} className="animate-spin" />}
+                                            <div className="token-availability-v3 card-premium-v3" style={{ backgroundColor: '#fff', border: '1.5px solid #eef2ff', borderRadius: '14px', padding: '10px' }}>
+                                                <div className="token-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                    <h3 style={{ fontSize: '10px', fontWeight: 950, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token Status</h3>
+                                                    {tokensLoading && <RefreshCw size={12} style={{ color: '#6366f1' }} className="animate-spin" />}
                                                 </div>
 
                                                 {availableTokens ? (
-                                                    <div className="token-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                                                        <div className="token-stat-card walkin active-pool" style={{ gridColumn: 'span 2', padding: '12px', backgroundColor: '#f0fdf9', border: '1.5px solid #ccfbf1', borderRadius: '10px', textAlign: 'center' }}>
-                                                            <div style={{ fontSize: '10px', fontWeight: 800, color: '#0d9488', textTransform: 'uppercase', marginBottom: '2px' }}>Walk-in Token</div>
-                                                            <div style={{ fontSize: '24px', fontWeight: 950, color: '#134e4a' }}>#{availableTokens.walkin_next_token || '--'}</div>
+                                                    <div className="token-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                        <div className="token-stat-pill" style={{ padding: '6px 12px', backgroundColor: '#eff6ff', border: '1.5px solid #6366f1', borderRadius: '10px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                                            <div style={{ fontSize: '10px', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>Walk-in</div>
+                                                            <div style={{ fontSize: '20px', fontWeight: 950, color: '#1e293b' }}>#{availableTokens.walkin_next_token || '--'}</div>
                                                         </div>
-                                                        <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', color: '#94a3b8', fontWeight: 700, marginTop: '4px' }}>
-                                                            <Clock size={12} />
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8', fontWeight: 700 }}>
+                                                            <Clock size={10} />
                                                             <span>Shift Start: {availableTokens.start_time || '--:--'}</span>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="token-placeholder" style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
-                                                        <Activity size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                                                        <p style={{ fontSize: '13px', fontWeight: 500 }}>Select provider and date to check token availability</p>
+                                                    <div className="token-placeholder" style={{ textAlign: 'center', padding: '10px', color: '#94a3b8' }}>
+                                                        <p style={{ fontSize: '11px', fontWeight: 600 }}>Select clinician to view tokens</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -919,7 +918,7 @@ const Appointments = () => {
                                                 <select
                                                     value={form.visit_category}
                                                     onChange={e => setForm({ ...form, visit_category: e.target.value })}
-                                                    style={{ width: '100%', height: '42px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '13px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
+                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
                                                     <option value="First visit">First visit</option>
                                                     <option value="Follow-up">Follow-up</option>
@@ -938,7 +937,7 @@ const Appointments = () => {
                                                     placeholder="Reason for visit"
                                                     value={form.reason}
                                                     onChange={e => setForm({ ...form, reason: e.target.value })}
-                                                    style={{ width: '100%', height: '42px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '13px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
+                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
                                                 />
                                             </div>
                                         </div>
