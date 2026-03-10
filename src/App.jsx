@@ -42,7 +42,7 @@ const ClinicDisplay = lazy(() => import('./pages/ClinicDisplay'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const FeedbackReports = lazy(() => import('./pages/FeedbackReports'));
 const Analytics = lazy(() => import('./pages/Analytics'));
-import clinicLogo from './assets/clinic_logo.png';
+import clinicLogo from './assets/logo.jpg';
 import { hasPermission } from './utils/auth';
 import { removeSalutation } from './utils/formatters';
 

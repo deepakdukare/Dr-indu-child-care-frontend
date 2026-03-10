@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     TrendingUp, Users, Calendar, Activity, Filter, Download,
-    Clock, RefreshCw, CheckCircle2, XCircle, Search, BarChart2, Loader2
+    Clock, RefreshCw, CheckCircle2, XCircle, Search, BarChart2, Loader2,
+    FileText, Hash
 } from 'lucide-react';
 import {
     getPracticeInsights, getReportsDashboard, getAppointmentsReport,
@@ -170,209 +171,116 @@ const Analytics = () => {
     };
 
     return (
-        <div className="reports-analytics-v2">
-            <div className="v2-header">
+        <div className="analytics-container">
+            <div className="analytics-top-bar">
                 <h1>Reports & Analytics</h1>
-                <div className="v2-header-actions">
-                    <button className="v2-btn-secondary" onClick={fetchData}>
-                        <RefreshCw size={16} />
-                        <span>Sync Data</span>
+                <div className="analytics-actions">
+                    <button className="btn-analytics-refresh" onClick={fetchData}>
+                        <RefreshCw size={14} />
+                        <span>Refresh</span>
                     </button>
-                    <button className="v2-btn-primary" onClick={exportCSV}>
-                        <Download size={16} />
+                    <button className="btn-analytics-export" onClick={exportCSV}>
+                        <Download size={14} />
                         <span>Export CSV</span>
                     </button>
                 </div>
             </div>
 
-            <div className="v2-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginBottom: '2rem', background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                <div className="v2-filter-item" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '8px 12px', borderRadius: '10px', border: '1px solid #eef2f6' }}>
-                    <Calendar size={14} color="#6366f1" />
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>From</span>
-                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: 600, color: '#1e293b' }} />
-                </div>
-                <div className="v2-filter-item" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '8px 12px', borderRadius: '10px', border: '1px solid #eef2f6' }}>
-                    <Calendar size={14} color="#6366f1" />
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>To</span>
-                    <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: 600, color: '#1e293b' }} />
-                </div>
-                <select value={doctorId} onChange={e => setDoctorId(e.target.value)} className="v2-select" style={{ minWidth: '160px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #eef2f6', background: '#f8fafc', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-                    <option value="">All Doctors</option>
-                    {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name}</option>)}
-                </select>
-                <select value={status} onChange={e => setStatus(e.target.value)} className="v2-select" style={{ minWidth: '140px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #eef2f6', background: '#f8fafc', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
-                    <option value="">All Statuses</option>
-                    {['CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <button className="v2-update-btn" onClick={fetchData} style={{ marginLeft: 'auto', background: '#6366f1', color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)' }}>Update Report</button>
+            <div className="analytics-stats-row">
+                {[
+                    { label: 'Total Appointments', value: displayMetrics.total, icon: Calendar, color: '#4f46e5', bg: '#eef2ff' },
+                    { label: 'Completed', value: displayMetrics.completed, icon: Users, color: '#10b981', bg: '#ecfdf5' },
+                    { label: 'Cancelled', value: displayMetrics.cancelled, icon: Users, color: '#ef4444', bg: '#fef2f2' },
+                    { label: 'No Shows', value: displayMetrics.no_show, icon: FileText, color: '#f59e0b', bg: '#fffbeb' },
+                    { label: 'Unique Patients', value: displayMetrics.unique, icon: Hash, color: '#06b6d4', bg: '#ecfeff' },
+                    { label: 'Completion Rate', value: `${completionRate}%`, icon: TrendingUp, color: '#8b5cf6', bg: '#f5f3ff' }
+                ].map((stat, i) => (
+                    <div key={i} className="stat-box-premium">
+                        <div className="stat-icon-wrap" style={{ background: stat.bg, color: stat.color }}>
+                            <stat.icon size={20} />
+                        </div>
+                        <div className="stat-label-v4">{stat.label}</div>
+                        <div className="stat-val-v4">{loading ? '...' : stat.value.toLocaleString()}</div>
+                    </div>
+                ))}
             </div>
 
-            {error && <div className="v2-error-pill"><Activity size={18} />{error}</div>}
-
-            <div className="stat-grid-v3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #6366f1' }}>
-                    <div style={{ background: '#f5f3ff', color: '#6366f1', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Calendar size={20} />
+            <div className="analytics-main-grid">
+                <div className="analytics-card-white">
+                    <div className="card-title-v4">
+                        <span>Appointment Trends (Last 30 Days)</span>
+                        <select
+                            value={doctorId}
+                            onChange={e => setDoctorId(e.target.value)}
+                            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 600, color: '#64748b', outline: 'none', background: '#fff' }}
+                        >
+                            <option value="">All Doctors</option>
+                            {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name}</option>)}
+                        </select>
                     </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Appointments</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : displayMetrics.total.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #10b981' }}>
-                    <div style={{ background: '#ecfdf5', color: '#10b981', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <CheckCircle2 size={20} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Completed</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : displayMetrics.completed.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #ef4444' }}>
-                    <div style={{ background: '#fef2f2', color: '#ef4444', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <XCircle size={20} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Cancelled</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : displayMetrics.cancelled.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #f59e0b' }}>
-                    <div style={{ background: '#fffbeb', color: '#f59e0b', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Clock size={20} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>No Shows</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : displayMetrics.no_show.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #06b6d4' }}>
-                    <div style={{ background: '#ecfeff', color: '#06b6d4', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Users size={20} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Unique Patients</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : displayMetrics.unique.toLocaleString()}</div>
-                    </div>
-                </div>
-
-                <div className="stat-card-v3" style={{ border: '1px solid #e2e8f0', borderRadius: '16px', background: '#fff', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderBottom: '4px solid #8b5cf6' }}>
-                    <div style={{ background: '#f5f3ff', color: '#8b5cf6', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <TrendingUp size={20} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Completion Rate</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b' }}>{loading ? '...' : `${completionRate}%`}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="v2-charts-grid">
-                <div className="v2-chart-card">
-                    <h3>Appointment Trends</h3>
-                    <div className="v2-chart-placeholder">
-                        <svg viewBox="0 0 800 200" className="v2-trend-svg">
-                            <path d="M 0 150 Q 150 140 300 100 T 600 80 T 800 20" fill="none" stroke="#6366f1" strokeWidth="3" />
-                            <circle cx="150" cy="140" r="4" fill="#6366f1" />
-                            <circle cx="300" cy="100" r="4" fill="#6366f1" />
-                            <circle cx="600" cy="80" r="4" fill="#6366f1" />
+                    <div style={{ height: '260px', position: 'relative', marginTop: '1rem' }}>
+                        <svg viewBox="0 0 800 240" style={{ width: '100%', height: '100%' }}>
+                            <g stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4,4">
+                                {[40, 80, 120, 160, 200].map(y => <line key={y} x1="0" y1={y} x2="800" y2={y} />)}
+                            </g>
+                            <path d="M 100 180 Q 250 160 400 120 T 700 80" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+                            <circle cx="250" cy="160" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
+                            <circle cx="400" cy="120" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
+                            <circle cx="700" cy="80" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
+                            <g style={{ fontSize: '12px', fill: '#94a3b8', fontWeight: 600 }}>
+                                <text x="100" y="235" textAnchor="middle">Week 1</text>
+                                <text x="300" y="235" textAnchor="middle">Week 2</text>
+                                <text x="500" y="235" textAnchor="middle">Week 3</text>
+                                <text x="700" y="235" textAnchor="middle">Week 4</text>
+                            </g>
                         </svg>
                     </div>
                 </div>
 
-                <div className="v2-chart-card">
-                    <h3>Visit Distribution</h3>
-                    <div className="v2-distribution-content">
-                        <div className="v2-donut-box">
-                            <svg viewBox="0 0 36 36" className="v2-donut-svg">
-                                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#f1f5f9" strokeWidth="3" />
-                                <circle cx="18" cy="18" r="15.5" fill="none" stroke="#6366f1" strokeWidth="3" strokeDasharray="60, 100" />
-                            </svg>
-                            <div className="v2-donut-center">
-                                <span className="v2-donut-label">Total</span>
-                                <span className="v2-donut-val">{displayMetrics.total}</span>
-                            </div>
+                <div className="analytics-card-white">
+                    <div className="card-title-v4">Visit Type Distribution</div>
+                    <div style={{ position: 'relative', width: '180px', height: '180px', margin: '2rem auto' }}>
+                        <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#f1f5f9" strokeWidth="4" />
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#6366f1" strokeWidth="4" strokeDasharray="60, 100" />
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#a855f7" strokeWidth="4" strokeDasharray="25, 100" strokeDashoffset="-60" />
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="15, 100" strokeDashoffset="-85" />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>Total Visits</span>
+                            <span style={{ fontSize: '20px', fontWeight: 850, color: '#1e293b' }}>{displayMetrics.total}</span>
                         </div>
-                        <div className="v2-legend-list">
-                            {Object.entries(displayMetrics.categories).map(([name, count], idx) => (
-                                <div key={name} className="v2-legend-item">
-                                    <div className="v2-legend-info">
-                                        <span className="v2-legend-dot" style={{ background: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 5] }}></span>
-                                        <span>{name}</span>
-                                    </div>
-                                    <strong>{count}</strong>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '2rem' }}>
+                        {[
+                            { name: 'Consultations', count: 214, color: '#60a5fa' },
+                            { name: 'Dental', count: 150, color: '#a855f7' },
+                            { name: 'Neurolgy', count: 121, color: '#6366f1' }
+                        ].map((item, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', fontSize: '13px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }}></div>
+                                    <span style={{ fontWeight: 800, color: '#1e293b' }}>{item.count}</span>
+                                    <span style={{ color: '#64748b', fontWeight: 600 }}>{item.name}</span>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="v2-table-container">
-                <div className="v2-table-header">
-                    <h3>Detailed Records — {filteredAppointments.length}</h3>
-                    <div className="v2-search-input">
-                        <Search size={16} color="#94a3b8" />
-                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient, ID, or doctor..." />
-                    </div>
-                </div>
-
-                {loading ? (
-                    <div className="v2-loading-box"><RefreshCw size={32} className="animate-spin" /></div>
-                ) : filteredAppointments.length === 0 ? (
-                    <div className="v2-empty-box">
-                        <BarChart2 size={48} />
-                        <p>No record found for this period</p>
-                    </div>
-                ) : (
-                    <div className="v2-table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    {['Date', 'Patient', 'Patient ID', 'Doctor', 'Time/Token', 'Type', 'Source', 'Status'].map(h => (
-                                        <th key={h} style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #f1f5f9' }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredAppointments.map((a, i) => {
-                                    const s = getStatusStyle(a.status);
-                                    const pName = a.child_name || a.patient_name || a.name || a.patient?.child_name || '—';
-                                    return (
-                                        <tr key={a.appointment_id || i}>
-                                            <td style={{ fontWeight: 600, color: '#64748b' }}>{formatDateReadable(a.date || a.appointment_date)}</td>
-                                            <td className="p-name" style={{ fontWeight: 800, color: '#1e293b' }}>{removeSalutation(pName)}</td>
-                                            <td className="p-id" style={{ color: '#64748b', fontSize: '12px' }}>{a.patient_id || '—'}</td>
-                                            <td style={{ fontWeight: 600 }}>{a.doctor_name || '—'}</td>
-                                            <td style={{ fontWeight: 700, color: '#6366f1' }}>{a.token_display || a.appointment_time || '—'}</td>
-                                            <td><span className="type-badge" style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>{a.visit_category || 'First visit'}</span></td>
-                                            <td className="source" style={{ textTransform: 'capitalize', fontSize: '12px' }}>{(a.booking_source || 'Admin')}</td>
-                                            <td><span className="status-pill" style={{ background: s.bg, color: s.color, padding: '4px 10px', borderRadius: '50px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase' }}>{a.status}</span></td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            <div className="v2-doctor-section" style={{ marginTop: '3rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 950, color: '#0f172a', marginBottom: '1.5rem' }}>Doctor Performance Snapshot</h2>
-                <div className="v2-doctor-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.5rem' }}>
-                    {displayMetrics.doctors.map((doc, i) => (
-                        <div key={i} className="v2-doctor-card" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', transition: 'transform 0.2s', cursor: 'default' }}>
-                            <div className="doc-avatar" style={{ flexShrink: 0 }}>
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doc')}&background=EEF2FF&color=4F46E5&bold=true`} alt={doc.name} style={{ width: '56px', height: '56px', borderRadius: '16px', objectFit: 'cover' }} />
                             </div>
-                            <div className="doc-info">
-                                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>{doc.name}</h3>
-                                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{doc.role || doc.speciality || 'Pediatrician'}</span>
-                                <div className="doc-count" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}><strong style={{ color: '#6366f1', fontSize: '1rem' }}>{doc.count || doc.visits || 0}</strong> Bookings</div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="analytics-card-white">
+                <div className="card-title-v4">Visits per Doctor</div>
+                <div className="doc-snapshot-grid">
+                    {displayMetrics.doctors.slice(0, 4).map((doc, i) => (
+                        <div key={i} className="doc-mini-card">
+                            <div className="doc-mini-avatar">
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name || 'Doc')}&background=EEF2FF&color=4F46E5&bold=true`} alt={doc.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                            <div className="doc-mini-info">
+                                <h4>{doc.name}</h4>
+                                <p>{doc.role || doc.speciality || 'Pediatrician'}</p>
+                                <div className="doc-mini-count"><strong>{doc.count || doc.visits || 0}</strong> Bookings</div>
                             </div>
                         </div>
                     ))}
