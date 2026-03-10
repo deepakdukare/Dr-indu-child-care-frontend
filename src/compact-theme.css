@@ -262,6 +262,98 @@ input {
     background: #eef2ff !important;
 }
 
+.sidebar-header-premium {
+    padding: 1.5rem 1.25rem !important;
+    border-bottom: 1px solid #f8fafc !important;
+}
+
+.brand-link-modern {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    text-decoration: none !important;
+}
+
+.brand-logo-sidebar {
+    width: 64px !important;
+    height: auto !important;
+    max-height: 48px !important;
+    object-fit: contain !important;
+    border-radius: 8px !important;
+}
+
+.brand-info-modern {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.brand-name-mini {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.1 !important;
+}
+
+.brand-desc-mini {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.sidebar-scroll-area {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 1.25rem 0.75rem !important;
+}
+
+.nav-links-modern {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+}
+
+.nav-item-modern {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.65rem 0.75rem !important;
+    border-radius: 10px !important;
+    color: #64748b !important;
+    text-decoration: none !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+}
+
+.nav-item-modern:hover {
+    background: #f8fafc !important;
+    color: #1e293b !important;
+}
+
+.nav-item-modern.active {
+    background: #eff6ff !important;
+    color: #6366f1 !important;
+}
+
+.nav-icon-v4 {
+    color: #94a3b8 !important;
+    transition: color 0.2s ease !important;
+}
+
+.nav-item-modern:hover .nav-icon-v4 {
+    color: #64748b !important;
+}
+
+.nav-item-modern.active .nav-icon-v4 {
+    color: #6366f1 !important;
+}
 
 .active-indicator-v4 {
     position: absolute !important;
