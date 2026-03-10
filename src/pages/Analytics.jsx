@@ -359,5 +359,3 @@ const Analytics = () => {
 };
 
 export default Analytics;
-
-export default Analytics;
