@@ -231,22 +231,65 @@
 }
 
 /* ── Clean Registration Form Styles ── */
+/* ── Simplify Background Layers ── */
+.main-stage-v4 {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+}
+
 .reg-form-clean {
-    padding: 1rem;
+    padding: 2rem;
     max-width: 600px;
     margin: 0 auto;
-    background: #fdfdfd;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.1);
     margin-bottom: 80px; /* Space for sticky button */
+    overflow: hidden;
+}
+
+.reg-unified-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.logo-box.mini {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-box.mini img {
+     width: 40px;
+     height: 40px;
+     border-radius: 10px;
+     object-fit: cover;
+}
+
+.logo-box.mini .logo-text .brand {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.logo-box.mini .logo-text .sub {
+    font-size: 0.65rem;
+    font-weight: 600;
 }
 
 .reg-section {
     margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #f0f0f0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
 }
 
 .reg-section-title {

@@ -347,14 +347,12 @@ const PublicRegister = () => {
                 dob: patientForm.dob,
                 mother_name: patientForm.mother_name || null,
                 father_name: patientForm.father_name || null,
-                parent_mobile: patientForm.wa_id,
-                wa_id: patientForm.wa_id,
                 communication_preference: patientForm.comm_preference.toLowerCase(),
                 doctor: rawDocName,
                 remarks: patientForm.notes || null,
-                referred_by: patientForm.referred_by || null,
                 registration_source: patientForm.registration_source,
                 enrollment_option: patientForm.enrollment_option,
+                wa_id: patientForm.wa_id,
                 father_mobile: patientForm.father_mobile || null,
                 mother_mobile: patientForm.mother_mobile || null,
                 state: patientForm.state,
@@ -525,42 +523,33 @@ const PublicRegister = () => {
                     </div>
 
                     <div className="landing-content">
-                        <div className="landing-header">
-                            <div className="logo-box">
-                                <img src="/logo.jpg" alt="DICC" />
-                                <div className="logo-text">
-                                    <span className="brand">DICC</span>
-                                    <span className="sub">Pediatric Care Excellence</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="main-stage-v4">
                             {step > 0 && (
                                 <div className="step-container-v4">
-                                    <div className="step-nav-header">
-                                        <button className="btn-back-v4" onClick={() => {
-                                            if (step === 3) window.location.reload();
-                                            else if (step === 1) setStep(0);
-                                            else if (step === 2) isNewPatient ? setStep(1) : setStep(0);
-                                            else setStep(0);
-                                        }}>
-                                            <ArrowLeft size={20} />
-                                            <span>Back</span>
-                                        </button>
-                                        {step < 3 && (
-                                            <div className="step-indicator-v4">
-                                                <div className={`ind-dot ${step === 1 ? 'active' : 'done'}`}>1</div>
-                                                <div className="ind-line"></div>
-                                                <div className={`ind-dot ${step === 2 ? 'active' : step > 2 ? 'done' : ''}`}>2</div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {error && <div className="global-alert-v4 error"><AlertCircle size={20} /> {error}</div>}
-
                                     {step === 1 && (
                                         <form onSubmit={handleRegistration} className="reg-form-clean">
+                                            {/* Unified Header inside Form */}
+                                            <div className="reg-unified-header">
+                                                <button type="button" className="btn-back-v4" onClick={() => {
+                                                    if (step === 3) window.location.reload();
+                                                    else if (step === 1) setStep(0);
+                                                    else if (step === 2) isNewPatient ? setStep(1) : setStep(0);
+                                                    else setStep(0);
+                                                }}>
+                                                    <ArrowLeft size={20} />
+                                                    <span>Back</span>
+                                                </button>
+
+                                                <div className="logo-box mini">
+                                                    <img src="/logo.jpg" alt="DICC" />
+                                                    <div className="logo-text">
+                                                        <span className="brand">DICC</span>
+                                                        <span className="sub">Pediatric Care Excellence</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {error && <div className="global-alert-v4 error"><AlertCircle size={20} /> {error}</div>}
 
                                             {/* â”€â”€ Child Identification â”€â”€ */}
                                             <div className="reg-section">
@@ -591,17 +580,58 @@ const PublicRegister = () => {
                                                 </div>
                                                 {regErrors.gender && <p className="reg-err">{regErrors.gender}</p>}
 
-                                                <div className="reg-field">
-                                                    <label className="reg-label">Baby's Full Name *</label>
-                                                    <input
-                                                        className={`reg-input ${regErrors.first_name ? 'has-error' : ''}`}
-                                                        name="first_name"
-                                                        placeholder="Full Name"
-                                                        value={patientForm.first_name}
-                                                        onBlur={handleBlur}
-                                                        onChange={e => setPatientForm({ ...patientForm, first_name: e.target.value })}
-                                                    />
-                                                    {regErrors.first_name && <p className="reg-err">{regErrors.first_name}</p>}
+                                                <div className="reg-grid-2">
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Salutation</label>
+                                                        <div className="reg-select-wrap">
+                                                            <select
+                                                                className="reg-select"
+                                                                name="salutation"
+                                                                value={patientForm.salutation}
+                                                                onChange={e => setPatientForm({ ...patientForm, salutation: e.target.value })}
+                                                            >
+                                                                {SALUTATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                                            </select>
+                                                            <ChevronDown size={16} className="reg-select-icon" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">First Name *</label>
+                                                        <input
+                                                            className={`reg-input ${regErrors.first_name ? 'has-error' : ''}`}
+                                                            name="first_name"
+                                                            placeholder="Arjun"
+                                                            value={patientForm.first_name}
+                                                            onBlur={handleBlur}
+                                                            onChange={e => setPatientForm({ ...patientForm, first_name: e.target.value })}
+                                                        />
+                                                        {regErrors.first_name && <p className="reg-err">{regErrors.first_name}</p>}
+                                                    </div>
+                                                </div>
+
+                                                <div className="reg-grid-2">
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Middle Name</label>
+                                                        <input
+                                                            className="reg-input"
+                                                            name="middle_name"
+                                                            placeholder="Rohit"
+                                                            value={patientForm.middle_name}
+                                                            onChange={e => setPatientForm({ ...patientForm, middle_name: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Last Name *</label>
+                                                        <input
+                                                            className={`reg-input ${regErrors.last_name ? 'has-error' : ''}`}
+                                                            name="last_name"
+                                                            placeholder="Sharma"
+                                                            value={patientForm.last_name}
+                                                            onBlur={handleBlur}
+                                                            onChange={e => setPatientForm({ ...patientForm, last_name: e.target.value })}
+                                                        />
+                                                        {regErrors.last_name && <p className="reg-err">{regErrors.last_name}</p>}
+                                                    </div>
                                                 </div>
 
                                                 <div className="reg-field">
