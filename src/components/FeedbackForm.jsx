@@ -54,12 +54,12 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                 <div className="success-icon-v2">
                     <Smile size={64} />
                 </div>
-                <h3>Form Submitted!</h3>
-                <p>Thank you for sharing your experience. Redirecting you to booking...</p>
+                <h3>Feedback Submitted!</h3>
+                <p>Thank you for sharing your experience with us.</p>
                 <div style={{ marginTop: '2rem' }}>
                     <RefreshCw className="spinning" size={32} style={{ color: '#6366f1' }} />
                 </div>
-                {setTimeout(() => navigate('/register-form'), 3000) && null}
+                {setTimeout(() => { if (onComplete) onComplete(); else navigate('/'); }, 3000) && null}
             </div>
         );
     }
@@ -97,6 +97,18 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                                 placeholder="Registered mobile"
                                 value={form.mobile}
                                 onChange={e => setForm({ ...form, mobile: e.target.value.replace(/\D/g, '') })}
+                                className="feedback-field"
+                            />
+                        </div>
+                    </div>
+                    <div className="feedback-input-group">
+                        <label>Email Address</label>
+                        <div className="feedback-input-wrap">
+                            <input
+                                type="email"
+                                placeholder="Email (optional)"
+                                value={form.email || ''}
+                                onChange={e => setForm({ ...form, email: e.target.value })}
                                 className="feedback-field"
                             />
                         </div>
@@ -151,7 +163,7 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
 
                 <div className="feedback-footer-v2">
                     <button type="submit" disabled={loading} className="btn-submit-v2">
-                        {loading ? <RefreshCw className="spinning" /> : <><span>Slot Booking</span> <ArrowRight size={22} /></>}
+                        {loading ? <RefreshCw className="spinning" /> : <><span>Submit Feedback</span> <Send size={20} /></>}
                     </button>
                 </div>
             </div>
