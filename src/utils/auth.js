@@ -12,9 +12,15 @@ export const hasPermission = (permission) => {
     if (!user || (!user.role && !user.id && !user._id)) return false;
 
     const role = String(user.role || '').toLowerCase();
+    const isDoctor = role === 'doctor';
+
+    // Restriction: Doctors should not see sensitive patient contact data
+    if (isDoctor && (permission === 'view_patient_mobile' || permission === 'view_patient_email')) {
+        return false;
+    }
 
     // Super-admins and primary admins have full override access
-    if (role === 'super_admin' || role === 'superadmin' || role === 'admin' || role === 'doctor') {
+    if (role === 'super_admin' || role === 'superadmin' || role === 'admin' || isDoctor) {
         return true;
     }
 

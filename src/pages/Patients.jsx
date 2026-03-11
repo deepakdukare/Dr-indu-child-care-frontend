@@ -409,7 +409,7 @@ const Patients = () => {
                                     <tr>
                                         <th>Patient Identity</th>
                                         <th>Parental Profile</th>
-                                        <th>Mobile</th>
+                                        {hasPermission('view_patient_mobile') && <th>Mobile</th>}
                                         <th>Contact & Location</th>
                                         <th>Enrollment</th>
                                         <th style={{ textAlign: 'center' }}>Management</th>
@@ -419,12 +419,12 @@ const Patients = () => {
                                     {loading && !patients.length ? (
                                         Array(6).fill(0).map((_, i) => (
                                             <tr key={i}>
-                                                <td colSpan={5}><div className="skeleton-row-premium"></div></td>
+                                                <td colSpan={hasPermission('view_patient_mobile') ? 6 : 5}><div className="skeleton-row-premium"></div></td>
                                             </tr>
                                         ))
                                     ) : patients.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="empty-state-cell">
+                                            <td colSpan={hasPermission('view_patient_mobile') ? 6 : 5} className="empty-state-cell">
                                                 <div className="empty-box-premium">
                                                     <Info size={48} />
                                                     <h3>No patients found</h3>
@@ -456,12 +456,14 @@ const Patients = () => {
                                                         <div className="parent-sub">{p.mother_name ? `Mother: ${p.mother_name}` : 'Parent profile'}</div>
                                                     </div>
                                                 </td>
-                                                <td>
-                                                    <div className="wa-box-mini mobile-col-v2">
-                                                        <Phone size={14} className="wa-icon-glow" />
-                                                        <strong>{hasPermission('view_patient_mobile') ? (p.wa_id) : '**********'}</strong>
-                                                    </div>
-                                                </td>
+                                                {hasPermission('view_patient_mobile') && (
+                                                    <td>
+                                                        <div className="wa-box-mini mobile-col-v2">
+                                                            <Phone size={14} className="wa-icon-glow" />
+                                                            <strong>{p.wa_id}</strong>
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td>
                                                     <div className="contact-inline">
                                                         <div className="loc-box-mini">
@@ -500,7 +502,7 @@ const Patients = () => {
                                             </tr>
                                             {selected?._id === p._id && (
                                                 <tr className="expansion-row">
-                                                    <td colSpan={5}>
+                                                    <td colSpan={hasPermission('view_patient_mobile') ? 6 : 5}>
                                                         <div className="expansion-content-premium" style={{ paddingTop: '1rem' }}>
                                                             <div className="expansion-tabs" style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', borderBottom: '1px solid #f1f5f9', padding: '0 1rem' }}>
                                                                 <button
