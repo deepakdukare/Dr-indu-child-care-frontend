@@ -283,10 +283,7 @@ const Patients = () => {
             <div className="header-section-premium">
                 <div className="header-content-premium">
                     <h1 className="header-title-premium">Patients</h1>
-                    <div className="live-pill-premium">
-                        <span className="live-dot"></span>
-                        <span className="live-text">{pagination.total} Total Patients</span>
-                    </div>
+                    <p className="header-subtitle-premium">{pagination.total} total profiles in records</p>
                 </div>
 
                 <div className="header-actions-premium">

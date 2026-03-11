@@ -292,15 +292,18 @@ const MRD = () => {
 
     return (
         <div className="mrd-page-v3">
-            <header className="mrd-top-bar">
-                <h1 className="page-title-v3">Medical Documentation</h1>
-                <div className="header-actions">
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Medical Documentation</h1>
+                    <p className="header-subtitle-premium">Longitudinal health records and clinical history</p>
+                </div>
+                <div className="header-actions-premium">
                     <button className="btn-sync-v3" onClick={() => loadDirectory()}>
                         <RefreshCw size={14} className={dirLoading ? 'spinning' : ''} />
                         <span>Sync Directory</span>
                     </button>
                 </div>
-            </header>
+            </div>
 
             <div className="mrd-workspace-v3">
                 {/* 1. Directory Panel */}

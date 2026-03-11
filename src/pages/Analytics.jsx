@@ -177,9 +177,12 @@ const Analytics = () => {
 
     return (
         <div className="analytics-container">
-            <div className="analytics-top-bar">
-                <h1>Reports & Analytics</h1>
-                <div className="analytics-actions">
+            <div className="header-section-premium" style={{ marginBottom: '2rem' }}>
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Reports & Analytics</h1>
+                    <p className="header-subtitle-premium">Advanced practice insights and financial trends</p>
+                </div>
+                <div className="header-actions-premium" style={{ display: 'flex', gap: '12px' }}>
                     <button className="btn-analytics-refresh" onClick={fetchData}>
                         <RefreshCw size={14} />
                         <span>Refresh</span>

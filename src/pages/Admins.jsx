@@ -332,25 +332,22 @@ const Admins = () => {
 
     return (
         <div className="admins-page">
-            <div className="title-section" style={{ marginBottom: '1.75rem' }}>
-                <div className="admins-head">
-                    <div>
-                        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <ShieldCheck size={28} /> Settings
-                        </h1>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.65rem' }}>
-                        <button className="btn btn-outline" onClick={refreshAll} disabled={refreshing || loading}>
-                            <RefreshCw size={16} className={refreshing || loading ? 'animate-spin' : ''} />
-                            Refresh
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Settings</h1>
+                    <p className="header-subtitle-premium">System configuration and access control</p>
+                </div>
+                <div className="header-actions-premium" style={{ display: 'flex', gap: '0.65rem' }}>
+                    <button className="btn btn-outline" onClick={refreshAll} disabled={refreshing || loading}>
+                        <RefreshCw size={16} className={refreshing || loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
+                    {!isDoctor && (
+                        <button className="btn btn-primary" onClick={handleCreateClick}>
+                            <Plus size={16} />
+                            New Admin User
                         </button>
-                        {!isDoctor && (
-                            <button className="btn btn-primary" onClick={handleCreateClick}>
-                                <Plus size={16} />
-                                New Admin User
-                            </button>
-                        )}
-                    </div>
+                    )}
                 </div>
             </div>
 

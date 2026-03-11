@@ -186,17 +186,15 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-v3">
-            <div className="welcome-section">
-                <div className="welcome-header">
-                    <div className="welcome-text">
-                        <h1>Admin Dashboard</h1>
-                        <p>Real-time analytics and management overview</p>
-                    </div>
-                    <div className="welcome-actions">
-                        <button onClick={fetchData} className="refresh-btn-premium" style={{ borderRadius: '16px' }}>
-                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                        </button>
-                    </div>
+            <div className="header-section-premium" style={{ marginBottom: '2rem' }}>
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Admin Dashboard</h1>
+                    <p className="header-subtitle-premium">Real-time analytics and management overview</p>
+                </div>
+                <div className="header-actions-premium">
+                    <button onClick={fetchData} className="refresh-btn-premium" style={{ borderRadius: '16px' }}>
+                        <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                    </button>
                 </div>
             </div>
 

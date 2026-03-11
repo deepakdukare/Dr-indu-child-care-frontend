@@ -103,14 +103,15 @@ const Notifications = () => {
 
     return (
         <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Bell size={28} color="#6366f1" /> Notifications
+            <div className="header-section-premium" style={{ marginBottom: '2.5rem' }}>
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium" style={{ gap: '0.75rem' }}>
+                        Notifications
                         {unreadCount > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50px', padding: '0.1rem 0.6rem', fontSize: '0.8rem', fontWeight: 800 }}>{unreadCount}</span>}
                     </h1>
+                    <p className="header-subtitle-premium">System alerts and scheduled reminders</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="header-actions-premium" style={{ display: 'flex', gap: '0.75rem' }}>
                     {unreadCount > 0 && (
                         <button onClick={handleMarkAllRead} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
                             <CheckCircle2 size={16} /> Mark All Read

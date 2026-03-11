@@ -105,12 +105,10 @@ const BotInteractions = () => {
 
     return (
         <div style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #1e293b 0%, #4338ca 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        Bot Hub
-                    </h1>
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Bot Hub</h1>
+                    <p className="header-subtitle-premium">Monitor automated interactions and escalations</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button

@@ -98,11 +98,12 @@ const Reports = () => {
 
     return (
         <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>Reports & Analytics</h1>
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Reports & Analytics</h1>
+                    <p className="header-subtitle-premium">Summary of clinical and administrative performance</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="header-actions-premium" style={{ display: 'flex', gap: '0.75rem' }}>
                     <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.1rem', borderRadius: '10px', background: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
                         <Download size={16} /> Export CSV
                     </button>

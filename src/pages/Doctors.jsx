@@ -385,9 +385,10 @@ const Doctors = () => {
         <div className="doc-page">
             {!showDoctorForm ? (
                 <>
-                    <div className="doc-head">
-                        <div>
-                            <h1>Doctors</h1>
+                    <div className="header-section-premium">
+                        <div className="header-content-premium">
+                            <h1 className="header-title-premium">Doctors</h1>
+                            <p className="header-subtitle-premium">Manage clinician profiles and schedules</p>
                         </div>
                         <div className="doc-head-actions">
                             <button className="btn-doc-action secondary" onClick={fetchDoctorsData}>

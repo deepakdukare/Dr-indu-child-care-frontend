@@ -641,10 +641,46 @@ input {
     color: #374151 !important;
 }
 
+/* UNIFIED PAGE HEADERS */
+.header-section-premium {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem !important;
+    border-bottom: 1px dashed #e2e8f0 !important;
+}
+
+.header-content-premium {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+}
+
+.header-title-premium {
+    font-size: 1.5rem !important;
+    font-weight: 850 !important;
+    color: #1e293b !important;
+    letter-spacing: -0.025em !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+}
+
+.header-subtitle-premium {
+    font-size: 0.85rem !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+}
+
 .welcome-text h1 {
-    font-size: 20px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0 !important;
+    font-size: 1.5rem !important;
+    font-weight: 850 !important;
+    color: #1e293b !important;
+    letter-spacing: -0.025em !important;
+    margin: 0 !important;
 }
 
 .welcome-text p {

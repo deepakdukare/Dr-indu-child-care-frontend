@@ -62,15 +62,17 @@ const FeedbackReports = () => {
 
     return (
         <div className="reports-container-v5">
-            <div className="reports-header">
-                <div className="h-left">
-                    <h1>Feedback Analytics</h1>
-                    <p>Monitoring patient satisfaction and service quality</p>
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Feedback Analytics</h1>
+                    <p className="header-subtitle-premium">Patient satisfaction and service quality metrics</p>
                 </div>
-                <button onClick={fetchData} className="btn-refresh">
-                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                    <span>Refresh Data</span>
-                </button>
+                <div className="header-actions-premium">
+                    <button onClick={fetchData} className="btn-refresh">
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                        <span>Refresh Data</span>
+                    </button>
+                </div>
             </div>
 
             <div className="stats-grid-v5">

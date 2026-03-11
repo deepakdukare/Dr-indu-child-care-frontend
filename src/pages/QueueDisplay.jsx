@@ -311,9 +311,10 @@ const QueueDisplay = () => {
 
     return (
         <div className="queue-container">
-            <div className="queue-header">
-                <div>
-                    <h1>Queue Tokens</h1>
+            <div className="header-section-premium">
+                <div className="header-content-premium">
+                    <h1 className="header-title-premium">Queue Tokens</h1>
+                    <p className="header-subtitle-premium">Live monitoring and token management</p>
                 </div>
                 <div className="queue-header-actions">
                     <a href="/clinic-display" target="_blank" rel="noopener noreferrer"

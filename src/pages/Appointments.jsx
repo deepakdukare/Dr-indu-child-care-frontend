@@ -508,9 +508,10 @@ const Appointments = () => {
 
     return (
         <div className="appointments-page-v3">
-            <div className="header-section-premium" style={{ borderBottom: '1px dashed #e2e8f0', paddingBottom: '1rem', marginBottom: '0' }}>
+            <div className="header-section-premium">
                 <div className="header-content-premium">
-                    <h1 className="header-title-premium" style={{ fontSize: '1.25rem' }}>Appointment</h1>
+                    <h1 className="header-title-premium">Appointment</h1>
+                    <p className="header-subtitle-premium">Schedule and manage patient visits</p>
                 </div>
 
                 <div className="header-actions-premium" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
