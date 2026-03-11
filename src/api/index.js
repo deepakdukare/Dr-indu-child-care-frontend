@@ -140,7 +140,10 @@ export const getReferringDoctors = (params) => api.get('/referring-doctors', { p
 export const getDoctorAvailability = (id, params) => api.get(`/doctor/availability/${id}`, { params });
 export const getDoctorAvailabilityDashboard = (id) => api.get(`/doctor/availability-dashboard/${id}`);
 export const updateDoctorAvailability = (data) => api.post('/doctor/availability/update', data);
-export const patchDoctorAvailabilityStatus = (id, status, notes) => api.patch(`/doctor/availability/${id}/status`, { status, notes });
+export const patchDoctorAvailabilityStatus = (id, statusOrData, notes) => {
+    const payload = (statusOrData && typeof statusOrData === 'object') ? statusOrData : { status: statusOrData, notes };
+    return api.patch(`/doctor/availability/${id}/status`, payload);
+};
 export const patchDoctorAvailabilityEta = (id, data) => api.patch(`/doctor/availability/${id}/eta`, data);
 export const logDoctorLateCheckin = (data) => api.post('/doctor/late-checkin', data);
 export const getDoctorLateCheckins = (id) => api.get(`/doctor/late-checkins/${id}`);

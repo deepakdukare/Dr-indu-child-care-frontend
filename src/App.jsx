@@ -183,7 +183,7 @@ const Header = () => {
 
     return (
         <>
-            <header className="header" style={{ height: '64px', padding: '0 2rem' }}>
+            <header className="header" style={{ height: '48px', padding: '0 1.5rem' }}>
                 <div className="header-left">
                     <div className="header-search">
                         <Search size={16} color="#9CA3AF" />
