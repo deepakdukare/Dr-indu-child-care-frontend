@@ -22,7 +22,8 @@ import {
     Copy,
     Check,
     X,
-    Loader2
+    Loader2,
+    Menu
 } from 'lucide-react';
 
 // Lazy load page components
@@ -72,7 +73,7 @@ const MobileNav = () => {
 };
 
 
-const Sidebar = ({ onLogout, isCollapsed }) => {
+const Sidebar = ({ onLogout, isCollapsed, isMobileMenuOpen, onMobileClose }) => {
     const location = useLocation();
     const user = getUser();
     const displayName = removeSalutation(user.full_name || user.username || 'Admin');
@@ -101,8 +102,16 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
         items: section.items.filter(item => hasPermission(item.permission))
     })).filter(section => section.items.length > 0);
 
+    useEffect(() => {
+        if (isMobileMenuOpen && onMobileClose) {
+            onMobileClose();
+        }
+    }, [location.pathname]);
+
     return (
-        <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+        <>
+            {isMobileMenuOpen && <div className="mobile-sidebar-overlay" onClick={onMobileClose}></div>}
+            <div className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
             <div className="sidebar-header-premium">
                 <Link to="/" className="brand-link-modern">
                     <img src={clinicLogo} alt="Logo" className="brand-logo-sidebar" />
@@ -150,11 +159,11 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 
-const Header = () => {
+const Header = ({ onMenuClick }) => {
     const user = getUser();
     const displayName = user.full_name || user.username || 'Admin';
     const displayRole = user.role ? user.role.charAt(0) + user.role.slice(1).toLowerCase() : 'Admin';
@@ -185,6 +194,9 @@ const Header = () => {
         <>
             <header className="header" style={{ height: '48px', padding: '0 1.5rem' }}>
                 <div className="header-left">
+                    <button className="mobile-menu-btn" onClick={onMenuClick}>
+                        <Menu size={20} color="#64748b" />
+                    </button>
                     <div className="header-search">
                         <Search size={16} color="#9CA3AF" />
                         <input type="text" placeholder="Search" className="header-search-input" />
@@ -369,6 +381,7 @@ const ProtectedRoute = ({ children, permission }) => {
 
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!getToken());
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogin = (token) => {
         setIsAuthenticated(true);
@@ -417,9 +430,9 @@ const App = () => {
                     {/* Admin Layout Routes */}
                     <Route path="/*" element={
                         <div className="app-container">
-                            <Sidebar onLogout={handleLogout} isCollapsed={false} />
+                            <Sidebar onLogout={handleLogout} isCollapsed={false} isMobileMenuOpen={isMobileMenuOpen} onMobileClose={() => setIsMobileMenuOpen(false)} />
                             <main className="main-content">
-                                <Header />
+                                <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
                                 <Routes>
                                     <Route path="/" element={<ProtectedRoute permission="view_dashboard"><Dashboard /></ProtectedRoute>} />
                                     <Route path="/appointments" element={<ProtectedRoute permission="view_appointments"><Appointments /></ProtectedRoute>} />
@@ -438,7 +451,6 @@ const App = () => {
                                     <Route path="/login" element={<Navigate to="/" replace />} />
                                 </Routes>
                             </main>
-                            <MobileNav />
                         </div>
                     } />
                 </Routes>

@@ -17894,3 +17894,9 @@ input:checked+.slider:before {
     font-size: 4rem !important;
   }
 }
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
