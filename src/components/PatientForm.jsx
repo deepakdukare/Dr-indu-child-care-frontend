@@ -28,7 +28,11 @@ export const EMPTY_FORM = {
     doctor: '',
     remarks: '',
     enrollment_option: 'just_enroll',
-    referred_by: ''
+    referred_by: '',
+    state: 'Maharashtra',
+    city: 'Mumbai',
+    pincode: '',
+    residential_address: ''
 };
 
 const PatientForm = ({
@@ -254,7 +258,8 @@ const PatientForm = ({
                             <label>Enrollment Option</label>
                             <div className="input-wrap-v4">
                                 <select value={safeForm.enrollment_option || 'just_enroll'} onChange={e => setForm({ ...safeForm, enrollment_option: e.target.value })} className="select-v4">
-                                    {ENROLLMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    <option value="just_enroll">Register Patient Only</option>
+                                    <option value="book_appointment">Register & Book Appointment</option>
                                 </select>
                                 <ChevronDown size={18} className="drop-arrow-v4" />
                             </div>
@@ -270,6 +275,67 @@ const PatientForm = ({
                                     placeholder="Enter referring patient name"
                                 />
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section 4: Address Details */}
+                <div className="enrollment-section-v4">
+                    <div className="section-header-v4">
+                        <div className="section-icon-v4 s-green"><MapPin size={22} /></div>
+                        <div className="section-title-box">
+                            <span className="step-tag s-green">Step 04</span>
+                            <h3>Address Details</h3>
+                        </div>
+                    </div>
+
+                    <div className="grid-layout-v4">
+                        <div className="f-group-v4 col-span-2">
+                            <label>State</label>
+                            <input
+                                name="state"
+                                value={safeForm.state || ''}
+                                onChange={e => setForm({ ...safeForm, state: e.target.value })}
+                                className="input-v4"
+                                placeholder="State"
+                            />
+                        </div>
+                        <div className="f-group-v4 col-span-2">
+                            <label>City *</label>
+                            <input
+                                name="city"
+                                value={safeForm.city || ''}
+                                onBlur={onBlur}
+                                onChange={e => setForm({ ...safeForm, city: e.target.value })}
+                                className={`input-v4 ${errors.city ? 'error' : ''}`}
+                                placeholder="City"
+                            />
+                            {errors.city && <span className="error-msg-v4">{errors.city}</span>}
+                        </div>
+                        <div className="f-group-v4 col-span-2">
+                            <label>Pincode *</label>
+                            <input
+                                name="pincode"
+                                value={safeForm.pincode || ''}
+                                onBlur={onBlur}
+                                onChange={e => setForm({ ...safeForm, pincode: e.target.value.replace(/\D/g, '') })}
+                                className={`input-v4 ${errors.pincode ? 'error' : ''}`}
+                                placeholder="6-digit pincode"
+                            />
+                            {errors.pincode && <span className="error-msg-v4">{errors.pincode}</span>}
+                        </div>
+                        <div className="f-group-v4 col-span-full">
+                            <label>Residential Address *</label>
+                            <textarea
+                                name="residential_address"
+                                value={safeForm.residential_address || ''}
+                                onBlur={onBlur}
+                                onChange={e => setForm({ ...safeForm, residential_address: e.target.value })}
+                                className={`input-v4 ${errors.residential_address ? 'error' : ''}`}
+                                style={{ minHeight: '100px', resize: 'vertical' }}
+                                placeholder="Door no, Street, Landmark..."
+                            />
+                            {errors.residential_address && <span className="error-msg-v4">{errors.residential_address}</span>}
                         </div>
                     </div>
                 </div>

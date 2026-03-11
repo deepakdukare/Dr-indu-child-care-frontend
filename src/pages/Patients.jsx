@@ -49,7 +49,7 @@ const Patients = () => {
     const [doctors, setDoctors] = useState([]);
     const [referringDoctors, setReferringDoctors] = useState([]);
     const [todayCount, setTodayCount] = useState(0);
-    const REQUIRED_FORM_FIELDS = ['first_name', 'last_name', 'gender', 'dob', 'father_name', 'mother_name', 'wa_id', 'email'];
+    const REQUIRED_FORM_FIELDS = ['first_name', 'last_name', 'gender', 'dob', 'father_name', 'mother_name', 'wa_id', 'email', 'city', 'pincode', 'residential_address'];
 
     const fetchData = useCallback(async () => {
         setLoading(true);
