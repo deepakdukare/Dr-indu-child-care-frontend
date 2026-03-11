@@ -107,8 +107,8 @@ const Sidebar = ({ onLogout, isCollapsed }) => {
                 <Link to="/" className="brand-link-modern">
                     <img src={clinicLogo} alt="Logo" className="brand-logo-sidebar" />
                     <div className="brand-info-modern">
-                        <span className="brand-name-mini">DICC</span>
-                        <span className="brand-desc-mini">Clinic Management</span>
+                        <span className="brand-name-mini">Dr. Indu's</span>
+                        <span className="brand-desc-mini">New Born & Childcare Center</span>
                     </div>
                 </Link>
             </div>

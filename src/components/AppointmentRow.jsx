@@ -36,11 +36,8 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
     const statusKey = String(appt?.status || 'PENDING').toUpperCase();
     const statusView = STATUS_CONFIG[statusKey] || STATUS_CONFIG.DEFAULT;
 
-    // Use deterministic avatar images based on ID or name length
     const ptId = appt?.patient_id || '9022';
     const docName = appt?.assigned_doctor_name || appt?.doctor_name || 'Dr. Indu';
-    const ptAvatar = `https://i.pravatar.cc/150?u=${ptId}`;
-    const docAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=random`;
 
     return (
         <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}>
@@ -72,7 +69,7 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
                 {formatTime12h(appt?.appointment_time || appt?.start_time)}
             </td>
 
-            {/* 4. Doctor + Specialty */}
+            {/* 5. Doctor + Specialty */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
@@ -84,14 +81,14 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
                 </div>
             </td>
 
-            {/* 5. Visit Category */}
+            {/* 6. Visit Category */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, backgroundColor: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
                     {appt?.visit_category || 'First visit'}
                 </span>
             </td>
 
-            {/* 6. Status */}
+            {/* 7. Status */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <span style={{
                     display: 'inline-flex',
@@ -110,7 +107,7 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
                 </span>
             </td>
 
-            {/* 7. Token Status */}
+            {/* 8. Token Status */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <span style={{
                     fontSize: '11px',
@@ -122,6 +119,7 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
                 </span>
             </td>
 
+            {/* 9. Edit */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle', textAlign: 'right' }}>
                 <button
                     onClick={(e) => { e.stopPropagation(); onEdit(appt); }}

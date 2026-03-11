@@ -675,6 +675,8 @@ const Appointments = () => {
                                                 onCancel={(id) => setCancelModal({ show: true, id, reason: '' })}
                                             />
                                         ))}
+
+
                                     </tbody>
                                 </table>
                             </div>

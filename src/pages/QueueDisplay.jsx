@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Monitor, RefreshCw, CheckCircle2, AlertCircle, ChevronRight,
     Clock, User, Hash, SkipForward, RotateCcw, ExternalLink,
@@ -21,6 +21,30 @@ const STATUS_CONFIG = {
     NO_SHOW: { color: '#ef4444', bg: '#fee2e2', label: 'No Show' },
 };
 
+// Context-aware actions per token status
+const TOKEN_STATUS_ACTIONS = {
+    WAITING: [
+        { label: 'Check In',      value: 'CHECKED_IN',  icon: UserCheck,    color: '#6366f1' },
+        { label: 'Mark No-Show',  value: 'NO_SHOW',     icon: AlertCircle,  color: '#ef4444' },
+    ],
+    CHECKED_IN: [
+        { label: 'Start Session', value: 'IN_PROGRESS', icon: PlayCircle,   color: '#0ea5e9' },
+        { label: 'Skip',          value: 'SKIPPED',     icon: SkipForward,  color: '#94a3b8' },
+    ],
+    IN_PROGRESS: [
+        { label: 'Finish & Complete', value: 'COMPLETED', icon: CheckCircle2, color: '#10b981' },
+    ],
+    COMPLETED: [
+        { label: 'Reset to Waiting', value: 'WAITING', icon: RotateCcw, color: '#f59e0b' },
+    ],
+    SKIPPED: [
+        { label: 'Reset to Waiting', value: 'WAITING', icon: RotateCcw, color: '#f59e0b' },
+    ],
+    NO_SHOW: [
+        { label: 'Reset to Waiting', value: 'WAITING', icon: RotateCcw, color: '#f59e0b' },
+    ],
+};
+
 const StatBadge = ({ label, value, color, isActive, onClick }) => (
     <div
         onClick={onClick}
@@ -38,8 +62,9 @@ const StatBadge = ({ label, value, color, isActive, onClick }) => (
     </div>
 );
 
-const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
+const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext, isToday }) => {
     const cfg = STATUS_CONFIG[token.status] || STATUS_CONFIG.WAITING;
+
     return (
         <tr>
             <td>
@@ -62,62 +87,68 @@ const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext }) => {
                     {cfg.label}
                 </span>
             </td>
-            <td>
-                <div className="actions-cell">
-                    {token.status === 'WAITING' && (
-                        <>
-                            <button
-                                onClick={() => token.token && onCheckin(token.token, token.doctor_id)}
-                                disabled={!token.token}
-                                className="btn-token-check"
-                                style={{ opacity: !token.token ? 0.5 : 1 }}>
-                                <Check size={11} /> Check In
-                            </button>
-                            <button
-                                onClick={() => token.token && onStatusChange(token.token, 'NO_SHOW', token.doctor_id)}
-                                disabled={!token.token}
-                                className="btn-token-no-show"
-                                style={{ opacity: !token.token ? 0.5 : 1 }}>
-                                <X size={11} /> No Show
-                            </button>
-                        </>
-                    )}
+            {/* Inline action buttons — only shown for today's date */}
+            {isToday && (
+                <td>
+                    <div className="actions-cell">
+                        {token.status === 'WAITING' && (
+                            <>
+                                <button
+                                    onClick={() => token.token && onCheckin(token.token, token.doctor_id)}
+                                    disabled={!token.token}
+                                    className="btn-token-check"
+                                    style={{ opacity: !token.token ? 0.5 : 1 }}>
+                                    <Check size={11} /> Check In
+                                </button>
+                                <button
+                                    onClick={() => token.token && onStatusChange(token.token, 'NO_SHOW', token.doctor_id)}
+                                    disabled={!token.token}
+                                    className="btn-token-no-show"
+                                    style={{ opacity: !token.token ? 0.5 : 1 }}>
+                                    <X size={11} /> No Show
+                                </button>
+                            </>
+                        )}
 
-                    {token.status === 'CHECKED_IN' && (
-                        <>
-                            <button
-                                onClick={() => onStatusChange(token.token, 'IN_PROGRESS', token.doctor_id)}
-                                className="btn-token-start">
-                                <ChevronRight size={11} /> Start Session
-                            </button>
-                            <button
-                                onClick={() => onStatusChange(token.token, 'SKIPPED', token.doctor_id)}
-                                className="btn-token-skip">
-                                <SkipForward size={11} /> Skip
-                            </button>
-                        </>
-                    )}
+                        {token.status === 'CHECKED_IN' && (
+                            <>
+                                <button
+                                    onClick={() => onStatusChange(token.token, 'IN_PROGRESS', token.doctor_id)}
+                                    className="btn-token-start">
+                                    <ChevronRight size={11} /> Start Session
+                                </button>
+                                <button
+                                    onClick={() => onStatusChange(token.token, 'SKIPPED', token.doctor_id)}
+                                    className="btn-token-skip">
+                                    <SkipForward size={11} /> Skip
+                                </button>
+                            </>
+                        )}
 
-                    {token.status === 'IN_PROGRESS' && (
-                        <button
-                            onClick={() => onStatusChange(token.token, 'COMPLETED', token.doctor_id)}
-                            className="btn-token-finish">
-                            <CheckCircle2 size={11} /> Finish & Complete
-                        </button>
-                    )}
+                        {token.status === 'IN_PROGRESS' && (
+                            <button
+                                onClick={() => onStatusChange(token.token, 'COMPLETED', token.doctor_id)}
+                                className="btn-token-finish">
+                                <CheckCircle2 size={11} /> Finish &amp; Complete
+                            </button>
+                        )}
 
-                    {(token.status === 'COMPLETED' || token.status === 'SKIPPED' || token.status === 'NO_SHOW') && (
-                        <button
-                            onClick={() => onStatusChange(token.token, 'WAITING', token.doctor_id)}
-                            className="btn-token-reset">
-                            <RotateCcw size={11} /> Reset to Waiting
-                        </button>
-                    )}
-                </div>
-            </td>
+                        {(token.status === 'COMPLETED' || token.status === 'SKIPPED' || token.status === 'NO_SHOW') && (
+                            <button
+                                onClick={() => onStatusChange(token.token, 'WAITING', token.doctor_id)}
+                                className="btn-token-reset">
+                                <RotateCcw size={11} /> Reset to Waiting
+                            </button>
+                        )}
+                    </div>
+                </td>
+            )}
         </tr>
     );
 };
+
+
+
 
 const QueueDisplay = () => {
     const today = toIsoDate();
@@ -409,7 +440,8 @@ const QueueDisplay = () => {
                                     <th>Doctor</th>
                                     <th>Scheduled Time</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    {/* Only show Actions column header for today */}
+                                    {date === today && <th>Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -421,6 +453,7 @@ const QueueDisplay = () => {
                                         onStatusChange={handleStatusChange}
                                         onNext={handleNextToken}
                                         isNext={nextPendingToken?.token === token.token}
+                                        isToday={date === today}
                                     />
                                 ))}
                             </tbody>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Star, Send, User, Phone, Smile, RefreshCw, Activity, ArrowRight, BriefcaseMedical, Headphones, HeartPulse } from 'lucide-react';
 import { submitFeedback } from '../api/index';
 import doctorAvatar from '../assets/doctor-avatar.png';
 import frontdeskAvatar from '../assets/frontdesk-avatar.png';
-import clinicIcon from '../assets/clinic-icon.png';
+import clinicIcon from '../assets/logo.jpg';
 
 const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
     const navigate = useNavigate();
@@ -23,9 +23,9 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
     });
 
     const categories = [
-        { key: 'doctor_rating', label: 'Doctor Interaction', hoverKey: 'doctor', icon: <BriefcaseMedical size={20} /> },
-        { key: 'frontdesk_rating', label: 'Front-desk Service', hoverKey: 'frontdesk', icon: <Headphones size={20} /> },
-        { key: 'hospital_rating', label: 'Clinic Atmosphere', hoverKey: 'hospital', icon: <HeartPulse size={20} /> }
+        { key: 'doctor_rating', label: 'Doctor Interaction', hoverKey: 'doctor', title: 'Doctor' },
+        { key: 'frontdesk_rating', label: 'Front-desk Service', hoverKey: 'frontdesk', title: 'Front-desk' },
+        { key: 'hospital_rating', label: 'Clinic Atmosphere', hoverKey: 'hospital', title: 'Clinic' }
     ];
 
     const handleSubmit = async (e) => {
@@ -48,7 +48,15 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
         }
     };
 
-    if (step === 2) {
+    const SuccessState = () => {
+        React.useEffect(() => {
+            const timer = setTimeout(() => {
+                if (onComplete) onComplete();
+                else navigate('/');
+            }, 3000);
+            return () => clearTimeout(timer);
+        }, []);
+
         return (
             <div className="success-state-v2">
                 <div className="success-icon-v2">
@@ -59,15 +67,23 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                 <div style={{ marginTop: '2rem' }}>
                     <RefreshCw className="spinning" size={32} style={{ color: '#6366f1' }} />
                 </div>
-                {setTimeout(() => { if (onComplete) onComplete(); else navigate('/'); }, 3000) && null}
             </div>
         );
-    }
+    };
+
+    if (step === 2) return <SuccessState />;
 
     return (
         <form onSubmit={handleSubmit} className="feedback-form-comp">
             <div className="feedback-form-card">
                 <div className="feedback-hero-v2">
+                    <div className="feedback-branding">
+                        <img src={clinicIcon} alt="Logo" className="feedback-logo-mini" />
+                        <div className="feedback-branding-text">
+                            <span className="feedback-brand-main">Dr. Indu's</span>
+                            <span className="feedback-brand-sub">New Born & Childcare Center</span>
+                        </div>
+                    </div>
                     <h2>Share Experience</h2>
                     <p>Help us calibrate our care standards for you.</p>
                 </div>
@@ -75,9 +91,9 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                 <div className="feedback-divider-v2"></div>
 
                 <div className="feedback-section-v2">
-                    <div className="feedback-input-group">
-                        <label>Full Name</label>
-                        <div className="feedback-input-wrap">
+                    <div className="feedback-inputs-grid-v2">
+                        <div className="feedback-input-group">
+                            <label>Full Name</label>
                             <input
                                 type="text"
                                 required
@@ -87,10 +103,8 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                                 className="feedback-field"
                             />
                         </div>
-                    </div>
-                    <div className="feedback-input-group">
-                        <label>Mobile Number</label>
-                        <div className="feedback-input-wrap">
+                        <div className="feedback-input-group">
+                            <label>Mobile Number</label>
                             <input
                                 type="tel"
                                 required
@@ -100,10 +114,8 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                                 className="feedback-field"
                             />
                         </div>
-                    </div>
-                    <div className="feedback-input-group">
-                        <label>Email Address</label>
-                        <div className="feedback-input-wrap">
+                        <div className="feedback-input-group full-width">
+                            <label>Email Address</label>
                             <input
                                 type="email"
                                 placeholder="Email (optional)"
@@ -118,32 +130,36 @@ const FeedbackForm = ({ appointmentId = null, onComplete = null }) => {
                 <div className="feedback-divider-v2"></div>
 
                 <div className="feedback-section-v2">
-                    <span className="feedback-label-v2">Service Calibration</span>
-                    <div className="rating-grid-v2">
+                    <span className="feedback-label-v2 compact">Service Calibration</span>
+                    <div className="rating-grid-compact-v2">
                         {categories.map((cat) => (
-                            <div key={cat.key} className="rating-item-v2">
-                                <div className="rating-cat-head">
-                                    <div className="rating-cat-icon">
-                                        {cat.key === 'doctor_rating' && <img src={doctorAvatar} alt="Doctor" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />}
-                                        {cat.key === 'frontdesk_rating' && <img src={frontdeskAvatar} alt="Front-desk" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />}
-                                        {cat.key === 'hospital_rating' && <img src={clinicIcon} alt="Clinic" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />}
+                            <div key={cat.key} className="rating-item-compact-v2">
+                                <div className="rating-cat-head-compact">
+                                    <div className="rating-cat-icon-mini">
+                                        {cat.key === 'doctor_rating' && <img src={doctorAvatar} alt="Doctor" />}
+                                        {cat.key === 'frontdesk_rating' && <img src={frontdeskAvatar} alt="Front-desk" />}
+                                        {cat.key === 'hospital_rating' && <img src={clinicIcon} alt="Clinic" />}
                                     </div>
-                                    <label>{cat.label}</label>
+                                    <div className="rating-texts">
+                                        <span className="rating-title-main">{cat.title}</span>
+                                        <label>{cat.label}</label>
+                                    </div>
                                 </div>
-                                <div className="star-strip-v2">
+                                <div className="star-strip-v2-mini">
                                     {[1, 2, 3, 4, 5].map((s) => (
                                         <button
                                             key={s}
                                             type="button"
-                                            className={`star-btn-v2 ${(hover[cat.hoverKey] || form[cat.key]) >= s ? 'active' : ''}`}
+                                            className={`star-btn-v2-mini ${(hover[cat.hoverKey] || form[cat.key]) >= s ? 'active' : ''}`}
                                             onClick={() => setForm({ ...form, [cat.key]: s })}
                                             onMouseEnter={() => setHover({ ...hover, [cat.hoverKey]: s })}
                                             onMouseLeave={() => setHover({ ...hover, [cat.hoverKey]: 0 })}
                                         >
-                                            <Star 
-                                                size={44} 
-                                                fill={(hover[cat.hoverKey] || form[cat.key]) >= s ? 'currentColor' : '#e2e8f0'} 
-                                                stroke="none"
+                                            <Star
+                                                size={36}
+                                                fill={(hover[cat.hoverKey] || form[cat.key]) >= s ? '#FFB84D' : 'transparent'}
+                                                stroke={(hover[cat.hoverKey] || form[cat.key]) >= s ? '#FFB84D' : '#CBD5E1'}
+                                                strokeWidth={1.5}
                                             />
                                         </button>
                                     ))}
