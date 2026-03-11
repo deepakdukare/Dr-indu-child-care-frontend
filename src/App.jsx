@@ -159,6 +159,7 @@ const Sidebar = ({ onLogout, isCollapsed, isMobileMenuOpen, onMobileClose }) => 
                     </button>
                 </div>
             </div>
+        </div>
         </>
     );
 };

@@ -1128,12 +1128,28 @@ input {
         flex-direction: column !important;
     }
     
-    .sidebar {
+
+    .mobile-hide {
         display: none !important;
     }
     
-    .mobile-hide {
-        display: none !important;
+    .mobile-menu-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin-right: 1rem;
+        cursor: pointer;
+    }
+    
+    .mobile-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        backdrop-filter: blur(2px);
     }
     
     .main-content {
@@ -1209,40 +1225,50 @@ input {
 @media (max-width: 768px) {
     .sidebar {
         display: flex !important;
-        position: static !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: auto !important;
-        border-right: none !important;
-        border-bottom: 1px solid #e2e8f0 !important;
+        position: fixed !important;
+        left: -100% !important;
+        top: 0 !important;
+        height: 100vh !important;
+        width: 260px !important;
+        z-index: 1000 !important;
+        transition: left 0.3s ease !important;
+        border-right: 1px solid #e2e8f0 !important;
+        border-bottom: none !important;
         flex-direction: column !important;
-        align-items: center !important;
+        align-items: stretch !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+    }
+
+    .sidebar.mobile-open {
+        left: 0 !important;
     }
     
     .nav-links {
         display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
+        flex-direction: column !important;
         gap: 0.5rem !important;
     }
     
-    .nav-item {
-        width: auto !important;
-        padding: 0.5rem 1rem !important;
-        margin-bottom: 0 !important;
+    .sidebar-scroll-area {
+        flex: 1 !important;
+        overflow-y: auto !important;
     }
     
     .sidebar-footer {
-        width: 100% !important;
         position: static !important;
-        margin-top: 1rem !important;
-        display: flex !important;
-        justify-content: center !important;
+        margin-top: auto !important;
+        width: 100% !important;
     }
     
     .main-content {
-        margin-bottom: 0 !important; /* Removed 70px gap */
+        margin-bottom: 0 !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-menu-btn, .mobile-sidebar-overlay {
+        display: none !important;
     }
 }
 
