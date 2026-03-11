@@ -440,7 +440,7 @@ const Patients = () => {
                                             <tr className={`patient-row-v2 ${selected?._id === p._id ? 'is-active' : ''}`}>
                                                 <td>
                                                     <div className="id-tag-premium">
-                                                        <span className="id-label" style={{ background: '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: 800 }}>{p.token_id || 'T-XX'}</span>
+                                                        <span className="id-label" style={{ background: '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '6px', fontWeight: 800 }}>{p.patient_id || 'T-XX'}</span>
                                                     </div>
                                                 </td>
                                                 <td>
