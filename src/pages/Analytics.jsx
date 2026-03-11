@@ -33,13 +33,16 @@ const Analytics = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Initial Load
+    // Initial Load & Filters Change
     useEffect(() => {
         getDoctors({ all: true })
             .then(r => setDoctors(r.data?.data || []))
             .catch(() => { });
-        fetchData();
     }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [dateFrom, dateTo, doctorId, status]);
 
     const fetchData = async () => {
         try {
@@ -117,18 +120,20 @@ const Analytics = () => {
         cancelled: insightData?.metrics?.cancelled || derived.cancelled,
         no_show: insightData?.metrics?.no_show || derived.no_show,
         unique: insightData?.metrics?.unique_patients || derived.uniquePatientsCount,
-        doctors: (insightData?.doctor_visits && insightData.doctor_visits.length > 0) ? insightData.doctor_visits : derived.docVisitsArray,
-        categories: (insightData?.categories && Object.keys(insightData.categories).length > 0) ? insightData.categories : derived.categories
+        doctors: (insightData?.metrics?.doctor_visits && insightData.metrics.doctor_visits.length > 0) ? insightData.metrics.doctor_visits : derived.docVisitsArray,
+        categories: (insightData?.metrics?.categories && Object.keys(insightData.metrics.categories).length > 0) ? insightData.metrics.categories : derived.categories,
+        trends: insightData?.metrics?.trends || [0, 0, 0, 0]
     };
 
     const completionRate = displayMetrics.total ? Math.round((displayMetrics.completed / displayMetrics.total) * 100) : 0;
 
     const exportCSV = () => {
-        const headers = ['Date', 'Patient', 'Patient ID', 'Doctor', 'Token / Time', 'Status', 'Visit Type', 'Source'];
+        const headers = ['Date', 'Patient', 'Patient ID', 'Mobile', 'Doctor', 'Token / Time', 'Status', 'Visit Type', 'Source'];
         const rows = filteredAppointments.map(a => [
             a.date || '',
             a.child_name || a.patient_name || '',
             a.patient_id || '',
+            a.patient_mobile || '***',
             a.doctor_name || '',
             a.token_display || a.appointment_time || '—',
             a.status || '',
@@ -223,10 +228,24 @@ const Analytics = () => {
                             <g stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4,4">
                                 {[40, 80, 120, 160, 200].map(y => <line key={y} x1="0" y1={y} x2="800" y2={y} />)}
                             </g>
-                            <path d="M 100 180 Q 250 160 400 120 T 700 80" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
-                            <circle cx="250" cy="160" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
-                            <circle cx="400" cy="120" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
-                            <circle cx="700" cy="80" r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
+                            {(() => {
+                                const maxTrend = Math.max(...displayMetrics.trends, 10);
+                                const getY = v => 220 - (v / maxTrend) * 160;
+                                const pts = [
+                                    { x: 100, y: getY(displayMetrics.trends[0]) },
+                                    { x: 300, y: getY(displayMetrics.trends[1]) },
+                                    { x: 500, y: getY(displayMetrics.trends[2]) },
+                                    { x: 700, y: getY(displayMetrics.trends[3]) }
+                                ];
+                                return (
+                                    <>
+                                        <path d={`M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y} L ${pts[2].x} ${pts[2].y} L ${pts[3].x} ${pts[3].y}`} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+                                        {pts.map((p, i) => (
+                                            <circle key={i} cx={p.x} cy={p.y} r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
+                                        ))}
+                                    </>
+                                );
+                            })()}
                             <g style={{ fontSize: '12px', fill: '#94a3b8', fontWeight: 600 }}>
                                 <text x="100" y="235" textAnchor="middle">Week 1</text>
                                 <text x="300" y="235" textAnchor="middle">Week 2</text>
@@ -242,9 +261,24 @@ const Analytics = () => {
                     <div style={{ position: 'relative', width: '180px', height: '180px', margin: '2rem auto' }}>
                         <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
                             <circle cx="18" cy="18" r="15.5" fill="none" stroke="#f1f5f9" strokeWidth="4" />
-                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#6366f1" strokeWidth="4" strokeDasharray="60, 100" />
-                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#a855f7" strokeWidth="4" strokeDasharray="25, 100" strokeDashoffset="-60" />
-                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="15, 100" strokeDashoffset="-85" />
+                            {(() => {
+                                const total = Math.max(Object.values(displayMetrics.categories).reduce((a, b) => a + b, 0), 1);
+                                let currentOffset = 0;
+                                const colors = ['#60a5fa', '#a855f7', '#6366f1', '#f43f5e', '#10b981', '#f59e0b'];
+                                return Object.entries(displayMetrics.categories).map(([name, count], idx) => {
+                                    const percent = (count / total) * 100;
+                                    const c = (
+                                        <circle
+                                            key={idx} cx="18" cy="18" r="15.5" fill="none"
+                                            stroke={colors[idx % colors.length]} strokeWidth="4"
+                                            strokeDasharray={`${percent}, 100`}
+                                            strokeDashoffset={`-${currentOffset}`}
+                                        />
+                                    );
+                                    currentOffset += percent;
+                                    return c;
+                                });
+                            })()}
                         </svg>
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                             <span style={{ fontSize: '11px', fontWeight: 600, color: '#94a3b8' }}>Total Visits</span>
@@ -252,19 +286,18 @@ const Analytics = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '2rem' }}>
-                        {[
-                            { name: 'Consultations', count: 214, color: '#60a5fa' },
-                            { name: 'Dental', count: 150, color: '#a855f7' },
-                            { name: 'Neurolgy', count: 121, color: '#6366f1' }
-                        ].map((item, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', fontSize: '13px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color }}></div>
-                                    <span style={{ fontWeight: 800, color: '#1e293b' }}>{item.count}</span>
-                                    <span style={{ color: '#64748b', fontWeight: 600 }}>{item.name}</span>
+                        {Object.entries(displayMetrics.categories).map(([name, count], idx) => {
+                            const colors = ['#60a5fa', '#a855f7', '#6366f1', '#f43f5e', '#10b981', '#f59e0b'];
+                            return (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', fontSize: '13px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[idx % colors.length] }}></div>
+                                        <span style={{ fontWeight: 800, color: '#1e293b' }}>{count}</span>
+                                        <span style={{ color: '#64748b', fontWeight: 600 }}>{name}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>

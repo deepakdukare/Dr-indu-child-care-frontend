@@ -68,8 +68,18 @@ const Reports = () => {
     });
 
     const exportCSV = () => {
-        const headers = ['Date', 'Patient', 'Patient ID', 'Doctor', 'Token / Time', 'Status', 'Visit Type', 'Source'];
-        const rows = filtered.map(a => [a.date || '', a.child_name || '', a.patient_id || '', a.doctor_name || '', a.token_display || a.appointment_time || '—', a.status || '', a.visit_category || '', a.booking_source || '']);
+        const headers = ['Date', 'Patient', 'Patient ID', 'Mobile', 'Doctor', 'Token / Time', 'Status', 'Visit Type', 'Source'];
+        const rows = filtered.map(a => [
+            a.date || '',
+            a.child_name || '',
+            a.patient_id || '',
+            a.patient_mobile || '***',
+            a.doctor_name || '',
+            a.token_display || a.appointment_time || '—',
+            a.status || '',
+            a.visit_category || '',
+            a.booking_source || ''
+        ]);
         const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
@@ -151,7 +161,7 @@ const Reports = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc' }}>
-                                    {['Date', 'Patient', 'Patient ID', 'Doctor', 'Token / Time', 'Visit Type', 'Source', 'Status'].map(h => (
+                                    {['Date', 'Patient', 'Patient ID', 'Mobile', 'Doctor', 'Token / Time', 'Visit Type', 'Source', 'Status'].map(h => (
                                         <th key={h} style={{ padding: '0.9rem 1.25rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                                     ))}
                                 </tr>
@@ -159,11 +169,14 @@ const Reports = () => {
                             <tbody>
                                 {filtered.map((a, i) => {
                                     const s = sc(a.status);
+                                    const mobileDisplay = a.patient_mobile || '***';
+
                                     return (
                                         <tr key={a.appointment_id || i} style={{ borderBottom: '1px solid #f8fafc' }}>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: '#64748b' }}>{a.date || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontWeight: 700, color: '#1e293b' }}>{removeSalutation(a.child_name) || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: '#94a3b8', fontFamily: 'monospace' }}>{a.patient_id || '—'}</td>
+                                            <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: '#1e293b' }}>{mobileDisplay}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.85rem', color: '#475569' }}>{a.doctor_name || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem', fontSize: '0.8rem', color: '#64748b' }}>{a.token_display || a.appointment_time || '—'}</td>
                                             <td style={{ padding: '0.9rem 1.25rem' }}><span style={{ background: '#f1f5f9', padding: '0.25rem 0.6rem', borderRadius: '6px', fontWeight: 600, color: '#475569', fontSize: '0.75rem' }}>{a.visit_category || '—'}</span></td>
