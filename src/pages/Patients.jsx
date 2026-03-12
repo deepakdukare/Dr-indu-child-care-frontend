@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import PatientForm, { EMPTY_FORM } from '../components/PatientForm';
-import { getPatients, registerPatient, updatePatient, getDoctors, getReferringDoctors, uploadPatientPhoto, toIsoDate, getMRDByPatientId, getAppointments } from '../api/index';
+import { getPatients, registerPatient, updatePatient, getDoctors, getReferringDoctors, uploadPatientPhoto, toIsoDate, getMRDByPatientId, getAppointments, lookupAppointments } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
 import { hasPermission } from '../utils/auth';
 
@@ -55,10 +55,24 @@ const Patients = () => {
         setLoading(true);
         setError(null);
         try {
+            const query = search.trim();
+            if (query.toUpperCase().startsWith('APT-')) {
+                // Handle direct appointment ID search if entered in patient registry
+                const lookupRes = await lookupAppointments(query);
+                if (lookupRes.data.type === 'single') {
+                    // It's an appointment, but we want the patient for this list
+                    const appt = lookupRes.data.data;
+                    const pRes = await getPatients({ search: appt.patient_id });
+                    setPatients(pRes.data.data || []);
+                    setPagination({ total: pRes.data.data?.length || 0, pages: 1, page: 1 });
+                    return;
+                }
+            }
+
             const res = await getPatients({
                 page,
                 limit: 20,
-                search: search.trim() || undefined,
+                search: query || undefined,
                 ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
             });
             setPatients(res.data.data || []);

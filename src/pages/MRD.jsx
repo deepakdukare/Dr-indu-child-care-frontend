@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Download, Printer, Lock, Paperclip, Plus, X, FileText, RefreshCw, Activity, User, Calendar, Shield, ArrowRight, Clock, Eye, MessageCircle } from 'lucide-react';
 import { removeSalutation } from '../utils/formatters';
-import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getDoctors, getEntryByAppointment, toIsoDate, sendPrescriptionViaWhatsApp, getAppointments, getPatientById } from '../api/index';
+import { getMRDByPatientId, addMRDEntry, exportMRD, getPatients, getDoctors, getEntryByAppointment, toIsoDate, sendPrescriptionViaWhatsApp, getAppointments, getPatientById, lookupAppointments } from '../api/index';
 
 const EMPTY_ENTRY = {
     patient_id: '', appointment_id: '', visit_date: toIsoDate(),
@@ -171,24 +171,22 @@ const MRD = () => {
     };
 
     const handleAppointmentLookup = async () => {
-        if (!appointmentSearch.trim()) return;
+        const query = appointmentSearch.trim();
+        if (!query) return;
         setRecLoading(true);
         try {
-            const r = await getEntryByAppointment(appointmentSearch.trim());
-            const entry = r.data?.data;
-            if (entry) {
-                // If found, we might need to load the patient too
-                if (!selectedPatient || selectedPatient.patient_id !== entry.patient_id) {
-                    const pRes = await getPatients({ search: entry.patient_id });
-                    if (pRes.data?.data?.length > 0) {
-                        setSelectedPatient(pRes.data.data[0]);
-                    }
+            // Use unified lookup
+            const res = await lookupAppointments(query);
+            if (res.data.type === 'single') {
+                const appt = res.data.data;
+                // Fetch patient and select record
+                const pRes = await getPatients({ search: appt.patient_id });
+                if (pRes.data?.data?.length > 0) {
+                    await selectPatientRecord(pRes.data.data[0]);
+                    setAppointmentSearch(''); // Clear search
                 }
-                setRecords([entry]);
-                setSelectedRecord(entry);
-                setTab('details');
             } else {
-                alert("No Medical Documentation entry found for this appointment ID");
+                alert("Please enter a specific Appointment ID (APT-...) for direct lookup.");
             }
         } catch (e) {
             console.error(e);

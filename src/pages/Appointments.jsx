@@ -597,7 +597,7 @@ const Appointments = () => {
                                 <Search size={18} color="#64748b" className="s-icon" />
                                 <input
                                     type="text"
-                                    placeholder="Search clinical registry..."
+                                    placeholder="Search by name, Patient ID, or Appointment ID..."
                                     value={queueSearch}
                                     onChange={(e) => setQueueSearch(e.target.value)}
                                     style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', width: '100%', fontWeight: 500, color: '#334155' }}
