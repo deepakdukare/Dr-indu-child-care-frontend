@@ -208,6 +208,10 @@ const Appointments = () => {
 
     // View State
     const [activeView, setActiveView] = useState('queue'); // 'queue' | 'authorizer'
+    const todayStr = toIsoDate();
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 15);
+    const maxStr = maxDate.toISOString().split('T')[0];
     const [activeTab, setActiveTab] = useState('patient');
     const [availableTokens, setAvailableTokens] = useState(null);
     const [tokensLoading, setTokensLoading] = useState(false);
@@ -930,6 +934,8 @@ const Appointments = () => {
                                                 <CalendarIcon size={16} style={{ position: 'absolute', left: '14px', color: '#94a3b8' }} />
                                                 <input
                                                     type="date"
+                                                    min={todayStr}
+                                                    max={maxStr}
                                                     value={form.appointment_date}
                                                     onChange={e => setForm({ ...form, appointment_date: e.target.value })}
                                                     style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none' }}

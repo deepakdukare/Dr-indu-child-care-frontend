@@ -93,6 +93,9 @@ const PublicRegister = () => {
     const [tokensLoading, setTokensLoading] = useState(false);
     const [registeredPatient, setRegisteredPatient] = useState(null);
     const todayStr = new Date().toISOString().split('T')[0];
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 15);
+    const maxStr = maxDate.toISOString().split('T')[0];
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -928,7 +931,7 @@ const PublicRegister = () => {
                                                 </div>
                                                 <div className="f-group-v4 col-2">
                                                     <label>Appointment Date</label>
-                                                    <input type="date" min={todayStr} value={bookingForm.appointment_date} onChange={e => setBookingForm({ ...bookingForm, appointment_date: e.target.value })} />
+                                                    <input type="date" min={todayStr} max={maxStr} value={bookingForm.appointment_date} onChange={e => setBookingForm({ ...bookingForm, appointment_date: e.target.value })} />
                                                 </div>
 
                                                 <div className="f-group-v4 col-full">
