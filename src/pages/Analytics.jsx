@@ -5,8 +5,11 @@ import {
     FileText, Hash
 } from 'lucide-react';
 import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
+import {
     getPracticeInsights, getReportsDashboard, getAppointmentsReport,
-    getDoctors, toIsoDate
+    getDoctors, toIsoDate, getAppointments
 } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
 
@@ -25,6 +28,7 @@ const Analytics = () => {
     const [doctorId, setDoctorId] = useState('');
     const [status, setStatus] = useState('');
     const [search, setSearch] = useState('');
+    const [timeframe, setTimeframe] = useState('7D');
 
     // Data States
     const [insightData, setInsightData] = useState(null);
@@ -41,6 +45,23 @@ const Analytics = () => {
     }, []);
 
     useEffect(() => {
+        const dTo = new Date();
+        const dFrom = new Date();
+        
+        switch(timeframe) {
+            case '1D': dFrom.setDate(dTo.getDate()); break;
+            case '7D': dFrom.setDate(dTo.getDate() - 7); break;
+            case '1M': dFrom.setMonth(dTo.getMonth() - 1); break;
+            case '6M': dFrom.setMonth(dTo.getMonth() - 6); break;
+            case 'YTD': dFrom.setMonth(0, 1); break;
+            default: break;
+        }
+
+        setDateFrom(toIsoDate(dFrom));
+        setDateTo(toIsoDate(dTo));
+    }, [timeframe]);
+
+    useEffect(() => {
         fetchData();
     }, [dateFrom, dateTo, doctorId, status]);
 
@@ -49,14 +70,26 @@ const Analytics = () => {
             setLoading(true);
             setError(null);
 
-            const params = { date_from: dateFrom, date_to: dateTo };
-            if (doctorId) params.doctor_id = doctorId;
-            if (status) params.status = status;
+            const unifiedParams = { 
+                from: dateFrom, to: dateTo, 
+                date_from: dateFrom, date_to: dateTo 
+            };
+            if (doctorId) unifiedParams.doctor_id = doctorId;
+            if (status) unifiedParams.status = status;
 
             const [insightRes, reportDashRes, appointmentsRes] = await Promise.all([
-                getPracticeInsights(params).catch(() => ({ data: { data: {} } })),
-                getReportsDashboard(params).catch(() => ({ data: { data: {} } })),
-                getAppointmentsReport(params).catch(() => ({ data: { data: [] } }))
+                getPracticeInsights(unifiedParams).catch(() => ({ data: { data: {} } })),
+                getReportsDashboard(unifiedParams).catch(() => ({ data: { data: {} } })),
+                getAppointmentsReport(unifiedParams).catch(async () => {
+                    // FALLBACK: If report API fails (500), use the standard appointments API
+                    console.warn('Report API failed, falling back to standard appointments API');
+                    return getAppointments({ 
+                        date_from: dateFrom, 
+                        date_to: dateTo,
+                        doctor_id: doctorId,
+                        all: true 
+                    });
+                })
             ]);
 
             const insights = insightRes.data?.data || {};
@@ -86,10 +119,22 @@ const Analytics = () => {
             no_show: 0,
             uniquePatients: new Set(),
             categories: {},
-            docVisits: {}
+            docVisits: {},
+            dateMap: {}
         };
 
         appointments.forEach(a => {
+            // Robust date extraction
+            let dateStr = null;
+            if (a.appointment_date) {
+                dateStr = a.appointment_date.split('T')[0];
+            } else if (a.date) {
+                dateStr = a.date.split('T')[0];
+            }
+            
+            if (dateStr) {
+                stats.dateMap[dateStr] = (stats.dateMap[dateStr] || 0) + 1;
+            }
             const s = (a.status || '').toUpperCase();
             if (s === 'COMPLETED') stats.completed++;
             if (s === 'CANCELLED') stats.cancelled++;
@@ -107,10 +152,26 @@ const Analytics = () => {
             stats.docVisits[dName].count++;
         });
 
+        // Fill missing days with 0 for a perfect timeline
+        const trendsArray = [];
+        let curr = new Date(dateFrom);
+        const last = new Date(dateTo);
+        
+        while (curr <= last) {
+            const key = curr.toISOString().split('T')[0];
+            trendsArray.push({
+                name: curr.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                value: stats.dateMap[key] || 0,
+                fullDate: curr.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+            });
+            curr.setDate(curr.getDate() + 1);
+        }
+
         return {
             ...stats,
             uniquePatientsCount: stats.uniquePatients.size,
-            docVisitsArray: Object.values(stats.docVisits).sort((a, b) => b.count - a.count)
+            docVisitsArray: Object.values(stats.docVisits).sort((a, b) => b.count - a.count),
+            trendsArray
         };
     }, [appointments]);
 
@@ -122,7 +183,7 @@ const Analytics = () => {
         unique: insightData?.metrics?.unique_patients || derived.uniquePatientsCount,
         doctors: (insightData?.metrics?.doctor_visits && insightData.metrics.doctor_visits.length > 0) ? insightData.metrics.doctor_visits : derived.docVisitsArray,
         categories: (insightData?.metrics?.categories && Object.keys(insightData.metrics.categories).length > 0) ? insightData.metrics.categories : derived.categories,
-        trends: insightData?.metrics?.trends || [0, 0, 0, 0]
+        trends: derived.trendsArray
     };
 
     const completionRate = displayMetrics.total ? Math.round((displayMetrics.completed / displayMetrics.total) * 100) : 0;
@@ -214,48 +275,77 @@ const Analytics = () => {
             </div>
 
             <div className="analytics-main-grid">
-                <div className="analytics-card-white">
-                    <div className="card-title-v4">
-                        <span>Appointment Trends (Last 30 Days)</span>
-                        <select
-                            value={doctorId}
-                            onChange={e => setDoctorId(e.target.value)}
-                            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 600, color: '#64748b', outline: 'none', background: '#fff' }}
-                        >
-                            <option value="">All Doctors</option>
-                            {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name}</option>)}
-                        </select>
+                <div className="analytics-card-white" style={{ background: '#fff', border: '1px solid #eef2f6', padding: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 style={{ color: '#1e293b', fontSize: '1rem', fontWeight: 850, margin: 0 }}>Appointment Trends</h3>
+                        <div className="timeframe-selector-v4" style={{ display: 'flex', gap: '8px' }}>
+                            {['1D', '7D', '1M', '6M', 'YTD'].map(tf => (
+                                <button
+                                    key={tf}
+                                    onClick={() => setTimeframe(tf)}
+                                    style={{
+                                        background: timeframe === tf ? '#1e293b' : '#f8fafc',
+                                        border: 'none',
+                                        color: timeframe === tf ? '#fff' : '#64748b',
+                                        fontSize: '11px',
+                                        fontWeight: 800,
+                                        padding: '6px 14px',
+                                        cursor: 'pointer',
+                                        borderRadius: '10px',
+                                        transition: 'all 0.2s',
+                                        boxShadow: timeframe === tf ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
+                                    }}
+                                >
+                                    {tf}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div style={{ height: '260px', position: 'relative', marginTop: '1rem' }}>
-                        <svg viewBox="0 0 800 240" style={{ width: '100%', height: '100%' }}>
-                            <g stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4,4">
-                                {[40, 80, 120, 160, 200].map(y => <line key={y} x1="0" y1={y} x2="800" y2={y} />)}
-                            </g>
-                            {(() => {
-                                const maxTrend = Math.max(...displayMetrics.trends, 10);
-                                const getY = v => 220 - (v / maxTrend) * 160;
-                                const pts = [
-                                    { x: 100, y: getY(displayMetrics.trends[0]) },
-                                    { x: 300, y: getY(displayMetrics.trends[1]) },
-                                    { x: 500, y: getY(displayMetrics.trends[2]) },
-                                    { x: 700, y: getY(displayMetrics.trends[3]) }
-                                ];
-                                return (
-                                    <>
-                                        <path d={`M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y} L ${pts[2].x} ${pts[2].y} L ${pts[3].x} ${pts[3].y}`} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
-                                        {pts.map((p, i) => (
-                                            <circle key={i} cx={p.x} cy={p.y} r="5" fill="#fff" stroke="#6366f1" strokeWidth="2" />
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                            <g style={{ fontSize: '12px', fill: '#94a3b8', fontWeight: 600 }}>
-                                <text x="100" y="235" textAnchor="middle">Week 1</text>
-                                <text x="300" y="235" textAnchor="middle">Week 2</text>
-                                <text x="500" y="235" textAnchor="middle">Week 3</text>
-                                <text x="700" y="235" textAnchor="middle">Week 4</text>
-                            </g>
-                        </svg>
+
+                    <div style={{ height: '300px', width: '100%', position: 'relative' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={displayMetrics.trends.length > 0 ? displayMetrics.trends : [{ name: 'No Data', value: 0 }]}>
+                                <defs>
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                                    dy={10}
+                                    interval={timeframe === '6M' || timeframe === 'Max' ? 30 : 'auto'}
+                                />
+                                <YAxis
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                                    domain={[0, 'auto']}
+                                    allowDecimals={false}
+                                    tickFormatter={(val) => val.toLocaleString()}
+                                />
+                                <Tooltip
+                                    contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '12px', color: '#fff', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
+                                    itemStyle={{ color: '#fff', fontWeight: 700 }}
+                                    labelStyle={{ color: '#cbd5e1', fontSize: '10px', marginBottom: '4px' }}
+                                    formatter={(val) => [val, 'Appointments']}
+                                    cursor={{ stroke: '#6366f1', strokeWidth: 1 }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#f43f5e"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorValue)"
+                                    activeDot={{ r: 6, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
