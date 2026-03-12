@@ -75,7 +75,7 @@ const PublicRegister = () => {
         state: 'Maharashtra',
         city: 'Mumbai',
         pincode: '',
-        residential_address: ''
+        address: ''
     });
 
     const [bookingForm, setBookingForm] = useState({
@@ -315,7 +315,7 @@ const PublicRegister = () => {
         if (!patientForm.city?.trim()) errors.city = "City is required";
         if (!patientForm.pincode?.trim()) errors.pincode = "Pincode is required";
         else if (!/^\d{6}$/.test(patientForm.pincode)) errors.pincode = "6-digit pincode required";
-        if (!patientForm.residential_address?.trim()) errors.residential_address = "Address is required";
+        if (!patientForm.address?.trim()) errors.address = "Address is required";
 
         if (Object.keys(errors).length > 0) {
             setRegErrors(errors);
@@ -393,7 +393,7 @@ const PublicRegister = () => {
                 state: patientForm.state,
                 city: patientForm.city,
                 pincode: patientForm.pincode,
-                residential_address: patientForm.residential_address,
+                address: patientForm.address,
             };
 
             if (patientForm.email?.trim()) {
@@ -843,16 +843,16 @@ const PublicRegister = () => {
                                                 </div>
 
                                                 <div className="reg-field">
-                                                    <label className="reg-label">Residential Address *</label>
+                                                    <label className="reg-label">Address *</label>
                                                     <textarea
-                                                        className={`reg-input reg-textarea ${regErrors.residential_address ? 'has-error' : ''}`}
-                                                        name="residential_address"
+                                                        className={`reg-input reg-textarea ${regErrors.address ? 'has-error' : ''}`}
+                                                        name="address"
                                                         placeholder=""
-                                                        value={patientForm.residential_address}
+                                                        value={patientForm.address}
                                                         onBlur={handleBlur}
-                                                        onChange={e => setPatientForm({ ...patientForm, residential_address: e.target.value })}
+                                                        onChange={e => setPatientForm({ ...patientForm, address: e.target.value })}
                                                     />
-                                                    {regErrors.residential_address && <p className="reg-err">{regErrors.residential_address}</p>}
+                                                    {regErrors.address && <p className="reg-err">{regErrors.address}</p>}
                                                 </div>
                                             </div>
 

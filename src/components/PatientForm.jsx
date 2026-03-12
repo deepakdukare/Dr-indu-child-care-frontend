@@ -32,7 +32,7 @@ export const EMPTY_FORM = {
     state: 'Maharashtra',
     city: 'Mumbai',
     pincode: '',
-    residential_address: ''
+    address: ''
 };
 
 const PatientForm = ({
@@ -325,17 +325,17 @@ const PatientForm = ({
                             {errors.pincode && <span className="error-msg-v4">{errors.pincode}</span>}
                         </div>
                         <div className="f-group-v4 col-span-full">
-                            <label>Residential Address *</label>
+                            <label>Address *</label>
                             <textarea
-                                name="residential_address"
-                                value={safeForm.residential_address || ''}
+                                name="address"
+                                value={safeForm.address || safeForm.residential_address || ''}
                                 onBlur={onBlur}
-                                onChange={e => setForm({ ...safeForm, residential_address: e.target.value })}
-                                className={`input-v4 ${errors.residential_address ? 'error' : ''}`}
+                                onChange={e => setForm({ ...safeForm, address: e.target.value })}
+                                className={`input-v4 ${errors.address ? 'error' : ''}`}
                                 style={{ minHeight: '100px', resize: 'vertical' }}
                                 placeholder="Door no, Street, Landmark..."
                             />
-                            {errors.residential_address && <span className="error-msg-v4">{errors.residential_address}</span>}
+                            {errors.address && <span className="error-msg-v4">{errors.address}</span>}
                         </div>
                     </div>
                 </div>

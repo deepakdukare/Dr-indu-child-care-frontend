@@ -49,7 +49,7 @@ const Patients = () => {
     const [doctors, setDoctors] = useState([]);
     const [referringDoctors, setReferringDoctors] = useState([]);
     const [todayCount, setTodayCount] = useState(0);
-    const REQUIRED_FORM_FIELDS = ['first_name', 'last_name', 'gender', 'dob', 'father_name', 'mother_name', 'wa_id', 'email', 'city', 'pincode', 'residential_address'];
+    const REQUIRED_FORM_FIELDS = ['first_name', 'last_name', 'gender', 'dob', 'father_name', 'mother_name', 'wa_id', 'email', 'city', 'pincode', 'address'];
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -258,7 +258,8 @@ const Patients = () => {
             area: p.area || '',
             city: p.city || '',
             state: p.state || '',
-            pin_code: p.pin_code || '',
+            pincode: p.pincode || p.pin_code || '',
+            address: p.residential_address || p.address || '',
             wa_id: p.wa_id || p.parent_mobile || '',
             email: p.email || '',
             doctor: p.doctor || '',
@@ -588,8 +589,8 @@ const Patients = () => {
                                                                             <div className="expansion-card">
                                                                                 <div className="exp-card-header"><MapPin size={18} /> <span>Address & Assignments</span></div>
                                                                                 <div className="exp-info-list" style={{ gap: '0.5rem' }}>
-                                                                                    <div className="exp-info-item"><span>Area</span><strong>{p.area || '—'}</strong></div>
-                                                                                    <div className="exp-info-item"><span>City</span><strong>{p.city || '—'}</strong></div>
+                                                                                    <div className="exp-info-item" style={{ flexWrap: 'wrap' }}><span>Address</span><strong style={{ textAlign: 'right', flex: '1 1 100%' }}>{p.residential_address || p.address || '—'}</strong></div>
+                                                                                    <div className="exp-info-item"><span>City / PIN</span><strong>{(p.city || p.pincode) ? `${p.city || ''} ${p.pincode ? '- ' + p.pincode : ''}` : '—'}</strong></div>
                                                                                     <div className="exp-info-item"><span>State</span><strong>{p.state || '—'}</strong></div>
                                                                                     <div className="exp-info-item" style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}><span>Doctor</span><strong>{p.doctor || 'Clinic'}</strong></div>
                                                                                 </div>

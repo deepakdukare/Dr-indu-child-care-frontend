@@ -230,7 +230,7 @@ const Appointments = () => {
         state: 'Maharashtra',
         city: 'Mumbai',
         pincode: '',
-        residential_address: ''
+        address: ''
     });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [editMode, setEditMode] = useState(false);
@@ -378,7 +378,7 @@ const Appointments = () => {
         if (!newPatient.city?.trim()) errors.city = "City required";
         if (!newPatient.pincode?.trim()) errors.pincode = "Pincode required";
         else if (newPatient.pincode.length < 6) errors.pincode = "6-digit required";
-        if (!newPatient.residential_address?.trim()) errors.residential_address = "Address required";
+        if (!newPatient.address?.trim()) errors.address = "Address required";
 
         if (Object.keys(errors).length > 0) {
             setEnrollErrors(errors);
@@ -398,7 +398,7 @@ const Appointments = () => {
                 wa_id: newPatient.wa_id,
                 city: newPatient.city || 'Mumbai',
                 pincode: newPatient.pincode,
-                residential_address: newPatient.residential_address,
+                address: newPatient.address,
                 state: newPatient.state || 'Maharashtra',
                 doctor: form.doctor_name
             });
@@ -511,7 +511,7 @@ const Appointments = () => {
                 state: 'Maharashtra',
                 city: 'Mumbai',
                 pincode: '',
-                residential_address: '',
+                address: '',
                 registration_source: 'dashboard'
             });
             setSelectedPatient(null);
@@ -886,9 +886,9 @@ const Appointments = () => {
                                             {enrollErrors.pincode && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.pincode}</p>}
                                         </div>
                                         <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px', gridColumn: 'span 2' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Residential Address *</label>
-                                            <textarea name="residential_address" placeholder="Full residential address" value={newPatient.residential_address || ''} onChange={e => setNewPatient({ ...newPatient, residential_address: e.target.value })} style={{ height: '80px', padding: '12px 16px', borderRadius: '10px', border: enrollErrors.residential_address ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none', resize: 'vertical' }} />
-                                            {enrollErrors.residential_address && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.residential_address}</p>}
+                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Address *</label>
+                                            <textarea name="address" placeholder="Full residential address" value={newPatient.address || ''} onChange={e => setNewPatient({ ...newPatient, address: e.target.value })} style={{ height: '80px', padding: '12px 16px', borderRadius: '10px', border: enrollErrors.address ? '2px solid #ef4444' : '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', fontSize: '14px', fontWeight: 500, outline: 'none', resize: 'vertical' }} />
+                                            {enrollErrors.address && <p style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, margin: '2px 0 0 4px' }}>{enrollErrors.address}</p>}
                                         </div>
                                     </div>
                                     <div className="wizard-footer-v3" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
