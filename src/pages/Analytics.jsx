@@ -255,7 +255,7 @@ const Analytics = () => {
                 </div>
             </div>
 
-            <div className="stats-grid-v4" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '24px' }}>
+            <div className="stats-grid-v4 grid-6" style={{ marginBottom: '24px' }}>
                 {[
                     { label: 'Total Appointments', value: displayMetrics.total, icon: Calendar, color: '#4f46e5' },
                     { label: 'Completed', value: displayMetrics.completed, icon: Users, color: '#10b981' },
@@ -264,9 +264,9 @@ const Analytics = () => {
                     { label: 'Unique Patients', value: displayMetrics.unique, icon: Hash, color: '#06b6d4' },
                     { label: 'Completion Rate', value: `${completionRate}%`, icon: TrendingUp, color: '#8b5cf6' }
                 ].map((stat, i) => (
-                    <div key={i} className="stat-card-v4">
+                    <div key={i} className="stat-card-v4 compact-v4">
                         <div className="stat-icon-v4" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
-                            <stat.icon size={24} />
+                            <stat.icon size={20} />
                         </div>
                         <div className="stat-info-v4">
                             <span className="stat-label-v4">{stat.label}</span>

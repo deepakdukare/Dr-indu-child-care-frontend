@@ -138,7 +138,7 @@ const Reports = () => {
 
             {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '0.85rem 1.25rem', marginBottom: '1rem', color: '#dc2626', display: 'flex', gap: '0.75rem', alignItems: 'center' }}><AlertCircle size={18} />{error}</div>}
 
-            <div className="stats-grid-v4" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '24px' }}>
+            <div className="stats-grid-v4 grid-6" style={{ marginBottom: '24px' }}>
                 {[
                     { title: "Total Appointments", value: overview?.total_appointments ?? total, icon: Calendar, color: "#6366f1" },
                     { title: "Completed", value: overview?.completed ?? completed, icon: CheckCircle2, color: "#10b981" },
@@ -147,9 +147,9 @@ const Reports = () => {
                     { title: "Unique Patients", value: overview?.unique_patients ?? new Set(appointments.map(a => a.patient_id)).size, icon: Users, color: "#0ea5e9" },
                     { title: "Completion Rate", value: total ? `${Math.round((completed / total) * 100)}%` : '—', icon: TrendingUp, color: "#8b5cf6" }
                 ].map((stat, i) => (
-                    <div key={i} className="stat-card-v4">
+                    <div key={i} className="stat-card-v4 compact-v4">
                         <div className="stat-icon-v4" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
-                            <stat.icon size={24} />
+                            <stat.icon size={20} />
                         </div>
                         <div className="stat-info-v4">
                             <span className="stat-label-v4">{stat.title}</span>
