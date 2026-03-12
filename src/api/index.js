@@ -113,6 +113,7 @@ export const completeAppointment = (id) => api.patch(`/appointments/${id}/comple
 export const bookByForm = (data) => api.post('/appointments/form', data);
 export const bookByWhatsapp = (data) => api.post('/appointments/whatsapp', data);
 export const getAppointmentsByWaId = (waId, params) => api.get(`/appointments/by-wa/${waId}`, { params });
+export const lookupAppointments = (query) => api.get(`/appointments/lookup`, { params: { query } });
 export const bookWithToken = (data) => api.post('/appointments/book-with-token', data);
 export const bookAppointmentWithToken = (data) => bookWithToken(data); // Alias
 
