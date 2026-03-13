@@ -17,14 +17,20 @@ export const hasPermission = (permission) => {
 
     const role = String(user.role || '').toLowerCase();
     const isDoctor = role === 'doctor';
+    const isSuperAdmin = role === 'super_admin' || role === 'superadmin';
+
+    // Restriction: Settings & Admin Control ONLY for Super Admin
+    if ((permission === 'view_settings' || permission === 'view_admins') && !isSuperAdmin) {
+        return false;
+    }
 
     // Restriction: Doctors should not see sensitive patient contact data
     if (isDoctor && (permission === 'view_patient_mobile' || permission === 'view_patient_email')) {
         return false;
     }
 
-    // Super-admins and primary admins have full override access
-    if (role === 'super_admin' || role === 'superadmin' || role === 'admin' || isDoctor) {
+    // Admins and Doctors have general access except for the specific restrictions above
+    if (isSuperAdmin || role === 'admin' || isDoctor) {
         return true;
     }
 
