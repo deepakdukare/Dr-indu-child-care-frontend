@@ -29,7 +29,8 @@ import {
     getNotifications,
     toIsoDate
 } from '../api/index';
-import { hasPermission } from '../utils/auth';
+import { hasPermission, getUser } from '../utils/auth';
+import { getAppointments } from '../api/index';
 
 const StatCard = ({ title, value, icon: Icon, color, loading, trend }) => {
     let trendColor = '#3b82f6';
@@ -102,10 +103,14 @@ const Dashboard = () => {
         systemStatus: 'Healthy'
     });
 
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
+            const user = getUser();
+            const isDoctor = user?.role === 'doctor';
+            const docId = isDoctor ? user.doctor_id : null;
+
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             const sevenDaysAgoDate = toIsoDate(sevenDaysAgo);
@@ -123,7 +128,7 @@ const Dashboard = () => {
             ] = await Promise.all([
                 getAppointmentStats(apiDate),
                 getAppointmentStats(sevenDaysAgoDate),
-                getAppointmentsByDate(apiDate),
+                getAppointments({ date: apiDate, ...(docId ? { doctor_id: docId } : {}) }),
                 getPatients({ limit: 1 }),
                 getPatients({ limit: 1, to: sevenDaysAgoDate }),
                 getUnregisteredInteractions(),
@@ -175,7 +180,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiDate]);
 
     useEffect(() => {
         fetchData();

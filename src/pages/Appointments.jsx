@@ -40,6 +40,7 @@ import {
     toIsoDate
 } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
+import { getUser } from '../utils/auth';
 
 const getDoctorDisplayName = (doctor) => doctor?.full_name || doctor?.name || doctor?.doctor_name || doctor?.doctor_id || 'Unknown Doctor';
 
@@ -202,10 +203,13 @@ const Appointments = () => {
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
+    const currentUser = getUser();
+    const isDoctor = currentUser?.role === 'doctor';
+
     // Queue Filters
     const [filters, setFilters] = useState({
         date: toIsoDate(),
-        doctor_id: '',
+        doctor_id: isDoctor ? (currentUser.doctor_id || '') : '',
         status: ''
     });
 
@@ -228,9 +232,9 @@ const Appointments = () => {
 
     const [form, setForm] = useState({
         patient_id: '',
-        doctor_name: 'Dr. Indu',
+        doctor_name: isDoctor ? (currentUser.full_name || currentUser.username || 'Dr. Indu') : 'Dr. Indu',
         appointment_date: filters.date,
-        doctor_id: '',
+        doctor_id: isDoctor ? (currentUser.doctor_id || '') : '',
         doctor_speciality: 'Pediatrics',
         visit_category: 'First visit',
         registration_type: 'walkin', // Default for admin
@@ -594,23 +598,25 @@ const Appointments = () => {
                                     </select>
                                     <ChevronDown size={14} className="drop-icon" style={{ position: 'absolute', right: '12px', color: '#64748b', pointerEvents: 'none' }} />
                                 </div>
-                                <div className="filter-item-v3 select-pill-v3" style={{ height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '8px', position: 'relative', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
-                                    <Stethoscope size={16} className="f-icon" color="#64748b" />
-                                    <select
-                                        className="f-select"
-                                        value={filters.doctor_id}
-                                        onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
-                                        style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', appearance: 'none', paddingRight: '20px', color: '#334155' }}
-                                    >
-                                        <option value="">All Combined Doctors</option>
-                                        {doctors.map((doc, idx) => (
-                                            <option key={doc.doctor_id || idx} value={doc.doctor_id}>
-                                                {getDoctorDisplayName(doc)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={14} className="drop-icon" style={{ position: 'absolute', right: '12px', color: '#64748b', pointerEvents: 'none' }} />
-                                </div>
+                                {!isDoctor && (
+                                    <div className="filter-item-v3 select-pill-v3" style={{ height: '42px', borderRadius: '10px', padding: '0 16px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', backgroundColor: '#fff', gap: '8px', position: 'relative', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' }}>
+                                        <Stethoscope size={16} className="f-icon" color="#64748b" />
+                                        <select
+                                            className="f-select"
+                                            value={filters.doctor_id}
+                                            onChange={e => setFilters({ ...filters, doctor_id: e.target.value })}
+                                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', appearance: 'none', paddingRight: '20px', color: '#334155' }}
+                                        >
+                                            <option value="">All Combined Doctors</option>
+                                            {doctors.map((doc, idx) => (
+                                                <option key={doc.doctor_id || idx} value={doc.doctor_id}>
+                                                    {getDoctorDisplayName(doc)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={14} className="drop-icon" style={{ position: 'absolute', right: '12px', color: '#64748b', pointerEvents: 'none' }} />
+                                    </div>
+                                )}
                             </div>
 
 

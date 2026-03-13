@@ -11,6 +11,7 @@ import {
     toIsoDate
 } from '../api/index';
 import { removeSalutation } from '../utils/formatters';
+import { getUser } from '../utils/auth';
 
 const STATUS_CONFIG = {
     WAITING: { color: '#f59e0b', bg: '#fef3c7', label: 'Pending' },
@@ -166,14 +167,27 @@ const QueueDisplay = () => {
     const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3000); };
     const showError = (msg) => { setError(msg); setTimeout(() => setError(null), 5000); };
 
+    const currentUser = getUser();
+    const isDoctor = currentUser?.role === 'doctor';
+
     useEffect(() => {
         getDoctors({ all: true }).then(r => {
             const list = r.data?.data || r.data?.doctors || [];
-            setDoctors(list);
-            // Default to empty (All Combined Doctors) instead of forcing first doctor
-            setSelectedDoctor('');
+            if (isDoctor) {
+                const filtered = list.filter(d => 
+                    d.doctor_id === currentUser.doctor_id || 
+                    d.name === currentUser.full_name || 
+                    d.name === currentUser.username
+                );
+                setDoctors(filtered);
+                setSelectedDoctor(currentUser.doctor_id || (filtered[0]?.doctor_id || ''));
+            } else {
+                setDoctors(list);
+                // Default to empty (All Combined Doctors) instead of forcing first doctor
+                setSelectedDoctor('');
+            }
         }).catch(() => { });
-    }, []);
+    }, [isDoctor, currentUser.doctor_id, currentUser.full_name, currentUser.username]);
 
     const fetchQueue = useCallback(async () => {
         // We only require date, doctor_id can be empty for "All Combined"
@@ -338,14 +352,16 @@ const QueueDisplay = () => {
             </div>
 
             <div className="filter-shelf-v4" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#fff', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '12px', borderRight: '1px solid #f1f5f9' }}>
-                    <Filter size={16} color="#94a3b8" />
-                    <select value={selectedDoctor} onChange={e => setSelectedDoctor(e.target.value)}
-                        style={{ border: 'none', background: 'transparent', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer' }}>
-                        <option value="">All Combined Doctors</option>
-                        {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name || d.full_name}</option>)}
-                    </select>
-                </div>
+                {!isDoctor && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '12px', borderRight: '1px solid #f1f5f9' }}>
+                        <Filter size={16} color="#94a3b8" />
+                        <select value={selectedDoctor} onChange={e => setSelectedDoctor(e.target.value)}
+                            style={{ border: 'none', background: 'transparent', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', outline: 'none', cursor: 'pointer' }}>
+                            <option value="">All Combined Doctors</option>
+                            {doctors.map(d => <option key={d.doctor_id || d._id} value={d.doctor_id || d._id}>{d.name || d.full_name}</option>)}
+                        </select>
+                    </div>
+                )}
                 
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
                     style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }} />
