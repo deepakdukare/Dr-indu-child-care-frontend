@@ -75,6 +75,7 @@ const Doctors = () => {
     const navigate = useNavigate();
     const currentUser = getUser();
     const isSuperAdmin = currentUser?.role?.toLowerCase() === 'super_admin' || currentUser?.role?.toLowerCase() === 'superadmin';
+    const isDoctor = currentUser?.role === 'doctor';
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -424,10 +425,12 @@ const Doctors = () => {
                                 <RotateCw size={18} className={loading ? 'spinning' : ''} />
                                 <span>Sync Data</span>
                             </button>
-                            <button className="btn-header-v4 btn-primary-v4" onClick={openCreate}>
-                                <Plus size={18} />
-                                <span>Register Doctor</span>
-                            </button>
+                            {!isDoctor && (
+                                <button className="btn-header-v4 btn-primary-v4" onClick={openCreate}>
+                                    <Plus size={18} />
+                                    <span>Register Doctor</span>
+                                </button>
+                            )}
                         </div>
                     </div>
 
