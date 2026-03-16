@@ -62,7 +62,7 @@ const PatientForm = ({
                         <div className="section-icon-v4"><User size={22} /></div>
                         <div className="section-title-box">
                             <span className="step-tag">Step 01</span>
-                            <h3>Child Identification</h3>
+                            <h3>{editId ? 'Edit Patient Info' : 'Child Identification'}</h3>
                         </div>
                     </div>
 
@@ -77,7 +77,7 @@ const PatientForm = ({
                             </div>
                         </div>
 
-                        <div className="f-group-v4 col-span-2">
+                        <div className="f-group-v4">
                             <label>First Name *</label>
                             <input
                                 name="first_name"
@@ -94,7 +94,7 @@ const PatientForm = ({
                             <input value={safeForm.middle_name || ''} onChange={e => setForm({ ...safeForm, middle_name: e.target.value })} className="input-v4" />
                         </div>
 
-                        <div className="f-group-v4 col-span-2">
+                        <div className="f-group-v4">
                             <label>Last Name *</label>
                             <input
                                 name="last_name"
@@ -106,7 +106,7 @@ const PatientForm = ({
                             {errors.last_name && <span className="error-msg-v4">{errors.last_name}</span>}
                         </div>
 
-                        <div className="f-group-v4">
+                        <div className="f-group-v4 col-span-2">
                             <label>Gender *</label>
                             <div className="input-wrap-v4">
                                 <select name="gender" value={safeForm.gender || ''} onBlur={onBlur} onChange={e => setForm({ ...safeForm, gender: e.target.value })} className={`select-v4 ${errors.gender ? 'error' : ''}`}>
@@ -118,7 +118,7 @@ const PatientForm = ({
                             {errors.gender && <span className="error-msg-v4">{errors.gender}</span>}
                         </div>
 
-                        <div className="f-group-v4">
+                        <div className="f-group-v4 col-span-2">
                             <label>Date of Birth *</label>
                             <div className="input-wrap-v4">
                                 <Calendar size={18} className="input-icon-v4" />
@@ -186,7 +186,7 @@ const PatientForm = ({
 
                         {(!editId || hasPermission('view_patient_mobile')) && (
                             <div className="f-group-v4 col-span-2">
-                                <label>WhatsApp ID / Mobile *</label>
+                                <label>Mobile Number *</label>
                                 <div className="input-wrap-v4">
                                     <Zap size={18} className="input-icon-v4 w-accent" />
                                     <input
@@ -195,6 +195,8 @@ const PatientForm = ({
                                         onBlur={onBlur}
                                         onChange={e => setForm({ ...safeForm, wa_id: e.target.value.replace(/\D/g, ''), primary_mobile: e.target.value.replace(/\D/g, '') })}
                                         className={`input-v4 has-icon ${errors.wa_id ? 'error' : ''}`}
+                                        readOnly={!!editId}
+                                        style={editId ? { backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' } : {}}
                                     />
                                 </div>
                                 {errors.wa_id && <span className="error-msg-v4">{errors.wa_id}</span>}
@@ -223,6 +225,8 @@ const PatientForm = ({
                                         onBlur={onBlur}
                                         onChange={e => setForm({ ...safeForm, email: e.target.value })}
                                         className={`input-v4 has-icon ${errors.email ? 'error' : ''}`}
+                                        readOnly={!!editId}
+                                        style={editId ? { backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' } : {}}
                                     />
                                 </div>
                                 {errors.email && <span className="error-msg-v4">{errors.email}</span>}
@@ -290,15 +294,18 @@ const PatientForm = ({
                     </div>
 
                     <div className="grid-layout-v4">
-                        <div className="f-group-v4 col-span-2">
-                            <label>State</label>
-                            <input
-                                name="state"
-                                value={safeForm.state || ''}
-                                onChange={e => setForm({ ...safeForm, state: e.target.value })}
-                                className="input-v4"
-                                placeholder="State"
+                        <div className="f-group-v4 col-span-full">
+                            <label>Address *</label>
+                            <textarea
+                                name="address"
+                                value={safeForm.address || safeForm.residential_address || ''}
+                                onBlur={onBlur}
+                                onChange={e => setForm({ ...safeForm, address: e.target.value })}
+                                className={`input-v4 ${errors.address ? 'error' : ''}`}
+                                style={{ minHeight: '100px', resize: 'vertical' }}
+                                placeholder="Door no, Street, Landmark..."
                             />
+                            {errors.address && <span className="error-msg-v4">{errors.address}</span>}
                         </div>
                         <div className="f-group-v4 col-span-2">
                             <label>City *</label>
@@ -324,18 +331,15 @@ const PatientForm = ({
                             />
                             {errors.pincode && <span className="error-msg-v4">{errors.pincode}</span>}
                         </div>
-                        <div className="f-group-v4 col-span-full">
-                            <label>Address *</label>
-                            <textarea
-                                name="address"
-                                value={safeForm.address || safeForm.residential_address || ''}
-                                onBlur={onBlur}
-                                onChange={e => setForm({ ...safeForm, address: e.target.value })}
-                                className={`input-v4 ${errors.address ? 'error' : ''}`}
-                                style={{ minHeight: '100px', resize: 'vertical' }}
-                                placeholder="Door no, Street, Landmark..."
+                        <div className="f-group-v4 col-span-2">
+                            <label>State</label>
+                            <input
+                                name="state"
+                                value={safeForm.state || ''}
+                                onChange={e => setForm({ ...safeForm, state: e.target.value })}
+                                className="input-v4"
+                                placeholder="State"
                             />
-                            {errors.address && <span className="error-msg-v4">{errors.address}</span>}
                         </div>
                     </div>
                 </div>

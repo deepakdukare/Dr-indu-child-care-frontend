@@ -41,44 +41,48 @@ const AppointmentRow = ({ appt, onEdit, onCancel }) => {
 
     return (
         <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}>
-            {/* 1. Token */}
+            {/* 1. Doctor */}
+            <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                        {docName}
+                    </span>
+                </div>
+            </td>
+
+            {/* 2. Token */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#6366f1' }}>
                     {appt?.token_display || appt?.token_number || 'T-XX'}
                 </span>
             </td>
 
+            {/* 3. Patient ID */}
+            <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 800 }}>
+                    {appt?.patient_id || '9022'}
+                </span>
+            </td>
+
+            {/* 4. Patient */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
                         {removeSalutation(appt?.child_name) || 'Walk-in Patient'}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>#{String(ptId).slice(-6)}</span>
                 </div>
             </td>
 
-            {/* 3. Gender */}
+            {/* 5. Gender */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
                 <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700, textTransform: 'capitalize' }}>
                     {appt?.gender || 'Boy'}
                 </span>
             </td>
 
-            {/* 4. Time */}
+            {/* 5. Time */}
             <td style={{ padding: '16px 20px', verticalAlign: 'middle', fontSize: '13px', color: '#475569', fontWeight: 600 }}>
                 {formatTime12h(appt?.appointment_time || appt?.start_time)}
-            </td>
-
-            {/* 5. Doctor + Specialty */}
-            <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                        {docName}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {appt?.doctor_speciality || 'Pediatrician'}
-                    </span>
-                </div>
             </td>
 
             {/* 6. Visit Category */}

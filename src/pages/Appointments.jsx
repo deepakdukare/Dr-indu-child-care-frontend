@@ -626,11 +626,12 @@ const Appointments = () => {
                                 <table className="main-table-v3" style={{ width: '100%', borderCollapse: 'collapse', borderSpacing: 0, textAlign: 'left', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
                                     <thead>
                                         <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' }}>
+                                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Doctor</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Token</th>
+                                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Patient ID</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Patient</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Gender</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Time</th>
-                                            <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Doctor</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Category</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Status</th>
                                             <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: 800, color: '#000000', textTransform: 'uppercase' }}>Token Status</th>

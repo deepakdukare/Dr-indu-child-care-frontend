@@ -80,13 +80,15 @@ const TokenRow = ({ token, onCheckin, onStatusChange, onNext, isNext, isToday })
                 </div>
             </td>
             <td>
-                <div className="patient-name">{removeSalutation(token.child_name || token.patient_name) || '—'}</div>
-                <div className="patient-id">{token.patient_id || ''}</div>
-            </td>
-            <td>
-                <div className="doctor-name-pill" style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: 700 }}>
+                <div className="doctor-name-pill" style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '6px', background: '#f1f5f9', fontSize: '11px', fontWeight: 700 }}>
                     {token.doctor_name || '—'}
                 </div>
+            </td>
+            <td>
+                <div className="patient-id" style={{ fontWeight: 700, color: '#334155', fontSize: '0.85rem' }}>{token.patient_id || '—'}</div>
+            </td>
+            <td>
+                <div className="patient-name">{removeSalutation(token.child_name || token.patient_name) || '—'}</div>
             </td>
             <td><div className="slot-label">{token.appointment_time || token.token_display || '—'}</div></td>
             <td>
@@ -421,7 +423,7 @@ const QueueDisplay = () => {
                 <div className="queue-table-header">
                     <h3>
                         <Hash size={16} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle', color: '#6366f1' }} />
-                        Token List — {filtered.length} records
+                        Token List
                     </h3>
                 </div>
                 {loading ? (
@@ -440,8 +442,9 @@ const QueueDisplay = () => {
                             <thead>
                                 <tr>
                                     <th>Token</th>
-                                    <th>Patient</th>
                                     <th>Doctor</th>
+                                    <th>Patient ID</th>
+                                    <th>Patient</th>
                                     <th>Scheduled Time</th>
                                     <th>Status</th>
                                     {/* Only show Actions column header for today */}

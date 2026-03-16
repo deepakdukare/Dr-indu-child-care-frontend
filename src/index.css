@@ -333,7 +333,7 @@
 .f-group-v4 label {
   font-size: 0.75rem;
   font-weight: 800;
-  color: #64748b;
+  color: #000000;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding-left: 0.25rem;
@@ -347,7 +347,7 @@
   border-radius: 14px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #000000;
   outline: none;
   transition: all 0.2s;
   width: 100%;
@@ -3278,30 +3278,30 @@ tr:last-child td {
   font-size: 0.7rem;
   font-weight: 900;
   text-transform: uppercase;
-  color: #6366f1;
+  color: #000000;
   letter-spacing: 0.12em;
   margin-bottom: 0.2rem;
 }
 
 .step-tag.s-blue {
-  color: #3b82f6;
+  color: #000000;
 }
 
 .step-tag.s-orange {
-  color: #f59e0b;
+  color: #000000;
 }
 
 .section-title-box h3 {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #000000;
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .grid-layout-v4 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 0.6fr 1.15fr 1.15fr 1.15fr;
   gap: 1.25rem 1.5rem;
 }
 
@@ -3322,7 +3322,7 @@ tr:last-child td {
 .f-group-v4 label {
   font-size: 0.85rem;
   font-weight: 800;
-  color: #64748b;
+  color: #000000;
   margin-left: 0.15rem;
 }
 
@@ -3343,9 +3343,17 @@ tr:last-child td {
   padding: 0 1rem;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #000000;
   transition: all 0.2s;
   outline: none;
+}
+
+.select-v4 {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  cursor: pointer;
 }
 
 .input-v4.has-icon,
@@ -3394,8 +3402,8 @@ tr:last-child td {
 
 .drop-arrow-v4 {
   position: absolute;
-  right: 1rem;
-  color: #94a3b8;
+  right: 0.75rem;
+  color: #000000;
   pointer-events: none;
 }
 
@@ -11453,7 +11461,7 @@ input:checked+.slider-premium:before {
   text-align: left;
   font-size: 0.65rem;
   font-weight: 800;
-  color: #94a3b8;
+  color: #000000;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   background: #f8fafc;
@@ -11497,7 +11505,7 @@ input:checked+.slider-premium:before {
 
 .doctor-name-pill {
   font-size: 0.65rem;
-  color: #6366f1;
+  color: #000000;
   font-weight: 700;
   margin-top: 0.1rem;
   text-transform: uppercase;
@@ -11505,7 +11513,7 @@ input:checked+.slider-premium:before {
 
 .slot-label {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #000000;
 }
 
 .status-pill {
@@ -12014,7 +12022,7 @@ input:checked+.slider-premium:before {
   font-size: 0.7rem;
   font-weight: 900;
   text-transform: uppercase;
-  color: #6366f1;
+  color: #000000;
   letter-spacing: 0.12em;
   margin-bottom: 0.2rem;
 }
@@ -12026,7 +12034,7 @@ input:checked+.slider-premium:before {
 .section-title-box h3 {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #000000;
   margin: 0;
   letter-spacing: -0.01em;
 }

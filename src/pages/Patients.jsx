@@ -36,6 +36,7 @@ const Patients = () => {
         city: ''
     });
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(20);
     const [pagination, setPagination] = useState({ total: 0, pages: 1 });
 
     // Modal & Form
@@ -72,14 +73,14 @@ const Patients = () => {
 
             const res = await getPatients({
                 page,
-                limit: 20,
+                limit: limit === -1 ? 1000 : limit,
                 search: query || undefined,
                 ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
             });
             setPatients(res.data.data || []);
             setPagination({
                 total: res.data.total || 0,
-                pages: res.data.pagination?.pages || 1,
+                pages: limit === -1 ? 1 : (res.data.pagination?.pages || 1),
                 page: res.data.pagination?.page || 1
             });
         } catch (e) {
@@ -87,7 +88,7 @@ const Patients = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, search, filters]);
+    }, [page, limit, search, filters]);
 
     useEffect(() => {
         const t = setTimeout(fetchData, 500);
@@ -718,24 +719,47 @@ const Patients = () => {
                                 </table>
                             </div>
 
-                            {pagination.pages > 1 && (
-                                <div className="pagination-v2-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div className="pag-info">
-                                        Showing <strong>{(page - 1) * 20 + 1}</strong> to <strong>{Math.min(page * 20, pagination.total)}</strong> of <strong>{pagination.total}</strong>
-                                        <span className="pag-total"> patients in the whole registry</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '1rem', marginLeft: 'auto' }}>
-                                        <button className="pag-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                                            <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
-                                            <span>Previous</span>
-                                        </button>
-                                        <button className="pag-btn" onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages}>
-                                            <span>Next</span>
-                                            <ChevronRight size={20} />
-                                        </button>
+                            <div className="pagination-v2-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid #f1f5f9' }}>
+                                <div className="pag-info">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                                            Rows per page:
+                                            <select
+                                                value={limit}
+                                                onChange={(e) => {
+                                                    setLimit(parseInt(e.target.value));
+                                                    setPage(1);
+                                                }}
+                                                style={{ marginLeft: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '2px 8px', fontSize: '0.85rem', fontWeight: 700, color: '#1e293b', outline: 'none', cursor: 'pointer' }}
+                                            >
+                                                <option value={20}>20</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                                <option value={-1}>Show All</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                                            Showing <strong>{limit === -1 ? 1 : ((page - 1) * limit + 1)}</strong> to <strong>{limit === -1 ? pagination.total : Math.min(page * limit, pagination.total)}</strong> of <strong>{pagination.total}</strong> patients
+                                        </div>
                                     </div>
                                 </div>
-                            )}
+                                {pagination.pages > 1 && limit !== -1 && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
+                                        <button className="pag-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
+                                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+                                            <span>Previous</span>
+                                        </button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0 0.5rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#6366f1' }}>{page}</span>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#94a3b8' }}>/ {pagination.pages}</span>
+                                        </div>
+                                        <button className="pag-btn" onClick={() => setPage(p => Math.min(pagination.pages, p + 1))} disabled={page === pagination.pages} style={{ opacity: page === pagination.pages ? 0.5 : 1, cursor: page === pagination.pages ? 'not-allowed' : 'pointer' }}>
+                                            <span>Next</span>
+                                            <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}
