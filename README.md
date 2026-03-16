@@ -35,3 +35,7 @@ Local app URL: `http://127.0.0.1:3000/`
 - If direct route refresh gives 404, confirm project root is `frontend` so `frontend/vercel.json` is applied.
 - If login/API fails, verify `VITE_API_BASE_URL` is set and ends with `/api`.
 - After changing env vars, trigger a fresh redeploy.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
