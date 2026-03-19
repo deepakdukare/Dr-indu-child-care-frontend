@@ -2,6 +2,8 @@
 
 Frontend for the clinic dashboard, built with Vite + React.
 
+For detailed project requirements, see the [Software Requirements Specification (SRS)](SRS.md).
+
 ## Deploy on Vercel
 
 1. Import this repository into Vercel.
