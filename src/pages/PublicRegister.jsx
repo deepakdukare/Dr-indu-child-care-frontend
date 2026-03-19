@@ -4,10 +4,11 @@ import {
     AlertCircle, Stethoscope, Baby, Users, Briefcase, Mail,
     Clock, Smartphone, MapPinned, ChevronRight, ChevronLeft,
     Check, RefreshCw, Activity, Clipboard, Edit2, Plus, XCircle,
-    ArrowRight, Map, ShieldCheck, ArrowLeft, Zap, Shield, ChevronDown, UserPlus, CalendarClock
+    ArrowRight, Map, ShieldCheck, ArrowLeft, Zap, Shield, ChevronDown, UserPlus, CalendarClock, CheckCircle2
 } from 'lucide-react';
 import { registerFromForm, bookByForm, getAvailableTokens, getTokenConfig, getDoctors, getReferringDoctors, getPatientByWa, getPatientByEmail, getAppointmentsByWaId, getAppointmentById, updateAppointment, lookupAppointments } from '../api/index';
 import '../glass-landing.css';
+import { removeSalutation } from '../utils/formatters';
 
 const SALUTATIONS = ['Baby', 'Baby of', 'Mr.', 'Mrs.', 'Ms.', 'Master', 'Miss', 'Dr.'];
 const GENDERS = ['boy', 'girl'];
@@ -937,146 +938,148 @@ const PublicRegister = () => {
                                     )}
 
                                     {step === 2 && (
-                                        <form onSubmit={handleBooking} className="booking-stage-v4">
-                                                <div className="p-badge-v4">
-                                                    <div className="p-avatar-v4"><User size={24} /></div>
-                                                    <div className="p-meta-v4">
-                                                        <strong>{registeredPatient?.child_name || patientForm.first_name}</strong>
-                                                        <span>{registeredPatient?.patient_id || 'New Patient'}</span>
+                                        <form onSubmit={handleBooking} className="reg-form-clean">
+                                            {/* Unified Header with Patient Info */}
+                                            <div className="reg-unified-header" style={{ marginBottom: '1.5rem', paddingBottom: '1rem' }}>
+                                                <button type="button" className="btn-back-v4" onClick={() => isNewPatient ? setStep(1) : setStep(0)}>
+                                                    <ArrowLeft size={20} />
+                                                    <span>Back</span>
+                                                </button>
+                                                <div className="p-badge-v4" style={{ background: '#f8fafc', padding: '6px 16px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', border: '1.5px solid #eef2ff' }}>
+                                                    <div className="p-avatar-v4" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}><User size={18} /></div>
+                                                    <div className="p-meta-v4" style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <strong style={{ fontSize: '13px', color: '#1e293b' }}>{removeSalutation(registeredPatient?.child_name) || patientForm.first_name}</strong>
+                                                        <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600 }}>ID: {registeredPatient?.patient_id || 'New Record'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="reg-section">
+                                                <h2 className="reg-section-title">Visit Configuration</h2>
+                                                <div className="reg-grid-2">
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Select Clinician</label>
+                                                        <div className="reg-select-wrap">
+                                                            <select
+                                                                className="reg-select"
+                                                                value={bookingForm.doctor_name}
+                                                                onChange={e => setBookingForm({ ...bookingForm, doctor_name: e.target.value })}
+                                                            >
+                                                                {doctors.map((d, idx) => (
+                                                                    <option key={d._id || d.doctor_id || `book-doc-${idx}`} value={getRawDoctorName(d)}>
+                                                                        {getDoctorDisplayName(d)}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <ChevronDown size={16} className="reg-select-icon" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Proposed Visit Date</label>
+                                                        <input type="date" className="reg-input" min={todayStr} max={maxStr} value={bookingForm.appointment_date} onChange={e => setBookingForm({ ...bookingForm, appointment_date: e.target.value })} />
                                                     </div>
                                                 </div>
 
-                                            <div className="booking-grid-v4">
-                                                <div className="f-group-v4 col-2">
-                                                    <label>Select Doctor</label>
-                                                    <div className="sel-wrap-v4">
-                                                        <select
-                                                            value={bookingForm.doctor_name}
-                                                            onChange={e => setBookingForm({ ...bookingForm, doctor_name: e.target.value })}
-                                                        >
-                                                            {doctors.map((d, idx) => (
-                                                                <option key={d._id || d.doctor_id || `book-doc-${idx}`} value={getRawDoctorName(d)}>
-                                                                    {getDoctorDisplayName(d)}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                        <ChevronDown size={18} className="arrow-v4" />
-                                                    </div>
-                                                </div>
-                                                <div className="f-group-v4 col-2">
-                                                    <label>Appointment Date</label>
-                                                    <input type="date" min={todayStr} max={maxStr} value={bookingForm.appointment_date} onChange={e => setBookingForm({ ...bookingForm, appointment_date: e.target.value })} />
-                                                </div>
-
-                                                <div className="f-group-v4 col-full">
-                                                    <div className="token-info-v4 card-premium-v3">
-                                                        <div className="token-header-v4">
-                                                            <h3>Clinic Queue Status</h3>
-                                                            {tokensLoading && <RefreshCw size={18} className="animate-spin text-primary" />}
+                                                <div className="reg-field" style={{ marginTop: '0.5rem' }}>
+                                                    <div style={{ backgroundColor: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.25rem', position: 'relative', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <div className="token-header-v4" style={{ position: 'absolute', top: '10px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <h3 style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Clinic Availability</h3>
+                                                            {tokensLoading && <RefreshCw size={14} className="animate-spin text-primary" />}
                                                         </div>
 
                                                         {availableTokens ? (
                                                             availableTokens.is_offline ? (
-                                                                <div className="token-display-v4">
-                                                                    <div className="token-instruction-v4 error" style={{ padding: '1.25rem', background: '#fff1f2', border: '1px solid #fecaca' }}>
-                                                                        <AlertCircle className="text-danger" size={20} />
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                            <strong style={{ color: '#e11d48' }}>Doctor is OFF Today</strong>
-                                                                            <span style={{ fontSize: '0.85rem', color: '#be123c' }}>Not available due to weekly schedule.</span>
-                                                                        </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', background: '#fff1f2', borderRadius: '12px', border: '1.5px solid #fecaca', marginTop: '1rem' }}>
+                                                                    <div style={{ background: '#fff', padding: '8px', borderRadius: '50%', color: '#e11d48' }}><AlertCircle size={20} /></div>
+                                                                    <div>
+                                                                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#e11d48' }}>Doctor Off Duty</div>
+                                                                        <p style={{ fontSize: '12px', color: '#991b1b', margin: 0 }}>Not available via standard scheduling on this date.</p>
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="token-display-v4">
-                                                                    <div className="token-card-v4 large">
-                                                                        <div className="token-count-v4">#{availableTokens.online_next_token ?? '--'}</div>
-                                                                        <div className="token-label-v4">Next Available Token</div>
-                                                                        <div className="token-sub-v4">For {new Date(bookingForm.appointment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
-                                                                        <div className="token-sub-v4">Tokens Available Online for this date</div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '1rem', marginTop: '1.5rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', justifyContent: 'space-between', background: '#f8faff', padding: '12px 16px', borderRadius: '14px', border: '1.5px solid #eef2ff' }}>
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                            <span style={{ fontSize: '10px', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>Next Online Token</span>
+                                                                            <span style={{ fontSize: '28px', fontWeight: 950, color: '#1e293b' }}>#{availableTokens.online_next_token ?? '--'}</span>
+                                                                        </div>
+                                                                        <div style={{ textAlign: 'right' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#1e293b', fontWeight: 800, justifyContent: 'flex-end' }}>
+                                                                                <Clock size={16} color="#6366f1" />
+                                                                                <span>{availableTokens.start_time || '--:--'}</span>
+                                                                            </div>
+                                                                            <p style={{ fontSize: '10px', color: '#94a3b8', margin: 0, fontWeight: 600 }}>Estimated arrival time</p>
+                                                                        </div>
                                                                     </div>
-
                                                                     {availableTokens.online_tokens_remaining > 0 ? (
-                                                                        <div className="token-instruction-v4">
-                                                                            <CheckCircle className="text-success" size={20} />
-                                                                            <span>
-                                                                                Confirmed: Tokens available for today/selected date.
-                                                                                Your next token is {availableTokens.online_next_token ?? '--'} and the exact token will be assigned upon confirmation.
-                                                                            </span>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '10px 14px', borderRadius: '10px' }}>
+                                                                            <CheckCircle size={16} />
+                                                                            <span>Tokens are currently available for this selection.</span>
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="token-instruction-v4 error">
-                                                                            <AlertCircle className="text-danger" size={20} />
-                                                                            <span>Online tokens are not available for this date. Please <strong>try for another doctor</strong> or <strong>try for next days</strong>.</span>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#dc2626', fontWeight: 700, background: '#fef2f2', padding: '10px 14px', borderRadius: '10px' }}>
+                                                                            <AlertCircle size={16} />
+                                                                            <span>Online booking is full. Try another date or doctor.</span>
                                                                         </div>
                                                                     )}
-                                                                    <div className="token-info-mini-v4" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                                                        <Clock size={16} />
-                                                                        <span>Approx Appointment time: {availableTokens.start_time || '--:--'}</span>
-                                                                    </div>
                                                                 </div>
                                                             )
                                                         ) : (
-                                                            <div className="token-placeholder-v4">
-                                                                <Activity size={24} />
-                                                                <p>Checking live clinic availability...</p>
+                                                            <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '1rem' }}>
+                                                                <Activity size={24} style={{ opacity: 0.5, marginBottom: '8px', animation: 'pulse 2s infinite' }} />
+                                                                <p style={{ fontSize: '12px', fontWeight: 600, margin: 0 }}>Syncing availability...</p>
                                                             </div>
                                                         )}
+                                                    </div>
+                                                </div>
 
-                                                        <div className="emergency-alert-v4">
-                                                            <div className="alert-content">
-                                                                <strong>Emergency?</strong>
-                                                                <p>If this is an emergency, please get an urgent appointment immediately by calling:</p>
-                                                                <p style={{ marginTop: '0.4rem', fontWeight: 700 }}>
-                                                                    Main Line: 022-46057766<br />
-                                                                    Alternate: 022-46054411<br />
-                                                                    Mobile: 8779398681
-                                                                </p>
-                                                            </div>
+                                                <div className="reg-grid-2" style={{ marginTop: '1.5rem' }}>
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Visit Category</label>
+                                                        <div className="reg-select-wrap">
+                                                            <select className="reg-select" value={bookingForm.visit_category} onChange={e => setBookingForm({ ...bookingForm, visit_category: e.target.value })}>
+                                                                <option value="First visit">First visit</option>
+                                                                <option value="Follow-up">Follow-up</option>
+                                                                <option value="Vaccination">Vaccination</option>
+                                                                <option value="Other">Other</option>
+                                                            </select>
+                                                            <ChevronDown size={16} className="reg-select-icon" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="reg-field">
+                                                        <label className="reg-label">Service Type</label>
+                                                        <div className="reg-select-wrap">
+                                                            <select className="reg-select" value={bookingForm.appointment_mode} onChange={e => setBookingForm({ ...bookingForm, appointment_mode: e.target.value })}>
+                                                                <option value="OFFLINE">In-Clinic Visit</option>
+                                                                <option value="ONLINE">Video Consultation</option>
+                                                            </select>
+                                                            <ChevronDown size={16} className="reg-select-icon" />
                                                         </div>
                                                     </div>
                                                 </div>
-
-                                                <div className="f-group-v4 col-2">
-                                                    <label>Visit Category</label>
-                                                    <div className="sel-wrap-v4">
-                                                        <select value={bookingForm.visit_category} onChange={e => setBookingForm({ ...bookingForm, visit_category: e.target.value })}>
-                                                            <option value="First visit">First visit</option>
-                                                            <option value="Follow-up">Follow-up</option>
-                                                            <option value="Vaccination">Vaccination</option>
-                                                            <option value="Other">Other</option>
-                                                        </select>
-                                                        <ChevronDown size={18} className="arrow-v4" />
-                                                    </div>
-                                                </div>
-                                                <div className="f-group-v4 col-2">
-                                                    <label>Appointment Mode</label>
-                                                    <div className="sel-wrap-v4">
-                                                        <select value={bookingForm.appointment_mode} onChange={e => setBookingForm({ ...bookingForm, appointment_mode: e.target.value })}>
-                                                            <option value="OFFLINE">Clinic Visit (Offline)</option>
-                                                            <option value="ONLINE">Online Consultation</option>
-                                                        </select>
-                                                        <ChevronDown size={18} className="arrow-v4" />
-                                                    </div>
-                                                </div>
-                                                <div className="f-group-v4 col-full">
-                                                    <label>Reason (Optional)</label>
-                                                    <input placeholder="" value={bookingForm.reason} onChange={e => setBookingForm({ ...bookingForm, reason: e.target.value })} />
+                                                <div className="reg-field">
+                                                    <label className="reg-label">Primary Concern (Optional)</label>
+                                                    <input className="reg-input" placeholder="e.g. Regular vaccination, Fever, etc." value={bookingForm.reason} onChange={e => setBookingForm({ ...bookingForm, reason: e.target.value })} />
                                                 </div>
                                             </div>
 
-                                            <div className="form-footer-v4">
+                                            <div className="reg-submit-bar" style={{ background: '#fcfcfc', borderRadius: '0 0 24px 24px' }}>
                                                 <button
                                                     type="submit"
                                                     disabled={loading || (!bookingForm.reschedule_from && availableTokens && (availableTokens.is_offline || availableTokens.online_tokens_remaining <= 0))}
-                                                    className="btn-main-v4"
+                                                    className="reg-submit-btn"
                                                 >
-                                                    {loading ? <RefreshCw className="animate-spin" /> : (
+                                                    {loading ? <RefreshCw className="animate-spin" size={20} /> : (
                                                         availableTokens && availableTokens.is_offline ? (
-                                                            <><span>Doctor Offline</span> <XCircle size={20} /></>
+                                                            <><span>Clinician Offline</span> <XCircle size={20} /></>
                                                         ) : availableTokens && availableTokens.online_tokens_remaining <= 0 ? (
                                                             <><span>Fully Booked</span> <AlertCircle size={20} /></>
                                                         ) : (
-                                                            <><span>Complete Booking</span> <CheckCircle size={20} /></>
+                                                            <>
+                                                                <CheckCircle size={20} />
+                                                                <span>{bookingForm.reschedule_from ? 'Apply Reschedule' : 'Reserve My Token'}</span>
+                                                                <ArrowRight size={18} />
+                                                            </>
                                                         )
                                                     )}
                                                 </button>
@@ -1085,94 +1088,116 @@ const PublicRegister = () => {
                                     )}
 
                                     {step === 4 && (
-                                        <div className="reschedule-panel-v4">
-                                            <div className="reschedule-header-v4">
+                                        <div className="reg-form-clean">
+                                            <div className="reg-unified-header">
                                                 <button type="button" className="btn-back-v4" onClick={() => setStep(0)}>
                                                     <ArrowLeft size={20} />
                                                     <span>Home</span>
                                                 </button>
-                                                <div className="pan-header">
-                                                    <h2>Reschedule Appointment</h2>
-                                                    <p>Select an ongoing appointment to modify</p>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>My Appointments</h2>
+                                                    <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Sync or modify your visits</p>
                                                 </div>
                                             </div>
-                                            <div className="appt-list-v4">
-                                                {patientAppointments.length > 0 ? patientAppointments.map(appt => (
-                                                    <div key={appt._id} className="appt-card-v4">
-                                                        <div className="appt-info-v4">
-                                                            <div className="a-date-wrap">
-                                                                <Calendar size={18} className="a-icon" />
-                                                                <strong>{new Date(appt.appointment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+
+                                            <div className="reg-section">
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                    {patientAppointments.length > 0 ? patientAppointments.map(appt => (
+                                                        <div
+                                                            key={appt.appointment_id || appt._id}
+                                                            className="reg-doctor-card"
+                                                            style={{ 
+                                                                flexDirection: 'row', 
+                                                                textAlign: 'left', 
+                                                                padding: '1.25rem', 
+                                                                gap: '1.25rem',
+                                                                width: '100%',
+                                                                background: '#fff',
+                                                                border: '1.5px solid #f1f5f9',
+                                                                borderRadius: '20px',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                                                            }}
+                                                            onClick={() => {
+                                                                setBookingForm({
+                                                                    ...bookingForm,
+                                                                    wa_id: appt.wa_id,
+                                                                    doctor_name: appt.doctor_name || appt.assigned_doctor_name || '',
+                                                                    appointment_date: appt.appointment_date ? appt.appointment_date.split('T')[0] : todayStr,
+                                                                    visit_category: appt.visit_category || 'First visit',
+                                                                    appointment_mode: appt.appointment_mode || 'OFFLINE',
+                                                                    reschedule_from: appt.appointment_id || appt._id
+                                                                });
+                                                                setStep(2);
+                                                            }}
+                                                        >
+                                                            <div style={{ background: '#f0f4ff', color: '#4f46e5', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                <CalendarClock size={28} />
                                                             </div>
-                                                            <div className="a-meta-wrap">
-                                                                <span>{appt.doctor_name || appt.assigned_doctor_name || '-'}{appt.appointment_id ? ' [' + appt.appointment_id + ']' : ''}</span>
+                                                            <div style={{ flex: 1 }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#1e293b' }}>
+                                                                        {new Date(appt.appointment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                    </h4>
+                                                                    <div style={{ background: '#ecfdf5', color: '#059669', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '50px' }}>CONFIRMED</div>
+                                                                </div>
+                                                                <p style={{ margin: '4px 0', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+                                                                    with {appt.doctor_name || 'Clinic Clinician'}
+                                                                </p>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                                                                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                        <span>Tap to reschedule</span>
+                                                                        <ChevronRight size={14} />
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <button className="btn-reschedule-v4" onClick={() => {
-                                                            setBookingForm({
-                                                                ...bookingForm,
-                                                                wa_id: appt.wa_id || rescheduleWaId,
-                                                                doctor_name: appt.doctor_name || appt.assigned_doctor_name || '',
-                                                                appointment_date: appt.appointment_date ? appt.appointment_date.split('T')[0] : todayStr,
-                                                                visit_category: appt.visit_category || 'First visit',
-                                                                appointment_mode: appt.appointment_mode || 'OFFLINE',
-                                                                reschedule_from: appt.appointment_id || appt._id
-                                                            });
-                                                            setStep(2);
-                                                        }}>
-                                                            <RefreshCw size={18} />
-                                                            <span>Reschedule</span>
-                                                        </button>
-                                                    </div>
-                                                )) : (
-                                                    <div className="no-appts-v4">
-                                                        <AlertCircle size={40} />
-                                                        <p>No pending appointments found</p>
-                                                    </div>
-                                                )}
+                                                    )) : (
+                                                        <div style={{ textAlign: 'center', padding: '3.5rem 1rem', background: '#f8fafc', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
+                                                            <Activity size={44} style={{ color: '#cbd5e1', marginBottom: '1.25rem' }} />
+                                                            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>No Ongoing Visits</h3>
+                                                            <p style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, maxWidth: '240px', margin: '0.5rem auto 1.5rem' }}>We couldn't find any upcoming appointments linked to this primary mobile.</p>
+                                                            <button className="reg-submit-btn" style={{ maxWidth: '200px', fontSize: '14px', margin: '0 auto', padding: '10px' }} onClick={() => setStep(0)}>Return Home</button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
 
                                     {step === 3 && (
-                                        <div className="success-screen-v4">
-                                            <div className="success-blob">
-                                                <CheckCircle size={64} />
+                                        <div className="reg-form-clean">
+                                            <div style={{ textAlign: 'center', padding: '3.5rem 2rem', background: '#fff', borderRadius: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9' }}>
+                                                <div style={{ width: '84px', height: '84px', background: '#ecfdf5', color: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.75rem', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.12)' }}>
+                                                    <CheckCircle2 size={44} />
+                                                </div>
+                                                <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e293b', marginBottom: '0.5rem', letterSpacing: '-0.5px' }}>Reservation Success</h2>
+                                                <p style={{ fontSize: '14px', color: '#64748b', fontWeight: 600, lineHeight: 1.5, marginBottom: '2.5rem', maxWidth: '400px', margin: '0 auto 2.5rem' }}>
+                                                    {bookingForm.reschedule_from 
+                                                        ? "Your appointment has been successfully updated. We've synchronized the changes with our clinician's roster."
+                                                        : "Your profile is active and appointment is reserved. A confirmation summary telah sent to your registered mobile."
+                                                    }
+                                                </p>
+                                                
+                                                <div style={{ background: '#f8faff', borderRadius: '20px', padding: '1.5rem', textAlign: 'left', marginBottom: '2.5rem', border: '1.5px solid #eef2ff' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #eef2ff', paddingBottom: '14px' }}>
+                                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Patient</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>{removeSalutation(registeredPatient?.child_name || registeredPatient?.first_name || 'Patient')}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #eef2ff', paddingBottom: '14px' }}>
+                                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Token ID</span>
+                                                        <span style={{ fontSize: '15px', fontWeight: 950, color: '#6366f1' }}>{registeredPatient?.token_display || registeredPatient?.token_number || 'T-RESERVED'}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Patient ID</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b' }}>{registeredPatient?.patient_id || 'REGISTERED'}</span>
+                                                    </div>
+                                                </div>
+
+                                                <button className="reg-submit-btn" onClick={() => window.location.reload()}>
+                                                    <span>Back to Landing</span>
+                                                    <ArrowRight size={20} />
+                                                </button>
                                             </div>
-                                            {bookingForm.reschedule_from ? (
-                                                <>
-                                                    <h1>Appointment Rescheduled!</h1>
-                                                    <div className="patient-id-card-v4">
-                                                        <div className="id-row"><span>Patient ID</span> <strong>{registeredPatient?.patient_id}</strong></div>
-                                                        <div className="id-row"><span>Doctor Name</span> <strong>{registeredPatient?.doctor_name || 'N/A'}</strong></div>
-                                                        <div className="id-row"><span>New Date</span> <strong>{registeredPatient?.appointment_date ? new Date(registeredPatient.appointment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}</strong></div>
-                                                        <div className="id-row"><span>Token preserved</span> <strong>{registeredPatient?.token_display || registeredPatient?.token_number || 'T-XX'}</strong></div>
-                                                    </div>
-                                                    <p>Your appointment rescheduling has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
-                                                </>
-                                            ) : (patientForm.enrollment_option === 'just_enroll' && isNewPatient) ? (
-                                                <>
-                                                    <h1>Registration Complete!</h1>
-                                                    <div className="patient-id-card-v4">
-                                                        <span className="id-label">Patient ID</span>
-                                                        <span className="id-value">{registeredPatient?.patient_id}</span>
-                                                    </div>
-                                                    <p>Your registration has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <h1>Appointment Confirmed!</h1>
-                                                    <div className="patient-id-card-v4">
-                                                        <div className="id-row"><span>Patient ID</span> <strong>{registeredPatient?.patient_id}</strong></div>
-                                                        <div className="id-row"><span>Doctor Name</span> <strong>{registeredPatient?.doctor_name || 'N/A'}</strong></div>
-                                                        <div className="id-row"><span>Appointment Date</span> <strong>{registeredPatient?.appointment_date ? new Date(registeredPatient.appointment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}</strong></div>
-                                                        <div className="id-row"><span>Approx Appointment time</span> <strong>{registeredPatient?.appointment_time || '14:00'}</strong></div>
-                                                        <div className="id-row"><span>Token Number</span> <strong>{registeredPatient?.token_display || registeredPatient?.token_number || 'T-XX'}</strong></div>
-                                                    </div>
-                                                    <p>Your appointment booking has been done successfully. We have sent a confirmation message to your registered WhatsApp number.</p>
-                                                </>
-                                            )}
-                                            <button onClick={() => window.location.reload()} className="btn-main-v4">Go Back Home</button>
                                         </div>
                                     )}
                                 </div>

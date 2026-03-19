@@ -675,20 +675,26 @@ const Appointments = () => {
                         </div>
                     </>
                 ) : (
-                    <div className="authorizer-panel-premium">
-                        <div className="authorizer-header-v3" style={{ padding: '1.25rem 1.5rem 0.75rem' }}>
-                            <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div className="header-text">
-                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e293b', marginBottom: '2px' }}>{editMode ? 'Update Appointment' : 'Schedule New Visit'}</h2>
+                    <div className="reg-form-clean" style={{ maxWidth: '100%', background: '#fff', padding: '2rem', borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', height: 'fit-content' }}>
+                        <div className="reg-unified-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div className="modal-header-icon-container" style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '10px', borderRadius: '12px' }}>
+                                    <CalendarClock size={24} color="#fff" />
                                 </div>
-                                <button className="close-btn-v3" style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }} onClick={() => setActiveView('queue')}><XCircle size={20} /></button>
+                                <div>
+                                    <h2 className="reg-section-title" style={{ margin: 0, border: 'none', padding: 0 }}>{editMode ? 'Update Appointment' : 'Schedule New Visit'}</h2>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500, margin: 0 }}>Securely manage clinic bookings</p>
+                                </div>
                             </div>
+                            <button type="button" className="btn-back-v4" onClick={() => setActiveView('queue')} style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                <X size={20} />
+                                <span>Cancel</span>
+                            </button>
                         </div>
-
 
                         <div className="modal-body-v3">
                             {error && (
-                                <div className="alert-v3-premium error">
+                                <div className="alert-v3-premium error" style={{ marginBottom: '1.5rem', borderRadius: '12px' }}>
                                     <AlertTriangle size={20} />
                                     <span>{error}</span>
                                     <button onClick={() => setError(null)}>x</button>
@@ -696,47 +702,26 @@ const Appointments = () => {
                             )}
 
                             {activeTab === 'patient' ? (
-                                <div className="patient-selector-premium" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%' }}>
-                                    <div className="search-wrap-premium" style={{
-                                        position: 'relative',
-                                        backgroundColor: '#f8fafc',
-                                        borderRadius: '8px',
-                                        padding: '4px 12px',
-                                        border: '1.5px solid #e2e8f0',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        height: '40px',
-                                        flexShrink: 0
-                                    }}>
-                                        <Search size={16} color="#64748b" style={{ marginRight: '8px' }} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by name, ID or mobile..."
-                                            value={patientSearch}
-                                            onChange={(e) => setPatientSearch(e.target.value)}
-                                            style={{
-                                                border: 'none',
-                                                background: 'transparent',
-                                                outline: 'none',
-                                                fontSize: '13px',
-                                                fontWeight: 500,
-                                                color: '#1e293b',
-                                                width: '100%',
-                                                height: '100%'
-                                            }}
-                                        />
+                                <div className="reg-section">
+                                    <h2 className="reg-section-title">Patient Identification</h2>
+                                    <div className="reg-field">
+                                        <label className="reg-label">Search Registry</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                            <input
+                                                type="text"
+                                                className="reg-input"
+                                                style={{ paddingLeft: '44px' }}
+                                                placeholder="Search by name, ID or mobile..."
+                                                value={patientSearch}
+                                                onChange={(e) => setPatientSearch(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
 
-                                    {searching && <div className="scanner-line" style={{ fontSize: '11px', color: '#6366f1', fontWeight: 800, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '6px 0', flexShrink: 0 }}>Updating Registry View...</div>}
+                                    {searching && <div style={{ fontSize: '11px', color: '#6366f1', fontWeight: 800, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '12px 0' }}>Updating Registry View...</div>}
 
-                                    <div className="search-results-premium" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
-                                        {(!patientSearch || patientSearch.length < 2) && searchResults.length > 0 && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', padding: '0 4px' }}>
-                                                <span style={{ fontSize: '10px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recent Patient Profiles</span>
-                                                <Link to="/patients" style={{ fontSize: '10px', fontWeight: 800, color: '#6366f1', textDecoration: 'none' }}>View Full List</Link>
-                                            </div>
-                                        )}
+                                    <div className="search-results-premium" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem', maxHeight: '400px', overflowY: 'auto', padding: '4px' }}>
                                         {searchResults.map(p => {
                                             const name = removeSalutation(p.child_name) || 'Unnamed Patient';
                                             const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=EEF2FF&color=4F46E5&bold=true`;
@@ -749,215 +734,186 @@ const Appointments = () => {
                                                     style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        padding: '8px 12px',
+                                                        padding: '12px 16px',
                                                         backgroundColor: '#fff',
-                                                        border: '1px solid #e5e7eb',
-                                                        borderRadius: '8px',
+                                                        border: '1.5px solid #f1f5f9',
+                                                        borderRadius: '16px',
                                                         cursor: 'pointer',
                                                         transition: 'all 0.2s',
-                                                        gap: '8px'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.borderColor = '#6366f1';
-                                                        e.currentTarget.style.backgroundColor = '#f8fafc';
-                                                        e.currentTarget.style.transform = 'translateY(-1px)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                                        e.currentTarget.style.backgroundColor = '#fff';
-                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                        gap: '12px'
                                                     }}
                                                 >
-                                                    <img src={avatarUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                                                    <img src={avatarUrl} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
                                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b', marginBottom: '1px' }}>{name}</span>
-                                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
-                                                            {p.patient_id} <span style={{ color: '#cbd5e1', margin: '0 4px' }}>|</span> {p.parent_mobile || 'No Mobile'}
+                                                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>{name}</span>
+                                                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                                                            ID: {p.patient_id} <span style={{ color: '#cbd5e1', margin: '0 4px' }}>|</span> {p.parent_mobile || 'No Mobile'}
                                                         </span>
                                                     </div>
-                                                    <div style={{ color: '#94a3b8' }}>
-                                                        <ArrowRight size={14} />
+                                                    <div style={{ background: '#f8fafc', padding: '6px', borderRadius: '50%', color: '#6366f1' }}>
+                                                        <ArrowRight size={16} />
                                                     </div>
                                                 </div>
                                             );
                                         })}
 
                                         {!searching && patientSearch.length >= 2 && searchResults.length === 0 && (
-                                            <div className="no-identity-state" style={{ padding: '2.5rem 2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '50%', color: '#94a3b8', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}><User size={32} /></div>
+                                            <div style={{ padding: '3rem 2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '20px', border: '2px dashed #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                                                <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '50%', color: '#94a3b8', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}><User size={40} /></div>
                                                 <div>
-                                                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Patient not found</h3>
-                                                    <p style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, margin: 0 }}>The identity could not be located in our records.</p>
+                                                    <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Patient not found</h3>
+                                                    <p style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, margin: 0 }}>The identity could not be located in our records.</p>
                                                 </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '200px' }}>
-                                                    <Link
-                                                        to="/patients?add=true"
-                                                        className="btn-save"
-                                                        style={{
-                                                            backgroundColor: '#6366f1',
-                                                            color: '#fff',
-                                                            padding: '10px 16px',
-                                                            borderRadius: '8px',
-                                                            fontWeight: 800,
-                                                            textDecoration: 'none',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '8px',
-                                                            cursor: 'pointer',
-                                                            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-                                                            fontSize: '12px'
-                                                        }}
-                                                    >
-                                                        <Plus size={16} />
-                                                        <span>Create New Profile</span>
-                                                    </Link>
-                                                    <Link
-                                                        to="/patients"
-                                                        style={{
-                                                            color: '#6366f1',
-                                                            fontSize: '11px',
-                                                            fontWeight: 700,
-                                                            textDecoration: 'none',
-                                                            marginTop: '4px'
-                                                        }}
-                                                    >
-                                                        + View Whole Patient List
-                                                    </Link>
-                                                </div>
+                                                <Link
+                                                    to="/patients?add=true"
+                                                    className="reg-submit-btn"
+                                                    style={{ maxWidth: '240px', padding: '0.75rem 1.5rem', fontSize: '14px' }}
+                                                >
+                                                    <Plus size={18} />
+                                                    <span>Register New Profile</span>
+                                                </Link>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             ) : (
-                                <form onSubmit={handleFormSubmit} className="wizard-form-v3" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    <div className="selected-patient-v3" style={{ marginBottom: '1rem', border: '1.5px solid #f1f5f9', borderRadius: '14px', background: '#f8fafc', padding: '0.6rem 1rem' }}>
-                                        <div className="p-info-compact" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div className="p-avatar-circle" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', boxShadow: '0 2px 8px rgba(99, 102, 241, 0.1)' }}>
-                                                    <User size={16} />
+                                <form onSubmit={handleFormSubmit} className="reg-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <div style={{ border: '1.5px solid #eef2ff', borderRadius: '20px', background: '#f8faff', padding: '1rem 1.25rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.12)' }}>
+                                                    <Baby size={22} />
                                                 </div>
-                                                <div className="p-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span className="p-name-premium" style={{ fontSize: '13px', fontWeight: 850, color: '#1e293b' }}>{removeSalutation(selectedPatient?.child_name)}</span>
-                                                    <span className="p-id-premium" style={{ fontSize: '11px', color: '#6366f1', fontWeight: 700 }}>• Patient ID: {selectedPatient?.patient_id}</span>
+                                                <div>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selected Patient</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ fontSize: '15px', fontWeight: 800, color: '#1e293b' }}>{removeSalutation(selectedPatient?.child_name)}</span>
+                                                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>• ID: {selectedPatient?.patient_id}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             {!editMode && (
-                                                <Link to="/patients" style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#fff', border: '1px solid #E0E7FF', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, color: '#4F46E5', cursor: 'pointer', textDecoration: 'none' }}>
-                                                    <Edit2 size={10} />
+                                                <button type="button" onClick={() => setActiveTab('patient')} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fff', border: '1.5px solid #eef2ff', padding: '6px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 800, color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                    <Edit2 size={12} />
                                                     <span>Change</span>
-                                                </Link>
+                                                </button>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="form-grid-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
-                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Select Doctor</label>
-                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                                <Stethoscope size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
+                                    <div className="reg-grid-2">
+                                        <div className="reg-field">
+                                            <label className="reg-label">Select Clinician</label>
+                                            <div className="reg-select-wrap">
                                                 <select
+                                                    className="reg-select"
                                                     value={form.doctor_id}
                                                     onChange={e => {
                                                         const doc = doctors.find(d => d.doctor_id === e.target.value);
                                                         setForm({ ...form, doctor_id: e.target.value, doctor_name: getDoctorDisplayName(doc) });
                                                     }}
-                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
-                                                    <option value="" disabled>Select Doctor</option>
+                                                    <option value="" disabled>— Select Doctor —</option>
                                                     {doctors.map(doc => <option key={doc.doctor_id} value={doc.doctor_id}>{getDoctorDisplayName(doc)}</option>)}
                                                 </select>
-                                                <ChevronDown size={14} style={{ position: 'absolute', right: '16px', color: '#94a3b8', pointerEvents: 'none' }} />
+                                                <ChevronDown size={16} className="reg-select-icon" />
                                             </div>
                                         </div>
 
-                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Visit Date</label>
-                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                                <CalendarIcon size={16} style={{ position: 'absolute', left: '14px', color: '#94a3b8' }} />
-                                                <input
-                                                    type="date"
-                                                    min={todayStr}
-                                                    max={maxStr}
-                                                    value={form.appointment_date}
-                                                    onChange={e => setForm({ ...form, appointment_date: e.target.value })}
-                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
-                                                />
-                                            </div>
+                                        <div className="reg-field">
+                                            <label className="reg-label">Proposed Visit Date</label>
+                                            <input
+                                                type="date"
+                                                className="reg-input"
+                                                min={todayStr}
+                                                max={maxStr}
+                                                value={form.appointment_date}
+                                                onChange={e => setForm({ ...form, appointment_date: e.target.value })}
+                                            />
                                         </div>
+                                    </div>
 
-                                        <div className="f-group full-span" style={{ gridColumn: 'span 2' }}>
-                                            <div className="token-availability-v3 card-premium-v3" style={{ backgroundColor: '#fff', border: '1.5px solid #eef2ff', borderRadius: '14px', padding: '10px' }}>
-                                                <div className="token-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <h3 style={{ fontSize: '10px', fontWeight: 950, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token Status</h3>
-                                                    {tokensLoading && <RefreshCw size={12} style={{ color: '#6366f1' }} className="animate-spin" />}
+                                    <div className="reg-section">
+                                        <h2 className="reg-section-title">Token Reservation Status</h2>
+                                        <div style={{ backgroundColor: '#fff', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1rem', position: 'relative', minHeight: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {tokensLoading && (
+                                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>
+                                                    <RefreshCw size={24} className="animate-spin text-primary" />
                                                 </div>
-
-                                                {availableTokens ? (
-                                                    availableTokens.is_offline ? (
-                                                        <div className="alert-offline" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#fff1f2', borderRadius: '10px', border: '1px solid #fecaca' }}>
-                                                            <AlertTriangle size={16} color="#e11d48" />
-                                                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#e11d48' }}>Doctor is OFF on this day (Weekly Schedule)</span>
+                                            )}
+                                            
+                                            {availableTokens ? (
+                                                availableTokens.is_offline ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', background: '#fff1f2', borderRadius: '12px', border: '1.5px solid #fecaca' }}>
+                                                        <div style={{ background: '#fff', padding: '8px', borderRadius: '50%', color: '#e11d48' }}><AlertTriangle size={20} /></div>
+                                                        <div>
+                                                            <div style={{ fontSize: '14px', fontWeight: 800, color: '#e11d48' }}>Doctor Off Duty</div>
+                                                            <p style={{ fontSize: '12px', color: '#991b1b', margin: 0 }}>Clinician is not available via standard scheduling on this date.</p>
                                                         </div>
-                                                    ) : (
-                                                        <div className="token-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                            <div className="token-stat-pill" style={{ padding: '6px 12px', backgroundColor: '#eff6ff', border: '1.5px solid #6366f1', borderRadius: '10px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                                                <div style={{ fontSize: '10px', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>Walk-in</div>
-                                                                <div style={{ fontSize: '20px', fontWeight: 950, color: '#1e293b' }}>#{availableTokens.walkin_next_token || '--'}</div>
-                                                            </div>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8', fontWeight: 700 }}>
-                                                                <Clock size={10} />
-                                                                 <span>Approx Appointment time: {availableTokens.start_time || '--:--'}</span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                ) : (
-                                                    <div className="token-placeholder" style={{ textAlign: 'center', padding: '10px', color: '#94a3b8' }}>
-                                                        <p style={{ fontSize: '11px', fontWeight: 600 }}>Select clinician to view tokens</p>
                                                     </div>
-                                                )}
-                                            </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '1.5rem', justifyContent: 'space-between' }}>
+                                                        <div style={{ display: 'flex', background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '14px', padding: '8px 16px', alignItems: 'center', gap: '10px' }}>
+                                                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Next Walk-in</div>
+                                                            <div style={{ fontSize: '24px', fontWeight: 950, color: '#1e293b' }}>#{availableTokens.walkin_next_token || '--'}</div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'right' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', fontWeight: 700, justifyContent: 'flex-end' }}>
+                                                                <Clock size={16} color="#6366f1" />
+                                                                <span>Estimated Time: {availableTokens.start_time || '--:--'}</span>
+                                                            </div>
+                                                            <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, fontWeight: 500 }}>Subject to clinic flow on visit day</p>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            ) : (
+                                                <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                                                    <p style={{ fontSize: '13px', fontWeight: 600, margin: 0 }}>Select clinician &amp; date to reserve token</p>
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        <div className="f-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Visit Category</label>
-                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                                <Activity size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
+                                    <div className="reg-grid-2">
+                                        <div className="reg-field">
+                                            <label className="reg-label">Visit Category</label>
+                                            <div className="reg-select-wrap">
                                                 <select
+                                                    className="reg-select"
                                                     value={form.visit_category}
                                                     onChange={e => setForm({ ...form, visit_category: e.target.value })}
-                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none', appearance: 'none' }}
                                                 >
                                                     <option value="First visit">First visit</option>
                                                     <option value="Follow-up">Follow-up</option>
                                                     <option value="Vaccination">Vaccination</option>
                                                     <option value="Other">Other</option>
                                                 </select>
-                                                <ChevronDown size={14} style={{ position: 'absolute', right: '16px', color: '#94a3b8', pointerEvents: 'none' }} />
+                                                <ChevronDown size={16} className="reg-select-icon" />
                                             </div>
                                         </div>
 
-                                        <div className="f-group">
-                                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Clinical Reason</label>
-                                            <div className="input-with-icon" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                                <Clipboard size={18} style={{ position: 'absolute', left: '16px', color: '#94a3b8' }} />
-                                                <input
-                                                    placeholder="Reason for visit"
-                                                    value={form.reason}
-                                                    onChange={e => setForm({ ...form, reason: e.target.value })}
-                                                    style={{ width: '100%', height: '38px', paddingLeft: '40px', paddingRight: '12px', borderRadius: '10px', border: '1.5px solid #f1f5f9', backgroundColor: '#f8fafc', fontSize: '12px', fontWeight: 700, color: '#1e293b', outline: 'none' }}
-                                                />
-                                            </div>
+                                        <div className="reg-field">
+                                            <label className="reg-label">Clinical Reason</label>
+                                            <input
+                                                className="reg-input"
+                                                placeholder="e.g. Fever, Checkup, etc."
+                                                value={form.reason}
+                                                onChange={e => setForm({ ...form, reason: e.target.value })}
+                                            />
                                         </div>
                                     </div>
 
-                                    <div className="wizard-footer-large" style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                                        <button type="button" onClick={() => setActiveView('queue')} style={{ flex: 1, height: '42px', borderRadius: '10px', border: '1.5px solid #e2e8f0', backgroundColor: '#fff', fontSize: '13px', fontWeight: 800, color: '#64748b', cursor: 'pointer' }}>
-                                            Discard Changes
-                                        </button>
-                                        <button type="submit" disabled={submitting || (availableTokens && availableTokens.is_offline)} style={{ flex: 2, height: '42px', borderRadius: '10px', border: 'none', backgroundColor: (availableTokens && availableTokens.is_offline) ? '#cbd5e1' : '#6366f1', fontSize: '13px', fontWeight: 900, color: '#fff', cursor: (availableTokens && availableTokens.is_offline) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: (availableTokens && availableTokens.is_offline) ? 'none' : '0 4px 12px rgba(99, 102, 241, 0.2)' }}>
-                                            {submitting ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                                            <span>{editMode ? 'Update Record' : 'Confirm Appointment'}</span>
+                                    <div className="reg-submit-bar" style={{ borderRadius: '0 0 24px 24px', margin: '0 -2rem -2rem -2rem', padding: '1.5rem 2rem' }}>
+                                        <button type="submit" className="reg-submit-btn" disabled={submitting || (availableTokens && availableTokens.is_offline)}>
+                                            {submitting ? (
+                                                <RefreshCw size={20} className="animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <CheckCircle2 size={20} />
+                                                    <span>{editMode ? 'Synch Changes' : 'Confirm & Reserve Token'}</span>
+                                                    <ArrowRight size={18} />
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </form>
