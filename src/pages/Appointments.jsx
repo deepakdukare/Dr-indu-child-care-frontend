@@ -14,6 +14,7 @@ import {
     Activity,
     User,
     ArrowRight,
+    Baby,
     Clipboard,
     Clock,
     Edit2,
@@ -22,7 +23,8 @@ import {
     Trash2,
     Info,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    CalendarClock
 } from 'lucide-react';
 import AppointmentRow from '../components/AppointmentRow';
 import {
