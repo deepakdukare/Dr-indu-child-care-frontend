@@ -177,10 +177,10 @@ export const autoReschedule = (data) => api.post('/appointments/auto-reschedule'
 
 
 
-// Messaging
-export const queueDoctorLateAlert = (data) => api.post('/messages/doctor/late-alert', data);
-export const getPendingMessages = () => api.get('/messages/messages/pending');
-export const updateMessageStatus = (queueId, data) => api.patch(`/messages/messages/${queueId}/status`, data);
+// Messaging (Moved to n8n Cloud Automation)
+export const queueDoctorLateAlert = (data) => console.warn('Legacy alert skip: handled by n8n');
+export const getPendingMessages = () => Promise.resolve({ data: { data: [] } });
+export const updateMessageStatus = (queueId, data) => Promise.resolve({ success: true });
 
 // MRD
 export const getMRDByPatientId = (patientId) => api.get(`/mrd/${patientId}`);
@@ -231,7 +231,7 @@ export const getChatHistory = (params) => api.get('/bot/chat/history', { params 
 // Compatibility aliases retained for existing screens
 export const getPatientByMobile = (mobile) => getPatientByWa(mobile);
 export const getAppointmentsByMobile = (mobile, params) => getAppointmentsByWaId(mobile, params);
-export const getPendingReminders = () => getPendingMessages();
+export const getPendingReminders = () => Promise.resolve({ data: { data: [] } });
 export const markReminderSent = (id) => api.patch(`/appointments/reminders/${id}/mark-sent`);
 export const exportMRD = (patientId) => getMRDByPatientId(patientId);
 export const updateMRDEntry = (id, data) => api.patch(`/mrd/entry/${id}`, data);

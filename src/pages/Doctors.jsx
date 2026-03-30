@@ -40,7 +40,9 @@ import {
     getTokenConfig,
     updateTokenConfig,
     addDateOverride,
-    getDoctorHistory
+    getDoctorHistory,
+    setTodayStartTime,
+    notifyPatientsOfTime
 } from '../api/index';
 import StatCard from '../components/StatCard';
 import { getUser } from '../utils/auth';
@@ -589,28 +591,41 @@ const Doctors = () => {
 
                             <div className="d-delay-panel">
                                 <div className="d-delay-box border-right">
-                                    <label>Delay Management</label>
+                                    <label>Broadcast Dynamic Delay</label>
                                     <div className="d-delay-row">
-                                        <input type="number" placeholder="Minutes (e.g. 15)" value={etaForm.eta_minutes} onChange={e => setEtaForm({ ...etaForm, eta_minutes: e.target.value })} />
+                                        <input type="number" placeholder="Min" value={etaForm.eta_minutes} onChange={e => setEtaForm({ ...etaForm, eta_minutes: e.target.value })} style={{ width: '80px' }} />
                                         <button className="d-btn d-btn-primary" onClick={() => {
                                             if (editingId) {
                                                 runAvailabilityAction(() => patchDoctorAvailabilityEta(editingId, { eta_minutes: Number(etaForm.eta_minutes) }), 'Delay broadcasted').then(() => showToast(`Waiting patients notified of ${etaForm.eta_minutes} min delay`));
                                             }
-                                        }}>Broadcast Delay</button>
+                                        }}>Notify Delay</button>
                                     </div>
                                 </div>
                                 <div className="d-delay-box">
-                                    <label>Date-Specific Limit Override</label>
+                                    <label>Today's Start Time Override</label>
                                     <div className="d-delay-row">
-                                        <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-                                        <input type="number" placeholder="Limit" value={dailyLimit} onChange={e => setDailyLimit(e.target.value)} style={{ width: '100px' }} />
+                                        <input type="time" value={etaForm.eta_time} onChange={e => setEtaForm({ ...etaForm, eta_time: e.target.value })} />
                                         <button className="d-btn d-btn-primary" onClick={() => {
-                                            if (editingId) {
-                                                showToast(`Limit updated for ${selectedDate}`);
+                                            if (editingId && etaForm.eta_time) {
+                                                runAvailabilityAction(() => setTodayStartTime({ doctor_id: editingId, start_time: etaForm.eta_time, notify_patients: true }), 'Start time updated and patients notified').then(() => showToast(`Today's start time set to ${etaForm.eta_time}`));
                                             }
-                                        }}>Save</button>
+                                        }}>Set & Notify</button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div style={{ padding: '1.25rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'center' }}>
+                                <button 
+                                    className="d-btn d-btn-outline" 
+                                    style={{ width: '100%', borderColor: '#6366f1', color: '#6366f1' }}
+                                    onClick={() => {
+                                        if (editingId) {
+                                            runAvailabilityAction(() => notifyPatientsOfTime({ doctor_id: editingId }), 'Patient notifications triggered').then(() => showToast('All waiting patients have been notified of their current slots'));
+                                        }
+                                    }}
+                                >
+                                    <Bell size={16} /> Force Sync All Patient Notifications
+                                </button>
                             </div>
                         </div>
 

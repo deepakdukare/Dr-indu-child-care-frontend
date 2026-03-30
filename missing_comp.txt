@@ -1,0 +1,8 @@
+App.jsx: ['LinkIcon', 'Router']
+AdminProfile.jsx: ['UserIcon']
+PatientExpansion.jsx: ['FileText']
+StatCard.jsx: ['Icon']
+Appointments.jsx: ['CalendarClock', 'CalendarIcon', 'Icon']
+Dashboard.jsx: ['Icon']
+Doctors.jsx: ['CalendarIcon']
+Reports.jsx: ['Icon']

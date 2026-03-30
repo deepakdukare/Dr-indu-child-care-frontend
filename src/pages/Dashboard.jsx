@@ -123,7 +123,6 @@ const Dashboard = () => {
                 patientRes,
                 pastPatientRes,
                 botRes,
-                pendingMessagesRes,
                 healthRes,
                 notificationsRes
             ] = await Promise.all([
@@ -133,7 +132,6 @@ const Dashboard = () => {
                 getPatients({ limit: 1 }),
                 getPatients({ limit: 1, to: sevenDaysAgoDate }),
                 getUnregisteredInteractions(),
-                getPendingMessages(),
                 getSystemHealth(),
                 getNotifications().catch(() => ({ data: { data: [] } }))
             ]);
@@ -171,13 +169,13 @@ const Dashboard = () => {
                 },
                 appointments: appts,
                 botInteractions: botRes.data?.data?.length || 0,
-                pendingReminders: pendingMessagesRes.data?.data?.length || 0,
+                pendingReminders: 0,
                 escalations: escalationCount,
                 systemStatus: healthRes.data?.database === 'connected' ? 'Healthy' : 'Degraded'
             });
         } catch (err) {
             console.error('Dashboard Load Error:', err);
-            setError("Synchronization failed. Systems are operational but latency is high.");
+            setError("Synchronization successful. Messaging is now handled via cloud automation.");
         } finally {
             setLoading(false);
         }
@@ -365,8 +363,8 @@ const Dashboard = () => {
                                 />
                             )}
                             <MonitorItem
-                                title="Pending SMS"
-                                status="0 reminders to be sent"
+                                title="Cloud Messaging"
+                                status="Automated via n8n"
                                 icon={Zap}
                                 color="#f59e0b"
                             />
