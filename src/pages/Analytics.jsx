@@ -50,7 +50,15 @@ const Analytics = () => {
         
         // Fetch Demographics once
         axios.get(`${API_BASE_URL}/analytics/demographics`)
-            .then(res => setDemographics(res.data.data))
+            .then(res => {
+                const d = res.data?.data;
+                if (d && typeof d === 'object') {
+                    setDemographics({
+                        regions: Array.isArray(d.regions) ? d.regions : [],
+                        age_distribution: Array.isArray(d.age_distribution) ? d.age_distribution : []
+                    });
+                }
+            })
             .catch(err => console.error('Demographics error:', err));
     }, []);
 
@@ -112,7 +120,9 @@ const Analytics = () => {
                     ...summary
                 }
             });
-            setAppointments(appointmentsRes.data?.data || []);
+            // Handle both /reports/appointments shape and /appointments fallback shape
+            const rawAppts = appointmentsRes.data?.data;
+            setAppointments(Array.isArray(rawAppts) ? rawAppts : []);
         } catch (err) {
             console.error('Error fetching analytics:', err);
             setError('Failed to load practice data. Please check your connection.');
@@ -280,7 +290,7 @@ const Analytics = () => {
                         </div>
                         <div className="stat-info-v4">
                             <span className="stat-label-v4">{stat.label}</span>
-                            <div className="stat-value-v4">{loading ? '...' : stat.value.toLocaleString()}</div>
+                            <div className="stat-value-v4">{loading ? '...' : (typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value)}</div>
                         </div>
                     </div>
                 ))}
@@ -423,7 +433,7 @@ const Analytics = () => {
                                         style={{ 
                                             height: '100%', 
                                             background: 'linear-gradient(90deg, #6366f1, #a855f7)', 
-                                            width: `${(region.count / (insightData?.metrics?.total_patients || 100)) * 100}%` 
+                                            width: `${Math.min(100, (region.count / Math.max(insightData?.metrics?.total_patients || 1, demographics.regions.reduce((s, r) => s + (r.count || 0), 0) || 1)) * 100)}%`
                                         }} 
                                     />
                                 </div>
@@ -450,7 +460,7 @@ const Analytics = () => {
                         <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
                             <p style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.5', margin: 0 }}>
                                 <TrendingUp size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                                Most patients fall into the <strong>{demographics.age_distribution.sort((a,b) => b.count - a.count)[0]?.group || 'Infants'}</strong> category, ideal for targeted pediatric immunization campaigns.
+                                Most patients fall into the <strong>{[...demographics.age_distribution].sort((a,b) => (b.count||0) - (a.count||0))[0]?.group || 'Infants'}</strong> category, ideal for targeted pediatric immunization campaigns.
                             </p>
                         </div>
                     </div>
