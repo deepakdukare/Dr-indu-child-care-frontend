@@ -47,7 +47,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const ImmunizationDashboard = lazy(() => import('./pages/ImmunizationDashboard'));
 const ReferringDoctors = lazy(() => import('./pages/ReferringDoctors'));
 const ScheduleCamp = lazy(() => import('./pages/ScheduleCamp'));
-import clinicLogo from './assets/logo.jpg';
+
 import { hasPermission, getUser, getToken } from './utils/auth';
 import { removeSalutation } from './utils/formatters';
 import NotificationDropdown from './components/NotificationDropdown';
@@ -123,10 +123,9 @@ const Sidebar = ({ onLogout, isCollapsed, isMobileMenuOpen, onMobileClose }) => 
             <div className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
             <div className="sidebar-header-premium">
                 <Link to="/" className="brand-link-modern">
-                    <img src={clinicLogo} alt="Logo" className="brand-logo-sidebar" />
                     <div className="brand-info-modern">
-                        <span className="brand-name-mini">Dr. Indu's</span>
-                        <span className="brand-desc-mini">New Born & Childcare Center</span>
+                        <span className="brand-name-mini">Hello Doctor</span>
+                        <span className="brand-desc-mini">Pediatric Care Portal</span>
                     </div>
                 </Link>
             </div>

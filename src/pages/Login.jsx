@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, Loader2, CheckCircle2, Zap, ShieldCheck, Activity } from 'lucide-react';
 import api from '../api';
+import { Stethoscope } from 'lucide-react';
 
 const Login = ({ onLogin }) => {
     const [email, setEmail] = useState('');
@@ -51,8 +52,8 @@ const Login = ({ onLogin }) => {
                     <div className="branding-content">
                         <div className="clinic-portal-label">Clinic Portal</div>
                         <div className="login-logo">
-                            <img src="/logo.jpg" alt="Dr. Indu Child Care Logo" className="logo-image" />
-                            <h1>Dr. Indu Child Care</h1>
+                            <Stethoscope size={48} className="highlight-icon" style={{ marginBottom: '0.5rem' }} />
+                            <h1>Hello Doctor</h1>
                         </div>
                         <div className="branding-highlights">
                             <div className="highlight-item">
@@ -70,7 +71,7 @@ const Login = ({ onLogin }) => {
                         </div>
                     </div>
                     <div className="dev-credit">
-                        <p>Designed and developed by <span>Brahmaastra.ai</span></p>
+                        <p>Designed and developed by <a href="https://deepakdukare.vercel.app/" target="_blank" rel="noopener noreferrer"><span>YashoDeep Technology</span></a></p>
                     </div>
                 </div>
 
