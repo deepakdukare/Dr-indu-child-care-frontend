@@ -1299,7 +1299,7 @@ const ClinicalMasterManagement = () => {
         while ((m = mdRe.exec(str)) !== null) urls.push(m[2]);
         if (urls.length) return [...new Set(urls)];
         // Plain URLs separated by pipe/comma/space
-        const plain = str.match(/https?:\/\/[^\s"'<>|,\])+/g);
+        const plain = str.match(/https?:\/\/[^\s\"'<>|,\]]+/g);
         if (plain) return [...new Set(plain)];
         return [];
     };
@@ -2347,43 +2347,96 @@ const ClinicalMasterManagement = () => {
                             </p>
                         </div>
 
-                        {parsedRows.length > 0 && (
-                            <div style={{ marginTop: '20px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontWeight: 700, fontSize: '14px', marginBottom: '10px' }}>
-                                    <CheckCircle2 size={18} />
-                                    <span>Successfully read {parsedRows.length} medicine records!</span>
+                        {/* Smart Parse Preview */}
+                        {parsedRows.length > 0 && importParseInfo && (
+                            <div style={{ marginTop: '18px' }}>
+                                {/* Success Banner */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '12px 16px', marginBottom: '14px' }}>
+                                    <CheckCircle2 size={20} color="#16a34a" />
+                                    <div>
+                                        <div style={{ fontWeight: 800, color: '#14532d', fontSize: '14px' }}>
+                                            ✅ Smart parsing complete — {importParseInfo.stats.total} medicine record{importParseInfo.stats.total !== 1 ? 's' : ''} ready
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
+                                            Sample: <strong>{importParseInfo.sample?.name}</strong>{importParseInfo.sample?.composition ? ` (${importParseInfo.sample.composition.substring(0, 40)})` : ''}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                    Sample: <strong>{parsedRows[0]['Product Name'] || parsedRows[0].name}</strong> ({parsedRows[0].Composition || parsedRows[0].composition || 'N/A'})
+
+                                {/* Column Detection */}
+                                <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>🔍 Auto-Detected Columns</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {Object.entries(importParseInfo.colMap).map(([col, detected]) => (
+                                            <span key={col} style={{
+                                                fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+                                                background: detected ? '#f0fdf4' : '#f8fafc',
+                                                color: detected ? '#15803d' : '#94a3b8',
+                                                border: `1px solid ${detected ? '#86efac' : '#e2e8f0'}`
+                                            }}>
+                                                {detected ? '✓' : '○'} {col}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Data Quality Stats Grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '14px' }}>
+                                    {[
+                                        { label: 'Product IDs', val: importParseInfo.stats.withProductId, icon: '🏷️' },
+                                        { label: 'Images', val: importParseInfo.stats.withImages, icon: '🖼️' },
+                                        { label: 'Q&A', val: importParseInfo.stats.withQA, icon: '❓' },
+                                        { label: 'How it Works', val: importParseInfo.stats.withHowItWorks, icon: '⚙️' },
+                                        { label: 'Drug Interactions', val: importParseInfo.stats.withDrugInteractions, icon: '⚠️' },
+                                        { label: 'Marketer Details', val: importParseInfo.stats.withMarketerDetails, icon: '🏢' },
+                                        { label: 'Safety Info', val: importParseInfo.stats.withSafety, icon: '🛡️' },
+                                        { label: 'Total Records', val: importParseInfo.stats.total, icon: '📋', highlight: true },
+                                    ].map(({ label, val, icon, highlight }) => (
+                                        <div key={label} style={{
+                                            background: highlight ? '#6366f1' : '#f8fafc',
+                                            border: `1px solid ${highlight ? '#6366f1' : '#e2e8f0'}`,
+                                            borderRadius: '10px', padding: '10px', textAlign: 'center'
+                                        }}>
+                                            <div style={{ fontSize: '16px', marginBottom: '2px' }}>{icon}</div>
+                                            <div style={{ fontWeight: 800, fontSize: '18px', color: highlight ? '#fff' : '#0f172a' }}>{val}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 600, color: highlight ? '#c7d2fe' : '#64748b', marginTop: '1px' }}>{label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Warnings */}
+                                {importParseInfo.warnings.length > 0 && (
+                                    <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '10px', padding: '10px 14px', marginBottom: '10px' }}>
+                                        <div style={{ fontWeight: 700, color: '#92400e', fontSize: '12px', marginBottom: '4px' }}>⚠️ Warnings</div>
+                                        {importParseInfo.warnings.map((w, i) => (
+                                            <div key={i} style={{ fontSize: '12px', color: '#78350f' }}>• {w}</div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div style={{ fontSize: '12px', color: '#64748b', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    💡 <strong>Smart import</strong> will automatically <strong>update</strong> existing medicines (by Product ID) or <strong>create</strong> new ones. No duplicates.
                                 </div>
                             </div>
                         )}
 
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                             <button
                                 onClick={handleConfirmImport}
                                 disabled={parsedRows.length === 0 || importLoading}
                                 style={{
-                                    flex: 2,
-                                    padding: '12px',
-                                    borderRadius: '10px',
+                                    flex: 2, padding: '12px', borderRadius: '10px',
                                     background: parsedRows.length > 0 ? '#6366f1' : '#cbd5e1',
-                                    color: '#fff',
-                                    border: 'none',
-                                    fontWeight: 700,
+                                    color: '#fff', border: 'none', fontWeight: 700,
                                     cursor: parsedRows.length > 0 ? 'pointer' : 'not-allowed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px'
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                                 }}
                             >
                                 {importLoading ? <Loader2 size={18} className="spinning" /> : <Save size={18} />}
-                                <span>{importLoading ? 'Importing to Postgres...' : `Upload & Save ${parsedRows.length || ''} Medicines`}</span>
+                                <span>{importLoading ? 'Importing to Postgres...' : `Smart Import ${parsedRows.length || ''} Medicines`}</span>
                             </button>
                             <button
                                 type="button"
-                                onClick={() => { setIsImporting(false); setParsedRows([]); setImportingFile(null); }}
+                                onClick={() => { setIsImporting(false); setParsedRows([]); setImportingFile(null); setImportParseInfo(null); }}
                                 style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 700, cursor: 'pointer' }}
                             >
                                 Cancel
