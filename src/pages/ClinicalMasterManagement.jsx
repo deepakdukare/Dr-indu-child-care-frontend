@@ -19,7 +19,8 @@ import {
     Info,
     Eye,
     Pill,
-    CheckCircle2
+    CheckCircle2,
+    Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getMasterData, upsertMasterData, bulkUpsertMasterData, deleteMasterData } from '../api';
@@ -33,6 +34,29 @@ const CATEGORIES = [
     { id: 'allergy', name: 'Allergies', icon: AlertCircle, color: '#ec4899' }
 ];
 
+// The exact 19 columns requested
+const MEDICINE_COLUMNS = [
+    { key: 'Product ID', label: 'Product ID', width: '130px', render: (i) => i.product_id || i.code || '-' },
+    { key: 'name', label: 'name', width: '200px', render: (i) => i.name || '-' },
+    { key: 'Category', label: 'Category', width: '120px', render: (i) => i.category || 'medicine' },
+    { key: 'Marketing Company', label: 'Marketing Company', width: '190px', render: (i) => i.marketing_company || i.marketer || '-' },
+    { key: 'type', label: 'type', width: '100px', render: (i) => i.type || i.medicine_type || '-' },
+    { key: 'Packaging', label: 'Packaging', width: '160px', render: (i) => i.packaging || i.packaging_detail || '-' },
+    { key: 'Package', label: 'Package', width: '120px', render: (i) => i.package || i.package_type || '-' },
+    { key: 'Qty', label: 'Qty', width: '90px', render: (i) => i.qty != null ? String(i.qty) : '-' },
+    { key: 'Product Form', label: 'Product Form', width: '130px', render: (i) => i.product_form || '-' },
+    { key: 'MRP', label: 'MRP', width: '110px', render: (i) => i.mrp != null ? `₹${i.mrp}` : '-' },
+    { key: 'product_highlights', label: 'product_highlights', width: '220px', render: (i) => i.product_highlights || '-' },
+    { key: 'Information', label: 'Information', width: '240px', render: (i) => i.information || i.introduction || '-' },
+    { key: 'Key Ingredients', label: 'Key Ingredients', width: '220px', render: (i) => i.key_ingredients || i.composition || '-' },
+    { key: 'Key Benefits', label: 'Key Benefits', width: '240px', render: (i) => i.key_benefits || i.benefits || '-' },
+    { key: 'Directions for Use', label: 'Directions for Use', width: '220px', render: (i) => i.directions_for_use || i.how_to_use || '-' },
+    { key: 'Safety Information', label: 'Safety Information', width: '240px', render: (i) => i.safety_information || i.safety_advise || '-' },
+    { key: 'country_of_origin', label: 'country_of_origin', width: '140px', render: (i) => i.country_of_origin || '-' },
+    { key: 'Marketer details', label: 'Marketer details', width: '220px', render: (i) => i.marketer_details || '-' },
+    { key: 'Image_Urls', label: 'Image_Urls', width: '200px', render: (i) => Array.isArray(i.image_urls) && i.image_urls.length ? i.image_urls.join(', ') : (i.image_urls || '-') }
+];
+
 const ClinicalMasterManagement = () => {
     const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].id);
     const [data, setData] = useState([]);
@@ -43,13 +67,24 @@ const ClinicalMasterManagement = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [newItem, setNewItem] = useState({
         name: '',
-        code: '',
-        composition: '',
-        marketer: '',
+        product_id: '',
+        category: 'medicine',
+        marketing_company: '',
+        type: 'drugs',
+        packaging: '',
+        package: 'Strip',
+        qty: '',
         product_form: 'Tablet',
         mrp: '',
-        packaging_detail: '',
-        notes: ''
+        product_highlights: '',
+        information: '',
+        key_ingredients: '',
+        key_benefits: '',
+        directions_for_use: '',
+        safety_information: '',
+        country_of_origin: 'India',
+        marketer_details: '',
+        image_urls: ''
     });
     const [saving, setSaving] = useState(false);
     
@@ -68,7 +103,7 @@ const ClinicalMasterManagement = () => {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await getMasterData({ category: selectedCategory, limit: 300 });
+            const res = await getMasterData({ category: selectedCategory, limit: 500 });
             setData(res.data?.data || []);
         } catch (err) {
             console.error('Failed to load master data', err);
@@ -89,19 +124,35 @@ const ClinicalMasterManagement = () => {
             const payload = {
                 category: selectedCategory,
                 name: newItem.name.trim(),
-                code: newItem.code || undefined,
-                composition: newItem.composition || undefined,
-                marketer: newItem.marketer || undefined,
+                product_id: newItem.product_id || undefined,
+                code: newItem.product_id || undefined,
+                marketing_company: newItem.marketing_company || undefined,
+                type: newItem.type || undefined,
+                packaging: newItem.packaging || undefined,
+                package: newItem.package || undefined,
+                qty: newItem.qty || undefined,
                 product_form: newItem.product_form || undefined,
                 mrp: newItem.mrp ? parseFloat(newItem.mrp) : undefined,
-                packaging_detail: newItem.packaging_detail || undefined,
-                introduction: newItem.notes || undefined,
-                metadata: { notes: newItem.notes }
+                product_highlights: newItem.product_highlights || undefined,
+                information: newItem.information || undefined,
+                key_ingredients: newItem.key_ingredients || undefined,
+                key_benefits: newItem.key_benefits || undefined,
+                directions_for_use: newItem.directions_for_use || undefined,
+                safety_information: newItem.safety_information || undefined,
+                country_of_origin: newItem.country_of_origin || undefined,
+                marketer_details: newItem.marketer_details || undefined,
+                image_urls: newItem.image_urls ? newItem.image_urls.split(',').map(s => s.trim()).filter(Boolean) : []
             };
 
             await upsertMasterData(payload);
             setStatus({ type: 'success', message: 'Item saved successfully' });
-            setNewItem({ name: '', code: '', composition: '', marketer: '', product_form: 'Tablet', mrp: '', packaging_detail: '', notes: '' });
+            setNewItem({
+                name: '', product_id: '', category: 'medicine', marketing_company: '', type: 'drugs',
+                packaging: '', package: 'Strip', qty: '', product_form: 'Tablet', mrp: '',
+                product_highlights: '', information: '', key_ingredients: '', key_benefits: '',
+                directions_for_use: '', safety_information: '', country_of_origin: 'India',
+                marketer_details: '', image_urls: ''
+            });
             setIsAdding(false);
             loadData();
         } catch (err) {
@@ -123,6 +174,66 @@ const ClinicalMasterManagement = () => {
         } finally {
             setTimeout(() => setStatus({ type: '', message: '' }), 2000);
         }
+    };
+
+    // Export all records with the exact 19 column names
+    const handleExportExcel = () => {
+        if (!data.length) return;
+        const exportRows = data.map(item => ({
+            'Product ID': item.product_id || item.code || '',
+            'name': item.name || '',
+            'Category': item.category || 'medicine',
+            'Marketing Company': item.marketing_company || item.marketer || '',
+            'type': item.type || item.medicine_type || '',
+            'Packaging': item.packaging || item.packaging_detail || '',
+            'Package': item.package || item.package_type || '',
+            'Qty': item.qty != null ? item.qty : '',
+            'Product Form': item.product_form || '',
+            'MRP': item.mrp != null ? item.mrp : '',
+            'product_highlights': item.product_highlights || '',
+            'Information': item.information || item.introduction || '',
+            'Key Ingredients': item.key_ingredients || item.composition || '',
+            'Key Benefits': item.key_benefits || item.benefits || '',
+            'Directions for Use': item.directions_for_use || item.how_to_use || '',
+            'Safety Information': item.safety_information || item.safety_advise || '',
+            'country_of_origin': item.country_of_origin || '',
+            'Marketer details': item.marketer_details || '',
+            'Image_Urls': Array.isArray(item.image_urls) ? item.image_urls.join('|') : (item.image_urls || '')
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Medicines');
+        XLSX.writeFile(wb, `Clinical_Master_19_Columns_${new Date().toISOString().slice(0,10)}.xlsx`);
+    };
+
+    // Download template with exact 19 column headers
+    const handleDownloadTemplate = () => {
+        const templateRows = [{
+            'Product ID': 'DRS003256',
+            'name': 'Acenac Tablet',
+            'Category': 'medicine',
+            'Marketing Company': 'Medley Pharmaceuticals',
+            'type': 'drugs',
+            'Packaging': '10 tablets in 1 strip',
+            'Package': 'Strip',
+            'Qty': '10',
+            'Product Form': 'Tablet',
+            'MRP': 55.00,
+            'product_highlights': 'Pain-relieving medicine for arthritis and fever',
+            'Information': 'Acenac Tablet is a pain-relieving medicine. It alleviates pain and inflammation...',
+            'Key Ingredients': 'Aceclofenac (100mg)',
+            'Key Benefits': 'Alleviates pain and inflammation in conditions such as rheumatoid arthritis...',
+            'Directions for Use': 'Should be taken at the dose and duration advised by your doctor with food.',
+            'Safety Information': 'Common side effects include nausea and dizziness. Avoid alcohol.',
+            'country_of_origin': 'India',
+            'Marketer details': 'Medley Pharmaceuticals Ltd, Andheri East, Mumbai',
+            'Image_Urls': 'https://example.com/med.jpg'
+        }];
+        const ws = XLSX.utils.json_to_sheet(templateRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+        XLSX.writeFile(wb, 'Medicine_19_Columns_Template.xlsx');
     };
 
     // Handle File Drop or Upload
@@ -170,33 +281,83 @@ const ClinicalMasterManagement = () => {
         const q = search.toLowerCase();
         return (
             (item.name && item.name.toLowerCase().includes(q)) ||
+            (item.key_ingredients && item.key_ingredients.toLowerCase().includes(q)) ||
             (item.composition && item.composition.toLowerCase().includes(q)) ||
+            (item.marketing_company && item.marketing_company.toLowerCase().includes(q)) ||
             (item.marketer && item.marketer.toLowerCase().includes(q)) ||
             (item.product_id && item.product_id.toLowerCase().includes(q)) ||
             (item.code && item.code.toLowerCase().includes(q)) ||
-            (item.metadata?.code && item.metadata.code.toLowerCase().includes(q))
+            (item.information && item.information.toLowerCase().includes(q)) ||
+            (item.product_highlights && item.product_highlights.toLowerCase().includes(q))
         );
     });
 
     const activeCat = CATEGORIES.find(c => c.id === selectedCategory);
 
     return (
-        <div className="master-data-page" style={{ padding: '24px', maxWidth: '1300px', margin: '0 auto' }}>
+        <div className="master-data-page" style={{ padding: '24px', maxWidth: '100%', margin: '0 auto' }}>
             {/* Top Header */}
             <div className="header-v4" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                     <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span>Clinical Master Data</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, background: '#e0e7ff', color: '#4338ca', padding: '3px 10px', borderRadius: '20px' }}>
-                            Prisma Postgres
+                            Prisma Postgres Live
                         </span>
                     </h1>
                     <p style={{ color: '#64748b', fontSize: '14px', marginTop: '2px' }}>
-                        Manage global catalogs for prescriptions, investigations, diagnosis ICD-10, and procedures
+                        19-Column Global Clinical Database for Medicines, Prescriptions & Formularies
                     </p>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={handleDownloadTemplate}
+                        title="Download 19-Column Sample Excel Template"
+                        style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            padding: '10px 14px', 
+                            background: '#fff', 
+                            border: '1.5px solid #cbd5e1', 
+                            borderRadius: '10px', 
+                            fontWeight: 700, 
+                            color: '#475569',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s',
+                            fontSize: '13px'
+                        }}
+                    >
+                        <Download size={16} color="#6366f1" />
+                        <span>Template</span>
+                    </button>
+
+                    <button 
+                        onClick={handleExportExcel}
+                        disabled={data.length === 0}
+                        title="Export current data to 19-Column Excel"
+                        style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            padding: '10px 14px', 
+                            background: '#fff', 
+                            border: '1.5px solid #cbd5e1', 
+                            borderRadius: '10px', 
+                            fontWeight: 700, 
+                            color: '#059669',
+                            cursor: data.length ? 'pointer' : 'not-allowed',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'all 0.2s',
+                            fontSize: '13px'
+                        }}
+                    >
+                        <FileSpreadsheet size={16} color="#059669" />
+                        <span>Export Excel ({data.length})</span>
+                    </button>
+
                     <button 
                         onClick={() => setIsImporting(true)}
                         style={{ 
@@ -211,7 +372,8 @@ const ClinicalMasterManagement = () => {
                             color: '#334155',
                             cursor: 'pointer',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            fontSize: '13px'
                         }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = activeCat.color}
                         onMouseLeave={e => e.currentTarget.style.borderColor = '#cbd5e1'}
@@ -234,7 +396,8 @@ const ClinicalMasterManagement = () => {
                             color: '#fff',
                             cursor: 'pointer',
                             boxShadow: `0 4px 12px ${activeCat.color}40`,
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            fontSize: '13px'
                         }}
                     >
                         <Plus size={18} />
@@ -243,7 +406,7 @@ const ClinicalMasterManagement = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '20px' }}>
                 {/* Categories Sidebar */}
                 <aside style={{ background: '#fff', borderRadius: '16px', padding: '16px', height: 'fit-content', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                     <h3 style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '12px', paddingLeft: '8px', letterSpacing: '0.05em' }}>
@@ -284,15 +447,15 @@ const ClinicalMasterManagement = () => {
                 </aside>
 
                 {/* Main Content Area */}
-                <main>
+                <main style={{ minWidth: 0 }}>
                     <div style={{ background: '#fff', borderRadius: '16px', border: '1.5px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                         {/* Search & Stats Bar */}
-                        <div style={{ padding: '16px 20px', borderBottom: '1.5px solid #f1f5f9', display: 'flex', gap: '16px', alignItems: 'center', background: '#fafbfc' }}>
-                            <div style={{ position: 'relative', flex: 1 }}>
+                        <div style={{ padding: '16px 20px', borderBottom: '1.5px solid #f1f5f9', display: 'flex', gap: '16px', alignItems: 'center', background: '#fafbfc', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
                                 <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                                 <input
                                     type="text"
-                                    placeholder={`Search ${activeCat.name.toLowerCase()} by name, composition, code...`}
+                                    placeholder={`Search ${activeCat.name.toLowerCase()} by name, composition, Product ID...`}
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
                                     style={{ width: '100%', padding: '10px 14px 10px 42px', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', background: '#fff' }}
@@ -300,12 +463,12 @@ const ClinicalMasterManagement = () => {
                             </div>
                             
                             <div style={{ fontSize: '13px', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
-                                {filteredData.length} {filteredData.length === 1 ? 'item' : 'items'}
+                                Showing {filteredData.length} of {data.length} {data.length === 1 ? 'record' : 'records'}
                             </div>
 
                             <button 
                                 onClick={loadData} 
-                                title="Refresh"
+                                title="Refresh data from Postgres"
                                 style={{ padding: '10px', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', color: '#64748b' }}
                             >
                                 <RefreshCw size={18} className={loading ? 'spinning' : ''} />
@@ -317,7 +480,7 @@ const ClinicalMasterManagement = () => {
                             {loading && (
                                 <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
                                     <Loader2 size={36} className="spinning" style={{ margin: '0 auto 12px', color: activeCat.color }} />
-                                    <p style={{ fontWeight: 600 }}>Loading {activeCat.name}...</p>
+                                    <p style={{ fontWeight: 600 }}>Loading {activeCat.name} from Postgres...</p>
                                 </div>
                             )}
 
@@ -326,7 +489,7 @@ const ClinicalMasterManagement = () => {
                                     <activeCat.icon size={56} style={{ margin: '0 auto 16px', opacity: 0.35, color: activeCat.color }} />
                                     <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>No {activeCat.name.toLowerCase()} found</h4>
                                     <p style={{ fontSize: '13px', color: '#94a3b8', maxWidth: '360px', margin: '0 auto 20px' }}>
-                                        Import your Excel spreadsheet or click below to add an entry manually.
+                                        Import your 19-column Excel spreadsheet or click below to add an entry manually.
                                     </p>
                                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                                         <button 
@@ -346,74 +509,113 @@ const ClinicalMasterManagement = () => {
                             )}
 
                             {!loading && filteredData.length > 0 && selectedCategory === 'medicine' && (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                    <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 10, borderBottom: '1.5px solid #e2e8f0' }}>
-                                        <tr>
-                                            <th style={{ padding: '12px 18px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</th>
-                                            <th style={{ padding: '12px 18px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Composition</th>
-                                            <th style={{ padding: '12px 18px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Packaging / MRP</th>
-                                            <th style={{ padding: '12px 18px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Marketer</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'right', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredData.map(item => {
-                                            const itemId = item.id || item._id;
-                                            return (
-                                                <tr key={itemId} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                                    <td style={{ padding: '14px 18px' }}>
-                                                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{item.name}</div>
-                                                        <div style={{ display: 'flex', gap: '6px', marginTop: '4px', alignItems: 'center' }}>
-                                                            {item.product_form && (
-                                                                <span style={{ fontSize: '11px', fontWeight: 600, background: '#eff6ff', color: '#2563eb', padding: '1px 7px', borderRadius: '4px' }}>
-                                                                    {item.product_form}
-                                                                </span>
-                                                            )}
-                                                            {item.product_id && (
-                                                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                                                    {item.product_id}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '14px 18px', color: '#334155', fontSize: '13px' }}>
-                                                        {item.composition || '-'}
-                                                    </td>
-                                                    <td style={{ padding: '14px 18px', fontSize: '13px' }}>
-                                                        <div style={{ fontWeight: 700, color: '#059669' }}>
-                                                            {item.mrp != null ? `₹${item.mrp}` : '-'}
-                                                        </div>
-                                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                                                            {item.packaging_detail || item.package_type || '-'}
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '14px 18px', color: '#64748b', fontSize: '13px' }}>
-                                                        {item.marketer || '-'}
-                                                    </td>
-                                                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                                                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                                                            <button 
-                                                                onClick={() => setViewingItem(item)}
-                                                                title="View Details"
-                                                                style={{ color: '#6366f1', background: '#e0e7ff', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700 }}
-                                                            >
-                                                                <Eye size={14} />
-                                                                <span>Details</span>
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleDelete(itemId)}
-                                                                title="Delete Item"
-                                                                style={{ color: '#ef4444', background: '#fee2e2', border: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: '6px' }}
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <div style={{ overflowX: 'auto', width: '100%' }}>
+                                    <table style={{ width: '100%', minWidth: '3500px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                        <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 10, borderBottom: '2px solid #e2e8f0' }}>
+                                            <tr>
+                                                {MEDICINE_COLUMNS.map(col => (
+                                                    <th 
+                                                        key={col.key} 
+                                                        style={{ 
+                                                            padding: '14px 16px', 
+                                                            fontSize: '12px', 
+                                                            fontWeight: 800, 
+                                                            color: '#334155', 
+                                                            whiteSpace: 'nowrap',
+                                                            width: col.width,
+                                                            minWidth: col.width,
+                                                            borderRight: '1px solid #f1f5f9'
+                                                        }}
+                                                    >
+                                                        {col.label}
+                                                    </th>
+                                                ))}
+                                                <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '12px', fontWeight: 800, color: '#334155', whiteSpace: 'nowrap', width: '120px', minWidth: '120px', position: 'sticky', right: 0, background: '#f8fafc', boxShadow: '-2px 0 6px rgba(0,0,0,0.03)' }}>
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredData.map(item => {
+                                                const itemId = item.id || item._id;
+                                                return (
+                                                    <tr 
+                                                        key={itemId} 
+                                                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }} 
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} 
+                                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                    >
+                                                        {MEDICINE_COLUMNS.map(col => {
+                                                            const val = col.render(item);
+                                                            const isProdId = col.key === 'Product ID';
+                                                            const isName = col.key === 'name';
+                                                            const isMrp = col.key === 'MRP';
+                                                            const isForm = col.key === 'Product Form';
+                                                            const isCat = col.key === 'Category';
+
+                                                            return (
+                                                                <td 
+                                                                    key={col.key} 
+                                                                    title={typeof val === 'string' ? val : ''}
+                                                                    style={{ 
+                                                                        padding: '12px 16px', 
+                                                                        fontSize: '13px', 
+                                                                        color: isName ? '#0f172a' : '#334155',
+                                                                        fontWeight: (isName || isProdId || isMrp) ? 700 : 400,
+                                                                        whiteSpace: 'nowrap',
+                                                                        maxWidth: col.width,
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        borderRight: '1px solid #f8fafc'
+                                                                    }}
+                                                                >
+                                                                    {isProdId ? (
+                                                                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#6366f1', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px' }}>
+                                                                            {val}
+                                                                        </span>
+                                                                    ) : isForm ? (
+                                                                        <span style={{ fontSize: '11px', fontWeight: 600, background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px' }}>
+                                                                            {val}
+                                                                        </span>
+                                                                    ) : isCat ? (
+                                                                        <span style={{ fontSize: '11px', fontWeight: 600, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+                                                                            {val}
+                                                                        </span>
+                                                                    ) : isMrp ? (
+                                                                        <span style={{ color: '#059669', fontWeight: 800 }}>
+                                                                            {val}
+                                                                        </span>
+                                                                    ) : (
+                                                                        val
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        <td style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap', position: 'sticky', right: 0, background: '#fff', boxShadow: '-2px 0 6px rgba(0,0,0,0.03)' }}>
+                                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                                <button 
+                                                                    onClick={() => setViewingItem(item)}
+                                                                    title="View All 19 Column Details"
+                                                                    style={{ color: '#6366f1', background: '#e0e7ff', border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700 }}
+                                                                >
+                                                                    <Eye size={13} />
+                                                                    <span>Details</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDelete(itemId)}
+                                                                    title="Delete Medicine"
+                                                                    style={{ color: '#ef4444', background: '#fee2e2', border: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: '6px' }}
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             )}
 
                             {!loading && filteredData.length > 0 && selectedCategory !== 'medicine' && (
@@ -440,7 +642,7 @@ const ClinicalMasterManagement = () => {
                                                         </td>
                                                     )}
                                                     <td style={{ padding: '14px 20px', color: '#64748b', fontSize: '13px' }}>
-                                                        {item.introduction || item.metadata?.notes || '-'}
+                                                        {item.information || item.introduction || item.metadata?.notes || '-'}
                                                     </td>
                                                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                                                         <button 
@@ -461,69 +663,146 @@ const ClinicalMasterManagement = () => {
                 </main>
             </div>
 
-            {/* Medicine Detail View Drawer/Modal */}
+            {/* Medicine Detail View Drawer/Modal - Showing all 19 columns */}
             {viewingItem && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-                    <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setViewingItem(null)}>
+                    <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '780px', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '16px', marginBottom: '20px' }}>
                             <div>
-                                <span style={{ fontSize: '11px', fontWeight: 800, background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                    {viewingItem.product_form || 'Medicine'}
-                                </span>
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>{viewingItem.name}</h2>
-                                <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>{viewingItem.composition}</p>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 800, background: '#eff6ff', color: '#2563eb', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                        {viewingItem.product_form || 'Medicine'}
+                                    </span>
+                                    {viewingItem.product_id && (
+                                        <span style={{ fontSize: '11px', fontFamily: 'monospace', fontWeight: 700, background: '#eef2ff', color: '#6366f1', padding: '3px 8px', borderRadius: '4px' }}>
+                                            {viewingItem.product_id}
+                                        </span>
+                                    )}
+                                </div>
+                                <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{viewingItem.name}</h2>
+                                <p style={{ fontSize: '14px', color: '#64748b', marginTop: '2px' }}>{viewingItem.key_ingredients || viewingItem.composition || '-'}</p>
                             </div>
                             <button onClick={() => setViewingItem(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
                                 <X size={20} color="#64748b" />
                             </button>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '12px' }}>
+                        {/* 19 Exact Columns Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div>
-                                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Marketer</span>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.marketer || '-'}</div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Product ID</span>
+                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginTop: '2px', fontFamily: 'monospace' }}>{viewingItem.product_id || viewingItem.code || '-'}</div>
                             </div>
                             <div>
-                                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>MRP / Packaging</span>
-                                <div style={{ fontSize: '13px', fontWeight: 700, color: '#059669', marginTop: '2px' }}>
-                                    {viewingItem.mrp ? `₹${viewingItem.mrp}` : '-'} ({viewingItem.packaging_detail || '-'})
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Category</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.category || 'medicine'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Marketing Company</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.marketing_company || viewingItem.marketer || '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>type</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.type || viewingItem.medicine_type || '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Packaging</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.packaging || viewingItem.packaging_detail || '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Package</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.package || viewingItem.package_type || '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Qty</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.qty != null ? String(viewingItem.qty) : '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Product Form</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.product_form || '-'}</div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>MRP</span>
+                                <div style={{ fontSize: '14px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
+                                    {viewingItem.mrp != null ? `₹${viewingItem.mrp}` : '-'}
                                 </div>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>country_of_origin</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.country_of_origin || '-'}</div>
                             </div>
                         </div>
 
-                        {viewingItem.introduction && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>Introduction</h4>
-                                <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px' }}>
-                                    {viewingItem.introduction}
-                                </p>
+                        {/* Text Sections */}
+                        {viewingItem.product_highlights && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>product_highlights</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.5, background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
+                                    {viewingItem.product_highlights}
+                                </div>
                             </div>
                         )}
 
-                        {viewingItem.how_to_use && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>How to Use</h4>
-                                <p style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px' }}>
-                                    {viewingItem.how_to_use}
-                                </p>
+                        {(viewingItem.information || viewingItem.introduction) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Information</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
+                                    {viewingItem.information || viewingItem.introduction}
+                                </div>
                             </div>
                         )}
 
-                        {viewingItem.side_effects && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '6px' }}>Common Side Effects</h4>
-                                <p style={{ fontSize: '13px', color: '#991b1b', lineHeight: 1.5, background: '#fef2f2', padding: '10px 14px', borderRadius: '8px' }}>
-                                    {viewingItem.side_effects}
-                                </p>
+                        {(viewingItem.key_ingredients || viewingItem.composition) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Key Ingredients</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
+                                    {viewingItem.key_ingredients || viewingItem.composition}
+                                </div>
                             </div>
                         )}
 
-                        {viewingItem.safety_advise && (
-                            <div style={{ marginBottom: '16px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>Safety Warnings & Interactions</h4>
-                                <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5, background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    {viewingItem.safety_advise}
-                                </p>
+                        {(viewingItem.key_benefits || viewingItem.benefits) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Key Benefits</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
+                                    {viewingItem.key_benefits || viewingItem.benefits}
+                                </div>
+                            </div>
+                        )}
+
+                        {(viewingItem.directions_for_use || viewingItem.how_to_use) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Directions for Use</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
+                                    {viewingItem.directions_for_use || viewingItem.how_to_use}
+                                </div>
+                            </div>
+                        )}
+
+                        {(viewingItem.safety_information || viewingItem.safety_advise) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '4px' }}>Safety Information</h4>
+                                <div style={{ fontSize: '13px', color: '#991b1b', lineHeight: 1.5, background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                                    {viewingItem.safety_information || viewingItem.safety_advise}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingItem.marketer_details && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Marketer details</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    {viewingItem.marketer_details}
+                                </div>
+                            </div>
+                        )}
+
+                        {((Array.isArray(viewingItem.image_urls) && viewingItem.image_urls.length > 0) || viewingItem.image_urls) && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Image_Urls</h4>
+                                <div style={{ fontSize: '12px', color: '#6366f1', wordBreak: 'break-all', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    {Array.isArray(viewingItem.image_urls) ? viewingItem.image_urls.join(', ') : viewingItem.image_urls}
+                                </div>
                             </div>
                         )}
 

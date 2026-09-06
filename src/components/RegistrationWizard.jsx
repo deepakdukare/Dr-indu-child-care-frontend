@@ -22,7 +22,7 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
         mother_name: '',
         wa_id: '',
         email: '',
-        doctor: 'Dr. Indu',
+        doctor: 'Dr. Deepak',
         enrollment_option: 'just_enroll'
     });
 
@@ -151,7 +151,7 @@ const RegistrationWizard = ({ onComplete, onCancel, submitting }) => {
             field: 'doctor',
             title: "Preferred Doctor",
             type: 'selection',
-            options: ['Dr. Indu', 'Dr. Sharma', 'Dr. Patil'],
+            options: ['Dr. Deepak', 'Dr. Sharma', 'Dr. Patil'],
             icon: <User size={24} />,
             validate: (val) => val ? null : "Selection required"
         },

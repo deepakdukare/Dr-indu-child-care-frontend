@@ -47,7 +47,7 @@ const AppointmentRow = ({ appt, onEdit, onCancel, onNoShow, showDate }) => {
     const statusView = STATUS_CONFIG[statusKey] || STATUS_CONFIG.DEFAULT;
 
     const ptId = appt?.patient_id || '9022';
-    const docName = appt?.assigned_doctor_name || appt?.doctor_name || 'Dr. Indu';
+    const docName = appt?.assigned_doctor_name || appt?.doctor_name || 'Dr. Deepak';
 
     return (
         <tr style={{ backgroundColor: '#fff', borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fff'}>

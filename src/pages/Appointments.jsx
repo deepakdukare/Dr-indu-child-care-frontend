@@ -245,7 +245,7 @@ const Appointments = () => {
 
     const [form, setForm] = useState({
         patient_id: '',
-        doctor_name: isDoctor ? (currentUser.full_name || currentUser.username || 'Dr. Indu') : 'Dr. Indu',
+        doctor_name: isDoctor ? (currentUser.full_name || currentUser.username || 'Dr. Deepak') : 'Dr. Deepak',
         appointment_date: filters.date,
         doctor_id: isDoctor ? (currentUser.doctor_id || '') : '',
         doctor_speciality: 'Pediatrics',
@@ -367,7 +367,7 @@ const Appointments = () => {
                 const matchedDoc = doctors.find(d => d.doctor_id === defaultDocId);
                 defaultDocSpeciality = matchedDoc?.speciality || 'Pediatrics';
             } else {
-                const defaultDoc = doctors.find(d => getDoctorDisplayName(d).toLowerCase().includes('indu')) || doctors[0];
+                const defaultDoc = doctors.find(d => getDoctorDisplayName(d).toLowerCase().includes('deepak')) || doctors[0];
                 defaultDocId = defaultDoc?.doctor_id || '';
                 defaultDocName = defaultDoc ? getDoctorDisplayName(defaultDoc) : '';
                 defaultDocSpeciality = defaultDoc?.speciality || 'Pediatrics';
@@ -546,7 +546,7 @@ const Appointments = () => {
             setSelectedAppointment(appt);
             setForm({
                 patient_id: appt.patient_id,
-                doctor_name: appt.assigned_doctor_name || appt.doctor_name || 'Dr. Indu',
+                doctor_name: appt.assigned_doctor_name || appt.doctor_name || 'Dr. Deepak',
                 appointment_date: appt.appointment_date.split('T')[0],
                 doctor_speciality: appt.doctor_speciality || 'Pediatrics',
                 visit_category: formatCategory(appt.visit_category),
@@ -571,7 +571,7 @@ const Appointments = () => {
                 const matchedDoc = doctors.find(d => d.doctor_id === defaultDocId);
                 defaultDocSpeciality = matchedDoc?.speciality || 'Pediatrics';
             } else {
-                const defaultDoc = doctors.find(d => getDoctorDisplayName(d).toLowerCase().includes('indu')) || doctors[0];
+                const defaultDoc = doctors.find(d => getDoctorDisplayName(d).toLowerCase().includes('deepak')) || doctors[0];
                 defaultDocId = defaultDoc?.doctor_id || '';
                 defaultDocName = defaultDoc ? getDoctorDisplayName(defaultDoc) : '';
                 defaultDocSpeciality = defaultDoc?.speciality || 'Pediatrics';

@@ -510,7 +510,7 @@ const Patients = () => {
                                                     )}
                                                     <td>
                                                         <div style={{ fontWeight: 800, color: '#0d7f6e', fontSize: '13px' }}>
-                                                            {p.doctor || 'Dr. Indu Khosla'}
+                                                            {p.doctor || 'Dr. Deepak'}
                                                         </div>
                                                     </td>
                                                     <td>
@@ -752,7 +752,7 @@ const Patients = () => {
                                                                                                                 <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}><Clock size={11} />{appt.appointment_time || '—'}</div>
                                                                                                             </td>
                                                                                                             <td style={{ padding: '0.85rem 1rem' }}><span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700 }}>{(appt.visit_category || appt.visit_type || 'Consultation').replace(/_/g, ' ')}</span></td>
-                                                                                                            <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>{appt.doctor_name || appt.attending_doctor || 'Dr. Indu'}</td>
+                                                                                                            <td style={{ padding: '0.85rem 1rem', fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>{appt.doctor_name || appt.attending_doctor || 'Dr. Deepak'}</td>
                                                                                                             <td style={{ padding: '0.85rem 1rem' }}><span className={`status-chip-v3 ${String(appt.status || 'PENDING').toLowerCase()}`}>{appt.status || 'PENDING'}</span></td>
                                                                                                             <td style={{ padding: '0.85rem 1rem', fontSize: '0.8rem', fontWeight: 700, color: '#7c3aed' }}>{appt.token_number ? `#${appt.token_number}` : '—'}</td>
                                                                                                         </tr>

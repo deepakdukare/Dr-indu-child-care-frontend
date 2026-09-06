@@ -32,9 +32,9 @@ const EMPTY_ALLERGY = { category: 'Drug', type: '', reaction: '', intensity: '',
 
 const EMPTY_ENTRY = {
     patient_id: '', appointment_id: '', visit_date: toIsoDate(),
-    visit_type: 'CONSULTATION', attending_doctor: 'Dr. Indu',
+    visit_type: 'CONSULTATION', attending_doctor: 'Dr. Deepak',
     chief_complaint: '', clinical_notes: '', diagnosis: '',
-    prescription: '', investigations: '', next_visit_due: '', recorded_by: 'Dr. Indu',
+    prescription: '', investigations: '', next_visit_due: '', recorded_by: 'Dr. Deepak',
     weight: '', height: '', bmi: '', temperature: '', spo2: '', pulse: '',
     bp: '', respiration: '', random_sugar: '', head_circumference: '',
     pain_score: '', fall_risk: '', interpreter: '',
@@ -327,7 +327,7 @@ const ClinicalEntry = () => {
                 appointment_id: prefFromAppt.appointment_id,
                 visit_date: prefFromAppt.appointment_date ? prefFromAppt.appointment_date.split('T')[0] : toIsoDate(),
                 visit_type: prefFromAppt.visit_category === 'Vaccination' ? 'VACCINATION' : 'CONSULTATION',
-                attending_doctor: prefFromAppt.attending_doctor || prefFromAppt.doctor_name || 'Dr. Indu',
+                attending_doctor: prefFromAppt.attending_doctor || prefFromAppt.doctor_name || 'Dr. Deepak',
                 chief_complaint: prefFromAppt.reason || '',
                 weight: prefFromAppt.weight || '',
                 temperature: prefFromAppt.temperature || '',
@@ -494,7 +494,7 @@ const ClinicalEntry = () => {
                 <div class="header-top">
                     <img src="logo.jpg" class="header-logo" alt="Clinic Logo" />
                     <div class="header-text">
-                        <h2 style="margin: 0;">Dr. Indu's New Born & Childcare Center</h2>
+                        <h2 style="margin: 0;">Hello Doctor Childcare Center</h2>
                     </div>
                 </div>
                 <div class="patient-header-info">
@@ -1469,7 +1469,7 @@ const ClinicalEntry = () => {
                                         patient_id: '26-HA6',
                                         visit_date: '2026-04-08',
                                         visit_type: 'CONSULTATION',
-                                        attending_doctor: 'Dr. Indu',
+                                        attending_doctor: 'Dr. Deepak',
                                         diagnosis: 'Acute Upper Respiratory Infection',
                                         chief_complaint: 'Fever and Cough since 2 days',
                                         symptoms: 'Fever, Dry Cough, Nasal Congestion',
