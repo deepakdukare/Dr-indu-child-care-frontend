@@ -20,10 +20,12 @@ import {
     Eye,
     Pill,
     CheckCircle2,
-    Download
+    Download,
+    ExternalLink,
+    Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { getMasterData, upsertMasterData, bulkUpsertMasterData, deleteMasterData } from '../api';
+import { getMasterData, upsertMasterData, bulkUpsertMasterData, deleteMasterData, clearCategoryMasterData } from '../api';
 
 const CATEGORIES = [
     { id: 'medicine', name: 'Medicines', icon: Stethoscope, color: '#6366f1' },
@@ -34,52 +36,253 @@ const CATEGORIES = [
     { id: 'allergy', name: 'Allergies', icon: AlertCircle, color: '#ec4899' }
 ];
 
-// The exact 19 columns requested
+const parseSafetyStatus = (val) => {
+    if (!val) return { status: null, desc: '', raw: '' };
+    const raw = String(val).trim();
+    const cleanText = raw.replace(/<\/?[^>]+(>|$)/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    let status = null;
+    let desc = cleanText;
+    const upper = cleanText.toUpperCase();
+
+    if (upper.startsWith('CONSULT YOUR DOCTOR')) {
+        status = 'CONSULT YOUR DOCTOR';
+        desc = cleanText.slice('CONSULT YOUR DOCTOR'.length).trim();
+    } else if (upper.startsWith('UNSAFE')) {
+        status = 'UNSAFE';
+        desc = cleanText.slice('UNSAFE'.length).trim();
+    } else if (upper.startsWith('SAFE IF PRESCRIBED')) {
+        status = 'SAFE IF PRESCRIBED';
+        desc = cleanText.slice('SAFE IF PRESCRIBED'.length).trim();
+    } else if (upper.startsWith('SAFE')) {
+        status = 'SAFE';
+        desc = cleanText.slice('SAFE'.length).trim();
+    } else if (upper.startsWith('CAUTION')) {
+        status = 'CAUTION';
+        desc = cleanText.slice('CAUTION'.length).trim();
+    }
+
+    desc = desc.replace(/^[:\-–—]\s*/, '').trim();
+    return { status, desc: desc || cleanText, raw: cleanText };
+};
+
+const getStatusBadgeStyle = (status) => {
+    switch (status) {
+        case 'UNSAFE':
+            return { bg: '#fee2e2', color: '#dc2626', border: '#fca5a5' };
+        case 'CAUTION':
+            return { bg: '#fffbeb', color: '#b45309', border: '#fcd34d' };
+        case 'CONSULT YOUR DOCTOR':
+            return { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' };
+        case 'SAFE':
+        case 'SAFE IF PRESCRIBED':
+            return { bg: '#f0fdf4', color: '#16a34a', border: '#86efac' };
+        default:
+            return { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' };
+    }
+};
+
+const renderSafetyCell = (value) => {
+    if (!value) return <span style={{ color: '#94a3b8' }}>-</span>;
+    const { status, desc, raw } = parseSafetyStatus(value);
+    const style = getStatusBadgeStyle(status);
+
+    return (
+        <div style={{ maxWidth: '220px', display: 'flex', flexDirection: 'column', gap: '3px' }} title={raw}>
+            {status && (
+                <span style={{ 
+                    alignSelf: 'flex-start',
+                    fontSize: '10px', 
+                    fontWeight: 800, 
+                    padding: '2px 7px', 
+                    borderRadius: '5px', 
+                    background: style.bg, 
+                    color: style.color, 
+                    border: `1px solid ${style.border}`,
+                    whiteSpace: 'nowrap',
+                    letterSpacing: '0.3px'
+                }}>
+                    {status}
+                </span>
+            )}
+            <span style={{ 
+                fontSize: '11px', 
+                color: '#475569', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis', 
+                whiteSpace: 'nowrap',
+                lineHeight: 1.3
+            }}>
+                {desc}
+            </span>
+        </div>
+    );
+};
+
+const extractImageUrls = (input) => {
+    if (!input) return [];
+    const val = (typeof input === 'string' || Array.isArray(input))
+        ? input
+        : (input.image_urls || input['Image_Urls'] || input.Image_Urls || input['image_urls'] || input['Image URL'] || input['Image Url'] || input.image_url || input.images || input.Images || input.image || input.Image || input['Image Links'] || input['Image Link'] || input.photos || input.photo);
+    if (!val) return [];
+
+    if (Array.isArray(val)) {
+        return val.flatMap(v => extractImageUrls(v));
+    }
+
+    let s = String(val).trim();
+    if (!s || s.toLowerCase().startsWith('store') || s.toLowerCase().includes('°c') || s.toLowerCase().includes('degree')) return [];
+
+    // Parse JSON or Python-style list with single quotes
+    if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+        try {
+            const parsed = JSON.parse(s.replace(/'/g, '"'));
+            if (Array.isArray(parsed)) {
+                return parsed.map(x => String(x).trim().replace(/[,;]+$/, '')).filter(Boolean);
+            }
+        } catch (e) {}
+    }
+
+    // Match all http/https URLs cleanly
+    const matches = s.match(/https?:\/\/[^\s'"<>\]\)]+/g);
+    if (matches && matches.length > 0) {
+        return [...new Set(matches.map(m => m.replace(/[,;]+$/, '').trim()))];
+    }
+
+    return s.split(/[|\n]/)
+        .map(x => x.trim().replace(/^['"\[]|['"\]]$/g, '').replace(/[,;]+$/, ''))
+        .filter(x => x && (x.startsWith('http') || x.endsWith('.jpg') || x.endsWith('.png') || x.endsWith('.webp') || x.endsWith('.jpeg')));
+};
+
+// All 32 Medicine Fields matching the complete clinical master standard
 const MEDICINE_COLUMNS = [
-    { key: 'Product ID', label: 'Product ID', width: '130px', render: (i) => i.product_id || i.code || '-' },
-    { key: 'name', label: 'name', width: '200px', render: (i) => i.name || '-' },
-    { key: 'Category', label: 'Category', width: '120px', render: (i) => i.category || 'medicine' },
-    { key: 'Marketing Company', label: 'Marketing Company', width: '190px', render: (i) => i.marketing_company || i.marketer || '-' },
-    { key: 'type', label: 'type', width: '100px', render: (i) => i.type || i.medicine_type || '-' },
-    { key: 'Packaging', label: 'Packaging', width: '160px', render: (i) => i.packaging || i.packaging_detail || '-' },
-    { key: 'Package', label: 'Package', width: '120px', render: (i) => i.package || i.package_type || '-' },
-    { key: 'Qty', label: 'Qty', width: '90px', render: (i) => i.qty != null ? String(i.qty) : '-' },
-    { key: 'Product Form', label: 'Product Form', width: '130px', render: (i) => i.product_form || '-' },
-    { key: 'MRP', label: 'MRP', width: '110px', render: (i) => i.mrp != null ? `₹${i.mrp}` : '-' },
-    { key: 'product_highlights', label: 'product_highlights', width: '220px', render: (i) => i.product_highlights || '-' },
-    { key: 'Information', label: 'Information', width: '240px', render: (i) => i.information || i.introduction || '-' },
-    { key: 'Key Ingredients', label: 'Key Ingredients', width: '220px', render: (i) => i.key_ingredients || i.composition || '-' },
-    { key: 'Key Benefits', label: 'Key Benefits', width: '240px', render: (i) => i.key_benefits || i.benefits || '-' },
-    { key: 'Directions for Use', label: 'Directions for Use', width: '220px', render: (i) => i.directions_for_use || i.how_to_use || '-' },
-    { key: 'Safety Information', label: 'Safety Information', width: '240px', render: (i) => i.safety_information || i.safety_advise || '-' },
-    { key: 'country_of_origin', label: 'country_of_origin', width: '140px', render: (i) => i.country_of_origin || '-' },
+    { key: 'Product ID', label: 'Product ID', width: '130px', render: (i) => <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#4f46e5' }}>{i.product_id || i.code || '-'}</span> },
+    { key: 'Product Name', label: 'Product Name', width: '200px', render: (i) => <span style={{ fontWeight: 700, color: '#0f172a' }}>{i.name || '-'}</span> },
+    { key: 'Marketer', label: 'Marketer', width: '180px', render: (i) => i.marketing_company || i.marketer || '-' },
+    { key: 'Composition', label: 'Composition', width: '210px', render: (i) => i.composition || i.key_ingredients || '-' },
+    { key: 'medicine_type', label: 'medicine_type', width: '110px', render: (i) => <span style={{ textTransform: 'capitalize', fontSize: '11px', background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>{i.medicine_type || i.type || 'drug'}</span> },
+    { key: 'Introduction', label: 'Introduction', width: '240px', render: (i) => <div style={{ maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.introduction || i.information}>{i.introduction || i.information || '-'}</div> },
+    { key: 'Benefits', label: 'Benefits', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.benefits || i.key_benefits}>{i.benefits || i.key_benefits || '-'}</div> },
+    { key: 'how_to_use', label: 'how_to_use', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.how_to_use || i.directions_for_use}>{i.how_to_use || i.directions_for_use || '-'}</div> },
+    { 
+        key: 'safety_advise', 
+        label: 'safety_advise', 
+        width: '240px', 
+        render: (i) => {
+            const val = i.safety_advise || i.safety_information;
+            if (!val) return '-';
+            const clean = String(val).replace(/<\/?[^>]+(>|$)/g, ' ').replace(/\s+/g, ' ').trim();
+            return <div style={{ maxWidth: '230px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#b45309' }} title={clean}>{clean}</div>;
+        } 
+    },
+    { key: 'if_miss', label: 'if_miss', width: '200px', render: (i) => <div style={{ maxWidth: '190px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.if_miss}>{i.if_miss || '-'}</div> },
+    { key: 'Packaging Detail', label: 'Packaging Detail', width: '160px', render: (i) => i.packaging_detail || i.packaging || '-' },
+    { key: 'Package', label: 'Package', width: '100px', render: (i) => i.package || i.package_type || '-' },
+    { key: 'Qty', label: 'Qty', width: '80px', render: (i) => i.qty != null ? String(i.qty) : '-' },
+    { key: 'Product Form', label: 'Product Form', width: '120px', render: (i) => i.product_form || '-' },
+    { key: 'MRP', label: 'MRP', width: '110px', render: (i) => i.mrp != null ? <span style={{ fontWeight: 800, color: '#059669' }}>₹{i.mrp}</span> : '-' },
+    { 
+        key: 'prescription_required', 
+        label: 'prescription_required', 
+        width: '150px', 
+        render: (i) => i.prescription_required ? (
+            <span style={{ fontSize: '11px', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>Rx Required</span>
+        ) : (
+            <span style={{ fontSize: '11px', background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>OTC</span>
+        ) 
+    },
+    { key: 'Fact_Box', label: 'Fact_Box', width: '180px', render: (i) => i.fact_box || '-' },
+    { key: 'primary_use', label: 'primary_use', width: '160px', render: (i) => i.primary_use ? <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>{i.primary_use}</span> : '-' },
+    { key: 'storage', label: 'storage', width: '160px', render: (i) => i.storage || '-' },
+    { key: 'side_effect', label: 'side_effect', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#dc2626' }} title={i.side_effects}>{i.side_effects || '-'}</div> },
+    { key: 'alcoholInteraction', label: 'alcoholInteraction', width: '220px', render: (i) => renderSafetyCell(i.alcohol_interaction) },
+    { key: 'pregnancyInteraction', label: 'pregnancyInteraction', width: '220px', render: (i) => renderSafetyCell(i.pregnancy_interaction) },
+    { key: 'lactationInteraction', label: 'lactationInteraction', width: '220px', render: (i) => renderSafetyCell(i.lactation_interaction) },
+    { key: 'drivingInteraction', label: 'drivingInteraction', width: '220px', render: (i) => renderSafetyCell(i.driving_interaction) },
+    { key: 'kidneyInteraction', label: 'kidneyInteraction', width: '220px', render: (i) => renderSafetyCell(i.kidney_interaction) },
+    { key: 'liverInteraction', label: 'liverInteraction', width: '220px', render: (i) => renderSafetyCell(i.liver_interaction) },
+    { key: 'country_of_origin', label: 'country_of_origin', width: '130px', render: (i) => i.country_of_origin || '-' },
+    { key: 'Q_A', label: 'Q_A', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.q_a}>{i.q_a || '-'}</div> },
+    { key: 'How it works', label: 'How it works', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.how_it_works}>{i.how_it_works || '-'}</div> },
+    { key: 'drug-drug Interaction', label: 'drug-drug Interaction', width: '220px', render: (i) => <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.drug_interactions}>{i.drug_interactions || '-'}</div> },
     { 
         key: 'Marketer details', 
         label: 'Marketer details', 
         width: '220px', 
         render: (i) => {
-            if (i.marketer_details && i.marketer_details !== i.primary_use) return i.marketer_details;
+            if (i.marketer_details && i.marketer_details !== i.primary_use) return <div style={{ maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={i.marketer_details}>{i.marketer_details}</div>;
             return i.marketing_company || i.marketer || '-';
         }
     },
     { 
         key: 'Image_Urls', 
         label: 'Image_Urls', 
-        width: '180px', 
+        width: '280px', 
         render: (i) => {
-            const urls = Array.isArray(i.image_urls) ? i.image_urls : (typeof i.image_urls === 'string' && i.image_urls ? i.image_urls.split(/[|,\n]/).map(s => s.trim().replace(/^\[|\]$/g, '')).filter(Boolean) : []);
-            if (!urls.length) return '-';
+            const urls = extractImageUrls(i);
+            if (!urls.length) return <span style={{ color: '#94a3b8' }}>-</span>;
             return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <img 
-                        src={urls[0]} 
-                        alt="" 
-                        style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff' }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                    <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: 700, background: '#e0e7ff', padding: '2px 7px', borderRadius: '10px' }}>
-                        {urls.length} img{urls.length > 1 ? 's' : ''}
-                    </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '240px' }}>
+                    {/* Visual Thumbnails */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {urls.slice(0, 4).map((url, idx) => (
+                            <a 
+                                key={idx} 
+                                href={url} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                title={`Open Image ${idx + 1}: ${url}`}
+                                style={{ display: 'inline-block', borderRadius: '6px', border: '1.5px solid #cbd5e1', padding: '2px', background: '#fff', textDecoration: 'none' }}
+                            >
+                                <img 
+                                    src={url} 
+                                    alt={`Img ${idx + 1}`} 
+                                    referrerPolicy="no-referrer"
+                                    style={{ width: '32px', height: '32px', objectFit: 'contain', display: 'block', borderRadius: '3px' }}
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%234f46e5" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+                                    }}
+                                />
+                            </a>
+                        ))}
+                        <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: 700, background: '#e0e7ff', padding: '2px 8px', borderRadius: '10px' }}>
+                            {urls.length} img{urls.length > 1 ? 's' : ''}
+                        </span>
+                    </div>
+
+                    {/* Direct Clickable Links */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {urls.map((url, idx) => (
+                            <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={url}
+                                style={{
+                                    fontSize: '11px',
+                                    color: '#2563eb',
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
+                                    padding: '2px 7px',
+                                    borderRadius: '5px',
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontWeight: 600,
+                                    maxWidth: '120px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                <span>Image {idx + 1}</span>
+                                <ExternalLink size={10} />
+                            </a>
+                        ))}
+                    </div>
                 </div>
             );
         }
@@ -99,19 +302,43 @@ const ClinicalMasterManagement = () => {
         product_id: '',
         category: 'medicine',
         marketing_company: '',
+        marketer: '',
         type: 'drugs',
+        medicine_type: 'drugs',
         packaging: '',
+        packaging_detail: '',
         package: 'Strip',
+        package_type: 'Strip',
         qty: '',
         product_form: 'Tablet',
         mrp: '',
+        prescription_required: true,
         product_highlights: '',
         information: '',
+        introduction: '',
         key_ingredients: '',
+        composition: '',
         key_benefits: '',
+        benefits: '',
         directions_for_use: '',
+        how_to_use: '',
         safety_information: '',
+        safety_advise: '',
+        if_miss: '',
+        fact_box: '',
+        primary_use: '',
+        storage: '',
+        side_effects: '',
+        alcohol_interaction: '',
+        pregnancy_interaction: '',
+        lactation_interaction: '',
+        driving_interaction: '',
+        kidney_interaction: '',
+        liver_interaction: '',
         country_of_origin: 'India',
+        q_a: '',
+        how_it_works: '',
+        drug_interactions: '',
         marketer_details: '',
         image_urls: ''
     });
@@ -155,32 +382,60 @@ const ClinicalMasterManagement = () => {
                 name: newItem.name.trim(),
                 product_id: newItem.product_id || undefined,
                 code: newItem.product_id || undefined,
-                marketing_company: newItem.marketing_company || undefined,
-                type: newItem.type || undefined,
-                packaging: newItem.packaging || undefined,
-                package: newItem.package || undefined,
+                marketer: newItem.marketer || newItem.marketing_company || undefined,
+                marketing_company: newItem.marketing_company || newItem.marketer || undefined,
+                type: newItem.medicine_type || newItem.type || undefined,
+                medicine_type: newItem.medicine_type || newItem.type || undefined,
+                packaging: newItem.packaging_detail || newItem.packaging || undefined,
+                packaging_detail: newItem.packaging_detail || newItem.packaging || undefined,
+                package: newItem.package || newItem.package_type || undefined,
+                package_type: newItem.package || newItem.package_type || undefined,
                 qty: newItem.qty || undefined,
                 product_form: newItem.product_form || undefined,
                 mrp: newItem.mrp ? parseFloat(newItem.mrp) : undefined,
+                prescription_required: newItem.prescription_required !== false,
                 product_highlights: newItem.product_highlights || undefined,
-                information: newItem.information || undefined,
-                key_ingredients: newItem.key_ingredients || undefined,
-                key_benefits: newItem.key_benefits || undefined,
-                directions_for_use: newItem.directions_for_use || undefined,
-                safety_information: newItem.safety_information || undefined,
+                information: newItem.information || newItem.introduction || undefined,
+                introduction: newItem.introduction || newItem.information || undefined,
+                key_ingredients: newItem.key_ingredients || newItem.composition || undefined,
+                composition: newItem.composition || newItem.key_ingredients || undefined,
+                key_benefits: newItem.key_benefits || newItem.benefits || undefined,
+                benefits: newItem.benefits || newItem.key_benefits || undefined,
+                directions_for_use: newItem.directions_for_use || newItem.how_to_use || undefined,
+                how_to_use: newItem.how_to_use || newItem.directions_for_use || undefined,
+                safety_information: newItem.safety_information || newItem.safety_advise || undefined,
+                safety_advise: newItem.safety_advise || newItem.safety_information || undefined,
+                if_miss: newItem.if_miss || undefined,
+                fact_box: newItem.fact_box || undefined,
+                primary_use: newItem.primary_use || undefined,
+                storage: newItem.storage || undefined,
+                side_effects: newItem.side_effects || undefined,
+                alcohol_interaction: newItem.alcohol_interaction || undefined,
+                pregnancy_interaction: newItem.pregnancy_interaction || undefined,
+                lactation_interaction: newItem.lactation_interaction || undefined,
+                driving_interaction: newItem.driving_interaction || undefined,
+                kidney_interaction: newItem.kidney_interaction || undefined,
+                liver_interaction: newItem.liver_interaction || undefined,
                 country_of_origin: newItem.country_of_origin || undefined,
+                q_a: newItem.q_a || undefined,
+                how_it_works: newItem.how_it_works || undefined,
+                drug_interactions: newItem.drug_interactions || undefined,
                 marketer_details: newItem.marketer_details || undefined,
-                image_urls: newItem.image_urls ? newItem.image_urls.split(',').map(s => s.trim()).filter(Boolean) : []
+                image_urls: extractImageUrls(newItem.image_urls)
             };
 
             await upsertMasterData(payload);
             setStatus({ type: 'success', message: 'Item saved successfully' });
             setNewItem({
-                name: '', product_id: '', category: 'medicine', marketing_company: '', type: 'drugs',
-                packaging: '', package: 'Strip', qty: '', product_form: 'Tablet', mrp: '',
-                product_highlights: '', information: '', key_ingredients: '', key_benefits: '',
-                directions_for_use: '', safety_information: '', country_of_origin: 'India',
-                marketer_details: '', image_urls: ''
+                name: '', product_id: '', category: 'medicine', marketing_company: '', marketer: '', type: 'drugs',
+                medicine_type: 'drugs', packaging: '', packaging_detail: '', package: 'Strip', package_type: 'Strip',
+                qty: '', product_form: 'Tablet', mrp: '', prescription_required: true, product_highlights: '',
+                information: '', introduction: '', key_ingredients: '', composition: '', key_benefits: '', benefits: '',
+                directions_for_use: '', how_to_use: '', safety_information: '', safety_advise: '', if_miss: '',
+                fact_box: '', primary_use: '', storage: '', side_effects: '', alcohol_interaction: '',
+                pregnancy_interaction: '', lactation_interaction: '', driving_interaction: '',
+                kidney_interaction: '', liver_interaction: '', country_of_origin: 'India', q_a: '',
+                how_it_works: '', drug_interactions: '', marketer_details: '', image_urls: ''
             });
             setIsAdding(false);
             loadData();
@@ -205,64 +460,110 @@ const ClinicalMasterManagement = () => {
         }
     };
 
-    // Export all records with the exact 19 column names
+    const handleClearCategory = async () => {
+        const count = data.length;
+        if (count === 0) return;
+        const confirmed = window.confirm(
+            `Are you sure you want to remove all ${count} ${activeCat.name.toLowerCase()} from the database? This action cannot be undone.`
+        );
+        if (!confirmed) return;
+
+        try {
+            await clearCategoryMasterData(selectedCategory);
+            setData([]);
+            setStatus({ type: 'success', message: `Successfully cleared all ${activeCat.name.toLowerCase()} from database!` });
+        } catch (err) {
+            console.error('Failed to clear category:', err);
+            setStatus({ type: 'error', message: err.response?.data?.message || 'Failed to clear category' });
+        } finally {
+            setTimeout(() => setStatus({ type: '', message: '' }), 3500);
+        }
+    };
+
+    // Export all records with the exact 32 column names
     const handleExportExcel = () => {
         if (!data.length) return;
         const exportRows = data.map(item => ({
             'Product ID': item.product_id || item.code || '',
-            'name': item.name || '',
-            'Category': item.category || 'medicine',
-            'Marketing Company': item.marketing_company || item.marketer || '',
-            'type': item.type || item.medicine_type || '',
-            'Packaging': item.packaging || item.packaging_detail || '',
+            'Product Name': item.name || '',
+            'Marketer': item.marketing_company || item.marketer || '',
+            'Composition': item.composition || item.key_ingredients || '',
+            'medicine_type': item.medicine_type || item.type || '',
+            'Introduction': item.introduction || item.information || '',
+            'Benefits': item.benefits || item.key_benefits || '',
+            'how_to_use': item.how_to_use || item.directions_for_use || '',
+            'safety_advise': item.safety_advise || item.safety_information || '',
+            'if_miss': item.if_miss || '',
+            'Packaging Detail': item.packaging_detail || item.packaging || '',
             'Package': item.package || item.package_type || '',
             'Qty': item.qty != null ? item.qty : '',
             'Product Form': item.product_form || '',
             'MRP': item.mrp != null ? item.mrp : '',
-            'product_highlights': item.product_highlights || '',
-            'Information': item.information || item.introduction || '',
-            'Key Ingredients': item.key_ingredients || item.composition || '',
-            'Key Benefits': item.key_benefits || item.benefits || '',
-            'Directions for Use': item.directions_for_use || item.how_to_use || '',
-            'Safety Information': item.safety_information || item.safety_advise || '',
+            'prescription_required': item.prescription_required ? 'Prescription Required' : 'Not Required',
+            'Fact_Box': item.fact_box || '',
+            'primary_use': item.primary_use || '',
+            'storage': item.storage || '',
+            'side_effect': item.side_effects || '',
+            'alcoholInteraction': item.alcohol_interaction || '',
+            'pregnancyInteraction': item.pregnancy_interaction || '',
+            'lactationInteraction': item.lactation_interaction || '',
+            'drivingInteraction': item.driving_interaction || '',
+            'kidneyInteraction': item.kidney_interaction || '',
+            'liverInteraction': item.liver_interaction || '',
             'country_of_origin': item.country_of_origin || '',
+            'Q_A': item.q_a || '',
+            'How it works': item.how_it_works || '',
+            'drug-drug Interaction': item.drug_interactions || '',
             'Marketer details': item.marketer_details || '',
-            'Image_Urls': Array.isArray(item.image_urls) ? item.image_urls.join('|') : (item.image_urls || '')
+            'Image_Urls': extractImageUrls(item).join(' | ')
         }));
 
         const ws = XLSX.utils.json_to_sheet(exportRows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Medicines');
-        XLSX.writeFile(wb, `Clinical_Master_19_Columns_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.writeFile(wb, `Clinical_Master_32_Columns_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
 
-    // Download template with exact 19 column headers
+    // Download template with exact 32 column headers
     const handleDownloadTemplate = () => {
         const templateRows = [{
             'Product ID': 'DRS003256',
-            'name': 'Acenac Tablet',
-            'Category': 'medicine',
-            'Marketing Company': 'Medley Pharmaceuticals',
-            'type': 'drugs',
-            'Packaging': '10 tablets in 1 strip',
+            'Product Name': 'Acenac Tablet',
+            'Marketer': 'Medley Pharmaceuticals',
+            'Composition': 'Aceclofenac (100mg)',
+            'medicine_type': 'drugs',
+            'Introduction': 'Acenac Tablet is a pain-relieving medicine. It alleviates pain and inflammation in conditions such as rheumatoid arthritis, ankylosing spondylitis, osteoarthritis, low back pain, dental pain, gynecological pain, and painful & inflammatory conditions of the ear, nose, and throat.',
+            'Benefits': 'Pain relief and reduction of inflammation in arthritis and acute pain.',
+            'how_to_use': 'Acenac Tablet should be taken at the dose and duration advised by your doctor. It should be taken with food or milk to prevent stomach upset.',
+            'safety_advise': '- Alcohol : CONSULT YOUR DOCTOR <p> It is not known whether it is safe to consume alcohol with Acenac Tablet. Please consult your doctor. | - Pregnancy : CONSULT YOUR DOCTOR <p> Acenac Tablet is not recommended during pregnancy as there is positive evidence of fetal risk based on animal studies. However, it may still be prescribed by a doctor in situations where the benefits outweigh the risks. | - Breast feeding : CAUTION <p> Acenac Tablet should be used with caution during breastfeeding. Breastfeeding should be held until the treatment of the mother is completed and the drug is eliminated from the body. | - Driving : UNSAFE <p> Acenac Tablet may decrease alertness, affect your vision, or make you feel sleepy and dizzy. Do not drive if these symptoms occur. | - Kidney : CAUTION <p> Acenac Tablet should be used with caution in patients with kidney disease. Dose adjustment may be needed.Use of Acenac Tablet is not recommended in patients with severe kidney disease. | - Liver : CAUTION <p> Acenac Tablet should be used with caution in patients with liver disease. Dose adjustment may be needed.Use of Acenac Tablet is not recommended in patients with severe liver disease. Regular monitoring of liver function tests is advisable while the patient is taking this medicine.',
+            'if_miss': 'If you miss a dose, take it as soon as you remember. If it is near the time of the next dose, skip the missed dose and resume your regular schedule.',
+            'Packaging Detail': 'strip of 10 tablets',
             'Package': 'Strip',
             'Qty': '10',
             'Product Form': 'Tablet',
-            'MRP': 55.00,
-            'product_highlights': 'Pain-relieving medicine for arthritis and fever',
-            'Information': 'Acenac Tablet is a pain-relieving medicine. It alleviates pain and inflammation...',
-            'Key Ingredients': 'Aceclofenac (100mg)',
-            'Key Benefits': 'Alleviates pain and inflammation in conditions such as rheumatoid arthritis...',
-            'Directions for Use': 'Should be taken at the dose and duration advised by your doctor with food.',
-            'Safety Information': 'Common side effects include nausea and dizziness. Avoid alcohol.',
+            'MRP': 55.78,
+            'prescription_required': 'Prescription Required',
+            'Fact_Box': 'Store in cool and dry place',
+            'primary_use': 'Pain relief',
+            'storage': 'Store below 30°C',
+            'side_effect': 'Vomiting, stomach pain, nausea, and indigestion',
+            'alcoholInteraction': 'CONSULT YOUR DOCTOR <p> It is not known whether it is safe to consume alcohol with Acenac Tablet. Please consult your doctor.',
+            'pregnancyInteraction': 'CONSULT YOUR DOCTOR <p> Acenac Tablet is not recommended during pregnancy as there is positive evidence of fetal risk based on animal studies. However, it may still be prescribed by a doctor in situations where the benefits outweigh the risks.',
+            'lactationInteraction': 'CAUTION <p> Acenac Tablet should be used with caution during breastfeeding. Breastfeeding should be held until the treatment of the mother is completed and the drug is eliminated from the body.',
+            'drivingInteraction': 'UNSAFE <p> Acenac Tablet may decrease alertness, affect your vision, or make you feel sleepy and dizzy. Do not drive if these symptoms occur.',
+            'kidneyInteraction': 'CAUTION <p> Acenac Tablet should be used with caution in patients with kidney disease. Dose adjustment may be needed.Use of Acenac Tablet is not recommended in patients with severe kidney disease.',
+            'liverInteraction': 'CAUTION <p> Acenac Tablet should be used with caution in patients with liver disease. Dose adjustment may be needed.Use of Acenac Tablet is not recommended in patients with severe liver disease. Regular monitoring of liver function tests is advisable while the patient is taking this medicine.',
             'country_of_origin': 'India',
+            'Q_A': 'Q: Can I take Acenac Tablet for a toothache? A: Yes, Acenac Tablet is commonly prescribed for dental pain relief.',
+            'How it works': 'Acenac Tablet works by blocking the action of cyclooxygenase (COX) enzymes which produce prostaglandins that cause pain and swelling.',
+            'drug-drug Interaction': 'Avoid taking with other NSAIDs (ibuprofen, aspirin) or blood thinners (warfarin).',
             'Marketer details': 'Medley Pharmaceuticals Ltd, Andheri East, Mumbai',
-            'Image_Urls': 'https://example.com/med.jpg'
+            'Image_Urls': 'https://medicinedata.in/drg/DRS003256_1.jpg | https://medicinedata.in/drg/DRS003256_2.jpg | https://medicinedata.in/drg/DRS003256_3.jpg'
         }];
         const ws = XLSX.utils.json_to_sheet(templateRows);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Template');
-        XLSX.writeFile(wb, 'Medicine_19_Columns_Template.xlsx');
+        XLSX.writeFile(wb, 'Medicine_32_Columns_Template.xlsx');
     };
 
     // Handle File Drop or Upload
@@ -387,6 +688,31 @@ const ClinicalMasterManagement = () => {
                         <FileSpreadsheet size={16} color="#059669" />
                         <span>Export Excel ({data.length})</span>
                     </button>
+
+                    {data.length > 0 && (
+                        <button 
+                            onClick={handleClearCategory}
+                            title={`Clear all ${activeCat.name.toLowerCase()} from database`}
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '6px', 
+                                padding: '10px 14px', 
+                                background: '#fff', 
+                                border: '1.5px solid #fecaca', 
+                                borderRadius: '10px', 
+                                fontWeight: 700, 
+                                color: '#dc2626', 
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s',
+                                fontSize: '13px'
+                            }}
+                        >
+                            <Trash2 size={16} color="#dc2626" />
+                            <span>Clear All ({data.length})</span>
+                        </button>
+                    )}
 
                     <button 
                         onClick={() => setIsImporting(true)}
@@ -592,10 +918,10 @@ const ClinicalMasterManagement = () => {
                                                                         fontSize: '13px', 
                                                                         color: isName ? '#0f172a' : '#334155',
                                                                         fontWeight: (isName || isProdId || isMrp) ? 700 : 400,
-                                                                        whiteSpace: 'nowrap',
+                                                                        whiteSpace: col.key === 'Image_Urls' ? 'normal' : 'nowrap',
                                                                         maxWidth: col.width,
-                                                                        overflow: 'hidden',
-                                                                        textOverflow: 'ellipsis',
+                                                                        overflow: col.key === 'Image_Urls' ? 'visible' : 'hidden',
+                                                                        textOverflow: col.key === 'Image_Urls' ? 'clip' : 'ellipsis',
                                                                         borderRight: '1px solid #f8fafc'
                                                                     }}
                                                                 >
@@ -717,7 +1043,7 @@ const ClinicalMasterManagement = () => {
                             </button>
                         </div>
 
-                        {/* 19 Exact Columns Grid */}
+                        {/* 32 Complete Clinical Master Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div>
                                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Product ID</span>
@@ -728,16 +1054,16 @@ const ClinicalMasterManagement = () => {
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.category || 'medicine'}</div>
                             </div>
                             <div>
-                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Marketing Company</span>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Marketer / Company</span>
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.marketing_company || viewingItem.marketer || '-'}</div>
                             </div>
                             <div>
-                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>type</span>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.type || viewingItem.medicine_type || '-'}</div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>medicine_type</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px', textTransform: 'capitalize' }}>{viewingItem.medicine_type || viewingItem.type || 'drugs'}</div>
                             </div>
                             <div>
-                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Packaging</span>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.packaging || viewingItem.packaging_detail || '-'}</div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Packaging Detail</span>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.packaging_detail || viewingItem.packaging || '-'}</div>
                             </div>
                             <div>
                                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Package</span>
@@ -758,36 +1084,111 @@ const ClinicalMasterManagement = () => {
                                 </div>
                             </div>
                             <div>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>prescription_required</span>
+                                <div style={{ marginTop: '2px' }}>
+                                    {viewingItem.prescription_required ? (
+                                        <span style={{ fontSize: '11px', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>Prescription Required</span>
+                                    ) : (
+                                        <span style={{ fontSize: '11px', background: '#f0fdf4', color: '#16a34a', padding: '2px 8px', borderRadius: '6px', fontWeight: 600 }}>OTC (Not Required)</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
                                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>country_of_origin</span>
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.country_of_origin || '-'}</div>
                             </div>
                             {viewingItem.primary_use && (
                                 <div>
-                                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, display: 'block' }}>Primary Use</span>
+                                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, display: 'block' }}>primary_use</span>
                                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#0369a1', marginTop: '2px' }}>{viewingItem.primary_use}</div>
                                 </div>
                             )}
                             {viewingItem.storage && (
                                 <div>
-                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Storage Condition</span>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>storage</span>
                                     <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.storage}</div>
+                                </div>
+                            )}
+                            {viewingItem.fact_box && (
+                                <div>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Fact_Box</span>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.fact_box}</div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Text Sections */}
-                        {viewingItem.product_highlights && (
+                        {/* Safety Advisories & Drug Interactions (6 Dedicated Cards) */}
+                        <div style={{ marginBottom: '20px' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>Safety Advisories & Interactions</span>
+                                <span style={{ fontSize: '11px', fontWeight: 700, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '10px' }}>
+                                    Clinical Safety
+                                </span>
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                                {[
+                                    { key: 'alcoholInteraction', label: 'Alcohol', icon: '🍷', val: viewingItem.alcohol_interaction },
+                                    { key: 'pregnancyInteraction', label: 'Pregnancy', icon: '🤰', val: viewingItem.pregnancy_interaction },
+                                    { key: 'lactationInteraction', label: 'Breast feeding', icon: '🤱', val: viewingItem.lactation_interaction },
+                                    { key: 'drivingInteraction', label: 'Driving', icon: '🚗', val: viewingItem.driving_interaction },
+                                    { key: 'kidneyInteraction', label: 'Kidney', icon: '🩺', val: viewingItem.kidney_interaction },
+                                    { key: 'liverInteraction', label: 'Liver', icon: '🫁', val: viewingItem.liver_interaction }
+                                ].map((item) => {
+                                    const { status, desc, raw } = parseSafetyStatus(item.val);
+                                    const style = getStatusBadgeStyle(status);
+                                    return (
+                                        <div key={item.key} style={{ background: '#f8fafc', borderRadius: '10px', padding: '12px 14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>{item.icon}</span>
+                                                    <span>{item.label}</span>
+                                                </span>
+                                                {status && (
+                                                    <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 7px', borderRadius: '5px', background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
+                                                        {status}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p style={{ fontSize: '12px', color: '#475569', lineHeight: 1.45, margin: 0 }}>
+                                                {desc || item.val || <span style={{ color: '#94a3b8' }}>No specific warning reported. Consult your doctor.</span>}
+                                            </p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Text & Clinical Sections */}
+                        {(viewingItem.safety_advise || viewingItem.safety_information) && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>product_highlights</h4>
-                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.5, background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px' }}>
-                                    {viewingItem.product_highlights}
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '4px' }}>safety_advise (Full Overview)</h4>
+                                <div style={{ fontSize: '12px', color: '#991b1b', lineHeight: 1.5, background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                                    {String(viewingItem.safety_advise || viewingItem.safety_information).replace(/<\/?[^>]+(>|$)/g, ' ')}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingItem.side_effects && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', marginBottom: '4px' }}>side_effect</h4>
+                                <div style={{ fontSize: '13px', color: '#991b1b', background: '#fff1f2', border: '1px solid #ffe4e6', padding: '10px 14px', borderRadius: '8px', lineHeight: 1.5 }}>
+                                    {viewingItem.side_effects}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingItem.if_miss && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>if_miss (Missed Dose Instructions)</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', lineHeight: 1.5 }}>
+                                    {viewingItem.if_miss}
                                 </div>
                             </div>
                         )}
 
                         {(viewingItem.information || viewingItem.introduction) && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Information</h4>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Introduction / Information</h4>
                                 <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
                                     {viewingItem.information || viewingItem.introduction}
                                 </div>
@@ -796,7 +1197,7 @@ const ClinicalMasterManagement = () => {
 
                         {(viewingItem.key_ingredients || viewingItem.composition) && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Key Ingredients</h4>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Composition</h4>
                                 <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '8px' }}>
                                     {viewingItem.key_ingredients || viewingItem.composition}
                                 </div>
@@ -805,7 +1206,7 @@ const ClinicalMasterManagement = () => {
 
                         {(viewingItem.key_benefits || viewingItem.benefits) && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Key Benefits</h4>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Benefits</h4>
                                 <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
                                     {viewingItem.key_benefits || viewingItem.benefits}
                                 </div>
@@ -814,18 +1215,36 @@ const ClinicalMasterManagement = () => {
 
                         {(viewingItem.directions_for_use || viewingItem.how_to_use) && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Directions for Use</h4>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>how_to_use</h4>
                                 <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.6, background: '#fff', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '8px' }}>
                                     {viewingItem.directions_for_use || viewingItem.how_to_use}
                                 </div>
                             </div>
                         )}
 
-                        {(viewingItem.safety_information || viewingItem.safety_advise) && (
+                        {viewingItem.how_it_works && (
                             <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '4px' }}>Safety Information</h4>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>How it works</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.5, background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    {viewingItem.how_it_works}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingItem.drug_interactions && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', marginBottom: '4px' }}>drug-drug Interaction</h4>
                                 <div style={{ fontSize: '13px', color: '#991b1b', lineHeight: 1.5, background: '#fef2f2', padding: '10px 14px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                                    {viewingItem.safety_information || viewingItem.safety_advise}
+                                    {viewingItem.drug_interactions}
+                                </div>
+                            </div>
+                        )}
+
+                        {viewingItem.q_a && (
+                            <div style={{ marginBottom: '14px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Q_A (Questions & Answers)</h4>
+                                <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.5, background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    {viewingItem.q_a}
                                 </div>
                             </div>
                         )}
@@ -839,43 +1258,87 @@ const ClinicalMasterManagement = () => {
                             </div>
                         )}
 
-                        {((Array.isArray(viewingItem.image_urls) && viewingItem.image_urls.length > 0) || (typeof viewingItem.image_urls === 'string' && viewingItem.image_urls.trim())) && (() => {
-                            const rawList = Array.isArray(viewingItem.image_urls)
-                                ? viewingItem.image_urls
-                                : viewingItem.image_urls.split(/[|,\n]/).map(s => s.trim().replace(/^\[|\]$/g, '')).filter(Boolean);
-                            const validImgs = rawList.filter(u => u.startsWith('http') || u.endsWith('.jpg') || u.endsWith('.png') || u.endsWith('.webp'));
+                        {(() => {
+                            const urls = extractImageUrls(viewingItem);
                             return (
-                                <div style={{ marginBottom: '14px' }}>
-                                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span>Image_Urls</span>
-                                        <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '1px 8px', borderRadius: '10px' }}>
-                                            {validImgs.length} {validImgs.length === 1 ? 'image' : 'images'}
-                                        </span>
-                                    </h4>
-                                    {validImgs.length > 0 && (
-                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                                            {validImgs.map((imgUrl, idx) => (
-                                                <a 
-                                                    key={idx} 
-                                                    href={imgUrl} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    title={`View image ${idx + 1}`}
-                                                    style={{ display: 'inline-block', borderRadius: '8px', border: '1.5px solid #cbd5e1', padding: '4px', background: '#fff' }}
-                                                >
-                                                    <img 
-                                                        src={imgUrl} 
-                                                        alt={`Product ${idx + 1}`} 
-                                                        style={{ width: '64px', height: '64px', objectFit: 'contain', display: 'block' }}
-                                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                                    />
-                                                </a>
-                                            ))}
+                                <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                        <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ImageIcon size={16} color="#4f46e5" />
+                                            <span>Product Images & Links (Image_Urls)</span>
+                                            <span style={{ fontSize: '11px', background: urls.length ? '#e0e7ff' : '#f1f5f9', color: urls.length ? '#4338ca' : '#64748b', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>
+                                                {urls.length} {urls.length === 1 ? 'image' : 'images'}
+                                            </span>
+                                        </h4>
+                                    </div>
+
+                                    {urls.length > 0 ? (
+                                        <>
+                                            {/* Visual Image Gallery */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                                                {urls.map((imgUrl, idx) => (
+                                                    <div key={idx} style={{ background: '#fff', borderRadius: '10px', border: '1.5px solid #e2e8f0', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                        <div style={{ height: '110px', width: '100%', borderRadius: '6px', overflow: 'hidden', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <img 
+                                                                src={imgUrl} 
+                                                                alt={`Product ${idx + 1}`} 
+                                                                referrerPolicy="no-referrer"
+                                                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                                                onError={(e) => {
+                                                                    e.target.onerror = null;
+                                                                    e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>Image {idx + 1}</span>
+                                                            <a 
+                                                                href={imgUrl} 
+                                                                target="_blank" 
+                                                                rel="noreferrer" 
+                                                                title={`Open Image ${idx + 1}`}
+                                                                style={{ fontSize: '11px', color: '#2563eb', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none', background: '#eff6ff', padding: '3px 8px', borderRadius: '5px', border: '1px solid #bfdbfe' }}
+                                                            >
+                                                                <span>Open</span>
+                                                                <ExternalLink size={10} />
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Full Direct Image Links List */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Direct Image URLs:</span>
+                                                {urls.map((u, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', fontSize: '12px' }}>
+                                                        <a 
+                                                            href={u} 
+                                                            target="_blank" 
+                                                            rel="noreferrer"
+                                                            style={{ color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '560px', fontFamily: 'monospace', fontWeight: 500 }}
+                                                            title={u}
+                                                        >
+                                                            {u}
+                                                        </a>
+                                                        <a 
+                                                            href={u} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#4f46e5', fontWeight: 700, textDecoration: 'none', padding: '3px 8px', borderRadius: '4px', background: '#eef2ff', whiteSpace: 'nowrap' }}
+                                                        >
+                                                            <span>Open Link</span>
+                                                            <ExternalLink size={11} />
+                                                        </a>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+                                            No image links associated with this product.
                                         </div>
                                     )}
-                                    <div style={{ fontSize: '11px', color: '#6366f1', wordBreak: 'break-all', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                                        {validImgs.join(' | ') || String(viewingItem.image_urls)}
-                                    </div>
                                 </div>
                             );
                         })()}
@@ -1065,6 +1528,29 @@ const ClinicalMasterManagement = () => {
                                         </div>
                                     </div>
 
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Product ID / Code</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. DRS003256"
+                                                value={newItem.product_id}
+                                                onChange={e => setNewItem({ ...newItem, product_id: e.target.value })}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px', fontFamily: 'monospace' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Primary Use (Indication)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Pain relief"
+                                                value={newItem.primary_use}
+                                                onChange={e => setNewItem({ ...newItem, primary_use: e.target.value })}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Marketer / Brand</label>
                                         <input
@@ -1074,6 +1560,46 @@ const ClinicalMasterManagement = () => {
                                             onChange={e => setNewItem({ ...newItem, marketer: e.target.value })}
                                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Marketer Details (Company Address / Info)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Medley Pharmaceuticals Ltd, Andheri East, Mumbai"
+                                            value={newItem.marketer_details}
+                                            onChange={e => setNewItem({ ...newItem, marketer_details: e.target.value })}
+                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '14px' }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                                            Image URLs (Multiple images supported — comma, pipe |, or ['url1', 'url2'])
+                                        </label>
+                                        <textarea
+                                            rows={2}
+                                            placeholder="https://example.com/med_1.jpg | https://example.com/med_2.jpg"
+                                            value={newItem.image_urls}
+                                            onChange={e => setNewItem({ ...newItem, image_urls: e.target.value })}
+                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #e2e8f0', outline: 'none', fontSize: '13px', resize: 'vertical', fontFamily: 'monospace' }}
+                                        />
+                                        {(() => {
+                                            const detected = extractImageUrls(newItem.image_urls);
+                                            if (!detected.length) return null;
+                                            return (
+                                                <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>
+                                                        ✓ Detected {detected.length} link{detected.length > 1 ? 's' : ''}:
+                                                    </span>
+                                                    {detected.map((u, i) => (
+                                                        <span key={i} style={{ fontSize: '11px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '4px' }}>
+                                                            Image {i + 1}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </>
                             )}

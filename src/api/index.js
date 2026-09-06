@@ -194,6 +194,7 @@ export const getMasterData = (params) => api.get('/clinical/master', { params })
 export const upsertMasterData = (data) => api.post('/clinical/master', data);
 export const bulkUpsertMasterData = (items, category = 'medicine') => api.post('/clinical/master/bulk', { items, category });
 export const deleteMasterData = (id) => api.delete(`/clinical/master/${id}`);
+export const clearCategoryMasterData = (category) => api.delete(`/clinical/master/clear/${category}`);
 
 // Patient Clinical Context
 export const getPatientVitalsHistory = (patientId) => api.get(`/mrd/${patientId}/vitals-history`);
