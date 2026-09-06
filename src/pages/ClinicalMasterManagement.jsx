@@ -53,8 +53,37 @@ const MEDICINE_COLUMNS = [
     { key: 'Directions for Use', label: 'Directions for Use', width: '220px', render: (i) => i.directions_for_use || i.how_to_use || '-' },
     { key: 'Safety Information', label: 'Safety Information', width: '240px', render: (i) => i.safety_information || i.safety_advise || '-' },
     { key: 'country_of_origin', label: 'country_of_origin', width: '140px', render: (i) => i.country_of_origin || '-' },
-    { key: 'Marketer details', label: 'Marketer details', width: '220px', render: (i) => i.marketer_details || '-' },
-    { key: 'Image_Urls', label: 'Image_Urls', width: '200px', render: (i) => Array.isArray(i.image_urls) && i.image_urls.length ? i.image_urls.join(', ') : (i.image_urls || '-') }
+    { 
+        key: 'Marketer details', 
+        label: 'Marketer details', 
+        width: '220px', 
+        render: (i) => {
+            if (i.marketer_details && i.marketer_details !== i.primary_use) return i.marketer_details;
+            return i.marketing_company || i.marketer || '-';
+        }
+    },
+    { 
+        key: 'Image_Urls', 
+        label: 'Image_Urls', 
+        width: '180px', 
+        render: (i) => {
+            const urls = Array.isArray(i.image_urls) ? i.image_urls : (typeof i.image_urls === 'string' && i.image_urls ? i.image_urls.split(/[|,\n]/).map(s => s.trim().replace(/^\[|\]$/g, '')).filter(Boolean) : []);
+            if (!urls.length) return '-';
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img 
+                        src={urls[0]} 
+                        alt="" 
+                        style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff' }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: 700, background: '#e0e7ff', padding: '2px 7px', borderRadius: '10px' }}>
+                        {urls.length} img{urls.length > 1 ? 's' : ''}
+                    </span>
+                </div>
+            );
+        }
+    }
 ];
 
 const ClinicalMasterManagement = () => {
@@ -270,10 +299,11 @@ const ClinicalMasterManagement = () => {
             setParsedRows([]);
             loadData();
         } catch (err) {
-            setStatus({ type: 'error', message: err.response?.data?.message || 'Import failed' });
+            const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Import failed';
+            setStatus({ type: 'error', message: errorMsg });
         } finally {
             setImportLoading(false);
-            setTimeout(() => setStatus({ type: '', message: '' }), 4000);
+            setTimeout(() => setStatus({ type: '', message: '' }), 5000);
         }
     };
 
@@ -731,6 +761,18 @@ const ClinicalMasterManagement = () => {
                                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>country_of_origin</span>
                                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.country_of_origin || '-'}</div>
                             </div>
+                            {viewingItem.primary_use && (
+                                <div>
+                                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, display: 'block' }}>Primary Use</span>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0369a1', marginTop: '2px' }}>{viewingItem.primary_use}</div>
+                                </div>
+                            )}
+                            {viewingItem.storage && (
+                                <div>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, display: 'block' }}>Storage Condition</span>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '2px' }}>{viewingItem.storage}</div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Text Sections */}
@@ -788,23 +830,55 @@ const ClinicalMasterManagement = () => {
                             </div>
                         )}
 
-                        {viewingItem.marketer_details && (
+                        {viewingItem.marketer_details && viewingItem.marketer_details !== viewingItem.primary_use && (
                             <div style={{ marginBottom: '14px' }}>
                                 <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Marketer details</h4>
-                                <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '13px', color: '#334155', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', lineHeight: 1.5 }}>
                                     {viewingItem.marketer_details}
                                 </div>
                             </div>
                         )}
 
-                        {((Array.isArray(viewingItem.image_urls) && viewingItem.image_urls.length > 0) || viewingItem.image_urls) && (
-                            <div style={{ marginBottom: '14px' }}>
-                                <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>Image_Urls</h4>
-                                <div style={{ fontSize: '12px', color: '#6366f1', wordBreak: 'break-all', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    {Array.isArray(viewingItem.image_urls) ? viewingItem.image_urls.join(', ') : viewingItem.image_urls}
+                        {((Array.isArray(viewingItem.image_urls) && viewingItem.image_urls.length > 0) || (typeof viewingItem.image_urls === 'string' && viewingItem.image_urls.trim())) && (() => {
+                            const rawList = Array.isArray(viewingItem.image_urls)
+                                ? viewingItem.image_urls
+                                : viewingItem.image_urls.split(/[|,\n]/).map(s => s.trim().replace(/^\[|\]$/g, '')).filter(Boolean);
+                            const validImgs = rawList.filter(u => u.startsWith('http') || u.endsWith('.jpg') || u.endsWith('.png') || u.endsWith('.webp'));
+                            return (
+                                <div style={{ marginBottom: '14px' }}>
+                                    <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>Image_Urls</span>
+                                        <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '1px 8px', borderRadius: '10px' }}>
+                                            {validImgs.length} {validImgs.length === 1 ? 'image' : 'images'}
+                                        </span>
+                                    </h4>
+                                    {validImgs.length > 0 && (
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                            {validImgs.map((imgUrl, idx) => (
+                                                <a 
+                                                    key={idx} 
+                                                    href={imgUrl} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    title={`View image ${idx + 1}`}
+                                                    style={{ display: 'inline-block', borderRadius: '8px', border: '1.5px solid #cbd5e1', padding: '4px', background: '#fff' }}
+                                                >
+                                                    <img 
+                                                        src={imgUrl} 
+                                                        alt={`Product ${idx + 1}`} 
+                                                        style={{ width: '64px', height: '64px', objectFit: 'contain', display: 'block' }}
+                                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                                    />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: '11px', color: '#6366f1', wordBreak: 'break-all', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                                        {validImgs.join(' | ') || String(viewingItem.image_urls)}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <div style={{ textAlign: 'right', marginTop: '24px' }}>
                             <button 
